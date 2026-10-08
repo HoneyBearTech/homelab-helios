@@ -29,6 +29,7 @@ decision about those players, not about this stack. It runs with no added privil
 | The stack's images | `compose.yaml` | version tag and digest | `docker compose pull` |
 | Check and test tools (pytest, coverage, ruff, yamllint, shellcheck) | [`requirements-dev.in`](../requirements-dev.in) → [`requirements-dev.txt`](../requirements-dev.txt) | exact version and SHA-256 hashes (`pip-compile --generate-hashes`) | `pip install --require-hashes --no-deps` |
 | Helper image for backups and the smoke test (busybox) | [`scripts/lib.sh`](../scripts/lib.sh) | version tag and digest | Docker |
+| Kometa's JSON schemas, used only to validate `kometa/` | Kometa's image in `compose.yaml` | that image's release tag | `scripts/kometa-validate.sh` (git), CI (`actions/checkout`) |
 | Linters and scanners used only by CI (actionlint, gitleaks, Trivy) | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`scan.yml`](../.github/workflows/scan.yml) | version tag and digest | Docker |
 | GitHub Actions | [`.github/workflows/`](../.github/workflows/) | full commit SHA (version in a comment) | GitHub Actions |
 
@@ -42,7 +43,8 @@ Each release will carry a CycloneDX SBOM listing every service's image and diges
 - The CI-only images in `run:` steps and the scripts' busybox image aren't seen by Dependabot; they're bumped
   by hand at least every quarter.
 - **Patch, minor and major updates merge automatically** once every required check has passed (CI with the Compose
-  policy check and the smoke test, CodeQL, dependency review). That includes Plex, which releases often: it
+  policy check, the smoke test and the validation of Kometa's configuration against the new Kometa, CodeQL,
+  dependency review). That includes Plex, which releases often: it
   can't touch the media library, and its updates often fix security issues.
 - **Major updates are read about before they're deployed**, not before they merge: a new major version can
   migrate its data one way, so the service's release notes are read, and a backup taken, before the redeploy

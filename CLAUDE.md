@@ -80,8 +80,8 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 
 ## Kometa
 Kometa's configuration is in the repo (`kometa/`, mounted read-only over `/config/<name>` with
-`KOMETA_READ_ONLY_CONFIG`; the Decisions-Log entries from 2026-10-08); CI validation and a weekly upstream watch
-are **Planned**.
+`KOMETA_READ_ONLY_CONFIG`; the Decisions-Log entries from 2026-10-08), validated by the required `CI / Kometa config`
+check (`scripts/kometa-validate.sh`); a weekly upstream watch is **Planned**.
 - **Secrets and host facts in Kometa's YAML are placeholders**: `<<UPPER_SNAKE>>`, which Kometa fills from
   the `KOMETA_<UPPER_SNAKE>` environment variable (`<<lower_snake>>` doesn't match, and an unmatched
   placeholder silently becomes empty). That covers tokens, API keys, Plex's URL, notification URLs and
@@ -129,7 +129,7 @@ are **Planned**.
 - Docs in `docs/` change in the same PR as the behaviour; anything not built yet is marked **Planned**.
 - Workflows: top-level `permissions: contents: read` (Scorecard: `read-all`), raise per job; actions pinned by
   full SHA with a version comment; untrusted `${{ github.event.* }}` only through `env:`.
-- Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, DCO sign-off,
+- Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, `CI / Kometa config`, DCO sign-off,
   Dependency review, CodeQL's Analyze (python) / Analyze (actions). Don't rename those jobs.
 - Claude opens a PR for every change and turns on auto-merge for it (`gh pr merge --auto --squash`; owner
   2026-10-08), as on the sibling repos. Never bypass a check or the ruleset.
@@ -141,6 +141,7 @@ make lint     # ruff check, ruff format --check, yamllint --strict, shellcheck -
 make check    # docker compose config --format json | scripts/check_compose.py  (needs .env and compose.yaml)
 make smoke    # scripts/smoke-test.sh: throwaway project, healthy, backup/restore round trip (needs Docker)
 make config   # docker compose config (resolved file)
+make kometa   # scripts/kometa-validate.sh: kometa/ against the pinned Kometa + its schemas (needs Docker, network)
 ```
 Release (only when the owner asks): as in homelab-ares' CLAUDE.md: CHANGELOG section in a PR, then a signed
 tag (`git tag -s vX.Y.Z`) checked against `.github/allowed_signers`, pushed; verify from outside afterwards.

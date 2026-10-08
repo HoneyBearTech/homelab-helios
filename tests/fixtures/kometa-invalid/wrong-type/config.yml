@@ -1,0 +1,11 @@
+# Broken on purpose: refresh.yml gives sync_mode a list. scripts/kometa-validate.sh must fail (CI checks it does).
+libraries:
+  Movies:
+    collection_files:
+    - file: config/refresh.yml
+plex:
+  url: <<PLEX_SERVER_URL>>
+  token: <<PLEX_SERVER_TOKEN>>
+tmdb:
+  apikey: <<TMDB_APIKEY>>
+  language: en

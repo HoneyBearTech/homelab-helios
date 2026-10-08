@@ -26,6 +26,10 @@ All notable changes to homelab-helios are documented here. The format follows
   key that isn't such a placeholder, on a placeholder name Kometa reserves for its own settings, and on a file in
   `kometa/` that `config.yml` doesn't link. The collection files that only tag or refresh items set
   `sync_mode: append`, which Kometa requires for them.
+- CI job "Kometa config" (`scripts/kometa-validate.sh`, `make kometa`): validates `kometa/` with the Kometa image
+  pinned in `compose.yaml` and the JSON schemas from the same release, with dummy values for the placeholders.
+  It fails on a schema error, when Kometa gives no result (it exits 0 without network), and on keys the schema
+  doesn't know (Kometa itself only reports those). Broken fixtures prove it fails.
 - Kometa reads `kometa/` from the checkout: each file is mounted read-only over `/config/<name>`, with
   `KOMETA_READ_ONLY_CONFIG` so Kometa never tries to rewrite `config.yml` (without it, a missing setting stops the
   run). Its secrets go in `.env` in its data directory, which Kometa loads itself, so they stay out of the

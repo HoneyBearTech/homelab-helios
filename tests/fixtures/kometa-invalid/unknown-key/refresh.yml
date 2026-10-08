@@ -1,0 +1,9 @@
+collections:
+  Refresh Metadata:
+    plex_search:
+      all:
+        release: 7
+    item_refresh: true
+    build_collection: false
+    sync_mode: append
+    refresh_metadata: true

@@ -1,4 +1,4 @@
-.PHONY: test lint check config smoke
+.PHONY: test lint check config smoke kometa
 
 PYTHON ?= python3
 VENV := .venv
@@ -29,6 +29,11 @@ check: $(VENV)/.installed
 # network; never touches an existing installation: scripts/smoke-test.sh)
 smoke:
 	scripts/smoke-test.sh
+
+# Validate kometa/ with the pinned Kometa image and its JSON schemas, without secrets (needs Docker and network;
+# scripts/kometa-validate.sh). The same check CI runs as "Kometa config".
+kometa:
+	scripts/kometa-validate.sh
 
 # Print the resolved Compose file, with .env applied (the tools started on demand included)
 config:
