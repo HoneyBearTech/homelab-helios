@@ -78,6 +78,30 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   reverse proxy reach the services by their published ports. Adopt the existing data and keep paths, image
   family and ports the same; see the cutover plan in Chronos.
 
+## Kometa
+Kometa's configuration is moving into the repo (`kometa/`, **Planned**; the Decisions-Log entries from
+2026-10-08), with CI validation and a weekly upstream watch.
+- **Secrets and host facts in Kometa's YAML are placeholders**: `<<UPPER_SNAKE>>`, which Kometa fills from
+  the `KOMETA_<UPPER_SNAKE>` environment variable (`<<lower_snake>>` doesn't match, and an unmatched
+  placeholder silently becomes empty). That covers tokens, API keys, Plex's URL, notification URLs and
+  Radarr/Sonarr addresses and root folders. The values go in the gitignored `kometa.env`, never in the repo.
+- **Never read Kometa's `config.yml`, its `.bak` copies or `config.cache` on the host as they are**: only
+  through the fail-closed redaction script, run on the host, so the secrets never reach your context. Before
+  reading any other file of Kometa's from the host, grep it there for secret-looking keys and show the matches
+  with values redacted.
+- **Verify Kometa's CLI and behaviour against the pinned image** (`docker run --rm <pinned image> --help`),
+  never from memory. Known for v2.5.2: validation needs network and a `config.yml`; the image has no
+  `json-schema/` (fetch it at the pinned tag and pass `--schema-path`, or schema checks are silently skipped and
+  the run still passes). A failed validation exits 1, but without network Kometa gives up after its retries
+  and exits 0 with no result, so a gate requires the `Result: PASSED` line as well as exit 0. Pass Kometa's
+  flags as separate arguments: given flags it doesn't recognise, it starts its scheduler and waits silently.
+  Schema validation passes some configs that fail at run time (a filter attribute such as
+  `audio_track_title.regex` used under `plex_search`), so a passing check is not proof the config runs.
+- **Kometa's validation is a required check.** Dependabot's patch and minor Kometa updates auto-merge, so the
+  validation runs as an always-running job (never path-filtered: a skipped required check blocks the PR).
+- Reviews of Kometa's configuration (optimization findings) are private planning: they go in Chronos, not
+  `docs/`.
+
 ## Stack
 - Docker Compose v2 (`compose.yaml`; the GPU in `compose.gpu.yaml`, added on the host via `COMPOSE_FILE`), upstream images: `lscr.io/linuxserver/plex` (with
   `VERSION=docker`, so it never self-updates), `lscr.io/linuxserver/tautulli`, `ghcr.io/mediux-team/aura`,
