@@ -39,7 +39,8 @@ jobs:
             exit 0
           fi
           cp .env.example .env
-          matrix=$(docker compose config --images | sort -u | jq -R -s -c '
+          # --profile tools: the tools started on demand (Quickstart) are scanned too.
+          matrix=$(docker compose --profile tools config --images | sort -u | jq -R -s -c '
             split("\n") | map(select(length > 0))
             | map({image: ., name: (split("@")[0] | split(":")[0] | split("/")[-1])})')
           echo "$matrix" | jq .

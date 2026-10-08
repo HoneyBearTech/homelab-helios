@@ -31,7 +31,7 @@ settings=$(grep -E '^[A-Z][A-Z0-9_]*=' "$root/.env.example" || true)
 while IFS='=' read -r key _; do
   if [ -n "$key" ]; then unset "$key"; fi
 done <<<"$settings"
-unset COMPOSE_PROFILES
+export COMPOSE_PROFILES=$tool_profiles # the tools too (Quickstart): every service is tested
 export COMPOSE_PROJECT_NAME=$project
 export COMPOSE_FILE=$root/compose.yaml:$work/override.yaml
 export COMPOSE_ENV_FILES=$work/env

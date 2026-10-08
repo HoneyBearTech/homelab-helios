@@ -40,6 +40,8 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
   handing sets to Kometa
 - **Kometa**: builds Plex collections and overlays and applies artwork and metadata, once a day
 - **ImageMaid**: cleans out images Plex no longer uses from Plex's data directory
+- **Kometa Quickstart**: a web UI for building Kometa configurations; a tool started on demand, without a login
+  ([docs/quickstart.md](docs/quickstart.md))
 - **autoheal**: restarts any service whose health check fails (Docker on its own only restarts a container that
   exits), reaching Docker only through **socket-proxy**, which lets it list, inspect, restart and stop containers
 
@@ -55,7 +57,8 @@ On a fresh Docker host:
 git clone https://github.com/HoneyBearTech/homelab-helios.git && cd homelab-helios
 cp .env.example .env && chmod 600 .env              # then set TZ, PUID/PGID and the paths
 . ./.env && mkdir -p "$PLEX_CONFIG_PATH" "$PLEX_CACHE_PATH" "$PLEX_TRANSCODE_PATH" \
-  "$TAUTULLI_CONFIG_PATH" "$AURA_CONFIG_PATH" "$KOMETA_CONFIG_PATH" "$IMAGEMAID_CONFIG_PATH"
+  "$TAUTULLI_CONFIG_PATH" "$AURA_CONFIG_PATH" "$KOMETA_CONFIG_PATH" "$IMAGEMAID_CONFIG_PATH" \
+  "$QUICKSTART_CONFIG_PATH"
 echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU
 docker compose up -d --wait
 ```
@@ -92,6 +95,7 @@ Settings come from `.env` (template [`.env.example`](.env.example)), which holds
 | `KOMETA_CONFIG_PATH` | `/srv/appdata/kometa` | Kometa's `config.yml` (with its Plex token and API keys), collections, overlays, assets |
 | `KOMETA_TIMES` | `02:00` | When Kometa runs each day |
 | `IMAGEMAID_CONFIG_PATH` | `/srv/appdata/imagemaid` | ImageMaid's settings, with its Plex token |
+| `QUICKSTART_CONFIG_PATH` | `/srv/appdata/quickstart` | Kometa Quickstart's database, with the configs and tokens entered in it |
 
 A new Plex server's one-time claim token goes in a gitignored `plex.env`, never in `.env`
 ([interfaces](docs/interfaces.md#plexenv)). Ports, volumes and labels: [docs/interfaces.md](docs/interfaces.md).

@@ -42,7 +42,8 @@ jobs:
             exit 1
           fi
           cp .env.example .env
-          docker compose config --format json > compose.json
+          # --profile tools: the SBOM and the policy check cover the tools started on demand (Quickstart) too.
+          docker compose --profile tools config --format json > compose.json
           python scripts/check_compose.py compose.json --sbom "homelab-helios-${version}.cdx.json"
 
       - name: Source archive and checksums

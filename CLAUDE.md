@@ -1,7 +1,7 @@
 # homelab-helios
 
 The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24.04, amd64, a VM with an NVIDIA
-GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal, every image pinned by tag and digest so
+GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
 the server can be upgraded and rebuilt from this repository. The tooling (checker, backup scripts, smoke test,
 CI, release workflow) and `compose.yaml` (+ `compose.gpu.yaml`) are in place; the services still run from their
 old setup on the host until the cutover (plan in Chronos).
@@ -81,7 +81,11 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - Docker Compose v2 (`compose.yaml`; the GPU in `compose.gpu.yaml`, added on the host via `COMPOSE_FILE`), upstream images: `lscr.io/linuxserver/plex` (with
   `VERSION=docker`, so it never self-updates), `lscr.io/linuxserver/tautulli`, `ghcr.io/mediux-team/aura`,
   `kometateam/kometa` and `kometateam/imagemaid` (release tags, not `nightly`/`develop`), autoheal +
-  socket-proxy. Not in this repo: Homebox, InvenTree (and its Caddy), TitleCardMaker, Watchtower, Diun, the
+  socket-proxy; `kometateam/quickstart` (release tags) as a **tool** in the `tools` profile: not started by
+  `docker compose up -d`, `restart: "no"`, port 7171 on the LAN, no login (owner 2026-10-08:
+  config editor only, never its own Kometa/ImageMaid runs or self-updater). Tooling must see the tools: the
+  workflows and `make check`/`config` pass `--profile tools`, the scripts get `COMPOSE_PROFILES` from `lib.sh`.
+  Not in this repo: Homebox, InvenTree (and its Caddy), TitleCardMaker, Watchtower, Diun, the
   Argus agent and Argus' Loki, the Portainer agent.
 - Tooling (ported from homelab-deimos): `scripts/check_compose.py` (Python, standard library only:
   policy check + CycloneDX SBOM), `scripts/backup.sh`, `restore.sh`, `smoke-test.sh`, `lib.sh` (bash, must run

@@ -12,6 +12,8 @@ file changes with them, in the same pull request.
   unhealthy, the GPU for Plex as an optional override,
   Dependabot proposing updates.
 - Done: the smoke test against the real stack in CI. Next: the first image scan and its triage.
+- Done: Kometa Quickstart as an on-demand config editor (not started with the stack, no login, LAN only while it
+  runs).
 - First release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
 - Switch Helios to run the stack from a checkout of this repository, adopting the existing data, ports and

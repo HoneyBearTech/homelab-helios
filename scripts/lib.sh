@@ -7,6 +7,11 @@
 # shellcheck disable=SC2034 # used by the scripts that source this file
 busybox=busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
 
+# The Compose profiles of tools that aren't started by `docker compose up -d` (Quickstart). They're part of the stack
+# all the same: backups and restores cover their data, and the smoke test starts them.
+tool_profiles=tools
+export COMPOSE_PROFILES=$tool_profiles
+
 sha256() { if command -v sha256sum >/dev/null; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
 
 # A service label listing container paths (comma-separated, exact) that a backup never archives and a restore never

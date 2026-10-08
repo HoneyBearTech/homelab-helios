@@ -32,6 +32,7 @@ The [quick start](quick-start.md) is the short version of this page.
 | Kometa's configuration, collections, overlays, assets | `KOMETA_CONFIG_PATH` | `/config` |
 | AURA's artwork, read by Kometa | `AURA_CONFIG_PATH`'s `auraassets` directory | Kometa: `/auraassets` |
 | ImageMaid's settings | `IMAGEMAID_CONFIG_PATH` | `/config` |
+| Kometa Quickstart's database, with the configs and tokens entered in it | `QUICKSTART_CONFIG_PATH` | `/config` |
 | Plex's data, cleaned by ImageMaid | `PLEX_CONFIG_PATH`'s `Library/Application Support/Plex Media Server` | ImageMaid: `/plex` |
 
 Every mount is listed in [interfaces.md](interfaces.md#volumes-and-mounts).
@@ -64,6 +65,8 @@ Running `main` instead of a release is possible but unsupported for anything you
 - **Other web UIs on the LAN only.** Tautulli and AURA shouldn't be published beyond the LAN; Docker-published
   ports bypass host firewalls such as `ufw`, so restrict them at the router or with Docker's own `DOCKER-USER`
   rules, and use a reverse proxy's access lists for names you give them. Turn on Tautulli's login.
+- **Kometa Quickstart only while you use it.** It has no login and holds the tokens entered in it: start it on
+  demand, stop it after, never forward port 7171 ([quickstart.md](quickstart.md)).
 - **Protect the media library.** Plex and AURA mount it read-write: AURA writes artwork into it, and Plex
   deletes files when its "allow media deletion" option is on and someone deletes from a Plex app. Leave that
   option off unless you need it, and keep snapshots on the storage that holds the library.

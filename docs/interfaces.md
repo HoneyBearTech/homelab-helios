@@ -24,6 +24,7 @@ setting marked required stops `docker compose` with an error naming it when it's
 | `KOMETA_CONFIG_PATH` | yes | `/srv/appdata/kometa` | Kometa's `config.yml` (Plex token, API keys), collection and overlay files, assets, logs. AURA writes artwork sets into its `aura` directory. |
 | `KOMETA_TIMES` | no | `02:00` | When Kometa runs each day (`HH:MM`, comma-separated). |
 | `IMAGEMAID_CONFIG_PATH` | yes | `/srv/appdata/imagemaid` | ImageMaid's settings (its `.env`: Plex's address and token, the mode, notifications). |
+| `QUICKSTART_CONFIG_PATH` | yes | `/srv/appdata/quickstart` | Kometa Quickstart's data: its SQLite database, with the configs built in it and the Plex token and API keys entered there. |
 | `IMAGEMAID_SCHEDULE` | yes | `22:00\|weekly(sunday)` | When ImageMaid runs, in its own schedule syntax. |
 | `UMASK` | no | `002` | File-creation mask for Plex and Tautulli. |
 
@@ -55,6 +56,7 @@ No other secret is a setting. If a service ever needs one in its environment, it
 | AURA | `ghcr.io/mediux-team/aura` | 3000 → 3000, 8888 → 8888 | Web UI and its second port (LAN only) |
 | Kometa | `kometateam/kometa` (release tags) | none | Runs on its schedule |
 | ImageMaid | `kometateam/imagemaid` (release tags) | none | Runs on its schedule |
+| Kometa Quickstart | `kometateam/quickstart` (release tags) | 7171 → 7171 | Web UI, no login; only while started on demand (profile `tools`; LAN only, [quickstart.md](quickstart.md)) |
 | autoheal | `willfarrell/autoheal` | none | Restarts services whose health check fails |
 | socket-proxy | `lscr.io/linuxserver/socket-proxy` | none (internal network `docker-proxy`) | Filtered Docker API for autoheal |
 
@@ -86,6 +88,7 @@ the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml` in `.env`.
 | `/config` | `KOMETA_CONFIG_PATH` | Kometa: `config.yml`, collections, overlays, assets, logs |
 | `/auraassets` | `AURA_CONFIG_PATH/auraassets` | Kometa: AURA's artwork (backed up with AURA's data) |
 | `/config` | `IMAGEMAID_CONFIG_PATH` | ImageMaid: settings |
+| `/config` | `QUICKSTART_CONFIG_PATH` | Quickstart: its SQLite database (configs, with the Plex token and API keys entered in it), logs, caches |
 | `/plex` | `PLEX_CONFIG_PATH/Library/Application Support/Plex Media Server` | ImageMaid: Plex's data, to clean (backed up with Plex's data) |
 | `/plex/Cache` | `PLEX_CACHE_PATH` | ImageMaid: Plex's cache, for its PhotoTranscoder cleanup (not backed up) |
 | `/media` | `MEDIA_PATH` | AURA: saves artwork next to the media (read-write; never backed up) |
@@ -107,8 +110,9 @@ published; autoheal also joins the default network, to reach its webhook.
 
 | Command | Does |
 | --- | --- |
-| `docker compose up -d` / `down` / `ps` / `logs <service>` | Runs and inspects the stack |
-| `make check` | `docker compose config --format json \| python scripts/check_compose.py`: the policy check |
+| `docker compose up -d` / `down` / `ps` / `logs <service>` | Runs and inspects the stack (without the tools) |
+| `docker compose --profile tools up -d quickstart` / `stop quickstart` | Starts and stops Kometa Quickstart, the one tool ([quickstart.md](quickstart.md)) |
+| `make check` | `docker compose --profile tools config --format json \| python scripts/check_compose.py`: the policy check, tools included |
 | `python scripts/check_compose.py [FILE] [--sbom OUT]` | Checks a resolved Compose config (from `FILE` or stdin); `--sbom` also writes a CycloneDX 1.6 SBOM of the images. Exit 0 = no violations, 1 = violations (one line each), 2 = unreadable input |
 | `make test`, `make lint` | The checker's tests and the linters |
 | `scripts/backup.sh [DIR]` | Stops the stack, archives every service's data mounts (every read-write volume or bind mount except the Docker socket, anonymous volumes and the paths in the service's `backup.skip` label: the media library, Plex's cache and transcode directory; a mount inside another mount, such as Plex's cache inside its `/config`, is left out of the outer archive), `.env` and any `<service>.env` into `DIR` (default `backups/<date>-<time>`, gitignored) with a `MANIFEST` and `SHA256SUMS`, all mode `600`, then starts what was running |
@@ -121,7 +125,8 @@ From the host: the image registries (Docker Hub, GitHub Container Registry, Linu
 `docker compose pull`; the media library's storage. From the services: Plex talks to plex.tv for sign-in,
 remote access and metadata (posters, descriptions) and to its metadata providers; Tautulli talks to Plex and,
 for notifications, to whatever services you configure; AURA talks to MediUX for artwork and to Plex; Kometa
-talks to Plex, TMDb and whatever other sources its `config.yml` names; ImageMaid talks to Plex.
+talks to Plex, TMDb and whatever other sources its `config.yml` names; ImageMaid talks to Plex; Kometa Quickstart,
+while it runs, talks to GitHub (Kometa's schemas and defaults), Plex and the services whose credentials it checks.
 
 ## Release files
 
