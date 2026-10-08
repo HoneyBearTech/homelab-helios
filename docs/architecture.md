@@ -29,7 +29,7 @@ come from their own projects; this stack doesn't include or manage them.
 | Actor | Does |
 | --- | --- |
 | Maintainer | Merges pull requests, tags releases, runs `git pull` / `docker compose up -d` on the host, configures each service in its web UI |
-| Dependabot | Opens a pull request when an image (tag and digest), a check tool or an Action has a new version; patch and minor updates are auto-merged once the checks pass |
+| Dependabot | Opens a pull request when an image (tag and digest), a check tool or an Action has a new version; patch, minor and major updates are auto-merged once the checks pass |
 | CI | Lints, scans for secrets, tests the checker, resolves the Compose file, enforces the policy and smoke-tests the stack on amd64 (without a GPU) on every pull request |
 | Release workflow | On a version tag: checks the policy, writes the SBOM, signs the checksums, publishes the GitHub Release |
 | Household viewers | Play media through Plex apps on the LAN, and from outside it if Plex's remote access is on |
@@ -61,11 +61,11 @@ library, Plex's cache and the transcode directory are never archived.
 ## How changes reach the host
 
 1. Dependabot (or the maintainer) opens a pull request that changes an image's tag and digest.
-2. CI resolves the Compose file, runs the policy check and the smoke test; the maintainer reads the service's
-   release notes.
-3. The pull request is squash-merged (automatically for Dependabot's patch and minor updates, once every
-   check passes); a version tag makes a signed release.
-4. On the host: back up, `git checkout <tag>`, `docker compose pull && docker compose up -d`
+2. CI resolves the Compose file, runs the policy check and the smoke test.
+3. The pull request is squash-merged (automatically for Dependabot's version updates and the maintainer's own
+   pull requests, once every check passes); a version tag makes a signed release.
+4. Before deploying, the maintainer reads the release notes, above all for a major version.
+5. On the host: back up, `git checkout <tag>`, `docker compose pull && docker compose up -d`
    ([upgrading.md](upgrading.md)).
 
 Nothing on the host updates itself: a version that runs is always a version that's in git. Plex's own in-app

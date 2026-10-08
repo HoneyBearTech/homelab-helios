@@ -1,8 +1,7 @@
 version: 2
-# Patch and minor updates are auto-merged once every required check passes
-# (workflows/dependabot-auto-merge.yml); major updates wait for the maintainer, since a new
-# major version can migrate a service's data one way. A merge changes main only; the server is updated by a
-# deliberate redeploy.
+# Patch, minor and major updates are auto-merged once every required check passes
+# (workflows/dependabot-auto-merge.yml). A merge changes main only; the server is updated by a deliberate
+# redeploy, before which a major version's release notes are read: it can migrate a service's data one way.
 updates:
   # The stack's images in compose.yaml (version tag and digest).
   - package-ecosystem: "docker-compose"
