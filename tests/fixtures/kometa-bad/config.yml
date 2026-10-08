@@ -1,0 +1,23 @@
+# Deliberately bad: every secret-bearing value here must be reported by tests/test_kometa_placeholders.py.
+# The values are made up.
+libraries:
+  Movies:
+    radarr:
+      url: <<RADARR_URL>>
+      token: 0123456789abcdef0123456789abcdef  # gitleaks:allow (made up: the placeholder test must catch it)
+      root_folder_path: /srv/media/movies
+      quality_profile: HD-1080p
+plex:
+  url: http://plex.example.com:32400
+  token: <<PLEX_TOKEN>>
+  timeout: 60
+tmdb:
+  apikey: <<tmdb_apikey>>
+  language: en
+tautulli:
+  url: <<TAUTULLI_URL>>
+  apikey: 12345
+webhooks:
+  error: https://ntfy.example.com/kometa
+  run_end:
+  - https://ntfy.example.com/kometa

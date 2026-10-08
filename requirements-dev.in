@@ -2,6 +2,7 @@
 # requirements-dev.txt, regenerated with:  pip-compile --generate-hashes --strip-extras requirements-dev.in
 coverage
 pytest
+pyyaml
 ruff
 shellcheck-py
 yamllint
