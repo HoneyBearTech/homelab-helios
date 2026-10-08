@@ -5,13 +5,13 @@ file changes with them, in the same pull request.
 
 ## Now: the stack in git
 
-- The checks, backup and restore scripts, smoke test, release signing and project policies, ported from the
-  sibling homelab stacks: backups skip the media library, and the smoke test runs without a GPU.
-- `compose.yaml` with Plex, Tautulli, AURA, Kometa and ImageMaid, every image pinned by tag and digest for `linux/amd64`, a
+- Done: the checks, backup and restore scripts, smoke test, release signing and project policies, ported from
+  the sibling homelab stacks: backups skip the media library, and the smoke test runs without a GPU.
+- Done: `compose.yaml` with Plex, Tautulli, AURA, Kometa and ImageMaid, every image pinned by tag and digest for `linux/amd64`, a
   health check for each service and autoheal (behind a filtering socket proxy) to restart one that turns
   unhealthy, the GPU for Plex as an optional override,
   Dependabot proposing updates.
-- The smoke test and the image scan running against the real stack in CI.
+- Done: the smoke test against the real stack in CI. Next: the first image scan and its triage.
 - First release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
 - Switch Helios to run the stack from a checkout of this repository, adopting the existing data, ports and

@@ -1,0 +1,249 @@
+# The Helios stack. Every setting comes from .env (template: .env.example; reference: docs/interfaces.md); the
+# secrets a service can only take from its environment from plex.env (Plex's one-time claim token) and
+# autoheal.env (autoheal's optional webhook), both optional and gitignored.
+# Every image is pinned as name:tag@sha256:<digest>; Dependabot proposes updates (patch and minor ones merge
+# automatically once CI passes). scripts/check_compose.py enforces the policy (docs/security.md#policy).
+# The NVIDIA GPU for Plex is in compose.gpu.yaml, so the stack also starts without one (CI has none); the host
+# adds it with COMPOSE_FILE in .env.
+
+name: homelab-helios
+
+x-linuxserver-env: &linuxserver-env
+  PUID: ${PUID:?set PUID in .env}
+  PGID: ${PGID:?set PGID in .env}
+  TZ: ${TZ:?set TZ in .env}
+  UMASK: ${UMASK:-002}
+
+# Health check timing shared by every service; each service adds its own test. During start_period a failing
+# check doesn't count, and Docker checks every start_interval so a healthy service shows up within seconds. The
+# long start_period keeps autoheal from restarting a service in the middle of a slow database migration after an
+# upgrade (Plex's can take minutes).
+x-healthcheck: &healthcheck
+  interval: 1m
+  timeout: 10s
+  retries: 3
+  start_period: 10m
+  start_interval: 5s
+
+# On every service: autoheal may restart it when its health check fails, and an auto-updater running on the same
+# host (Watchtower) leaves it alone, so the pinned version is the one that runs.
+x-labels: &labels
+  autoheal: "true"
+  com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  # Serves the media library to Plex apps. It runs on the stack's network with only 32400 published (players find
+  # it through plex.tv; Docker keeps the client's address, so Plex's LAN settings still apply). VERSION=docker
+  # makes the image run the Plex it ships with instead of downloading the newest one at every start.
+  plex:
+    image: lscr.io/linuxserver/plex:1.43.4.10903-e5521bd8c-ls327@sha256:06e07af2851e6a822e89062b148435495dd794d6d5aaf36247dee05fb3dcc4b8
+    container_name: plex
+    restart: unless-stopped
+    labels:
+      <<: *labels
+      # The library is too large to back up here (the storage that holds it keeps snapshots); the cache and
+      # transcodes in progress are disposable.
+      org.honeybeartech.helios.backup.skip: >-
+        /media,/config/Library/Application Support/Plex Media Server/Cache,/transcode
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:32400/identity"]
+    environment:
+      <<: *linuxserver-env
+      VERSION: docker
+    # PLEX_CLAIM, for a new server's first start only (template: plex.env.example).
+    env_file:
+      - path: plex.env
+        required: false
+    ports:
+      - "32400:32400"
+    volumes:
+      - ${PLEX_CONFIG_PATH:?set PLEX_CONFIG_PATH in .env}:/config
+      - type: bind
+        source: ${PLEX_CACHE_PATH:?set PLEX_CACHE_PATH in .env}
+        target: /config/Library/Application Support/Plex Media Server/Cache
+      - ${PLEX_TRANSCODE_PATH:?set PLEX_TRANSCODE_PATH in .env}:/transcode
+      - ${MEDIA_PATH:?set MEDIA_PATH in .env}:/media
+
+  # Watches Plex: activity, history, statistics and notifications.
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:v2.18.2-ls246@sha256:bfcd2f3f6f89d2171d161ac1780723d1633f8de3c4c993d0dc52aa9edb729e16
+    container_name: tautulli
+    restart: unless-stopped
+    labels: *labels
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8181/status"]
+    environment: *linuxserver-env
+    ports:
+      - "8181:8181"
+    volumes:
+      - ${TAUTULLI_CONFIG_PATH:?set TAUTULLI_CONFIG_PATH in .env}:/config
+
+  # MediUX's artwork manager: browse artwork sets and apply them to Plex, saving artwork next to the media or
+  # writing sets for Kometa. The media is mounted at the same path as in Plex, as AURA requires.
+  aura:
+    image: ghcr.io/mediux-team/aura:v0.9.108@sha256:2686144a003dd5ac1f86188b60bb77f9ef7286bc7bb89d5a1414351bce07a6d7
+    container_name: aura
+    restart: unless-stopped
+    user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
+    labels:
+      <<: *labels
+      # The library isn't backed up here; /kometa is part of Kometa's data and backed up with it.
+      org.honeybeartech.helios.backup.skip: /media,/kometa
+    healthcheck:
+      <<: *healthcheck
+      # The API (8888) and the web UI (3000) both answer.
+      test:
+        - CMD-SHELL
+        - wget -qO /dev/null http://127.0.0.1:8888/api/health && wget -qO /dev/null http://127.0.0.1:3000/
+    environment:
+      TZ: ${TZ:?set TZ in .env}
+    ports:
+      - "3000:3000"
+      - "8888:8888"
+    volumes:
+      - ${AURA_CONFIG_PATH:?set AURA_CONFIG_PATH in .env}:/config
+      - ${KOMETA_CONFIG_PATH:?set KOMETA_CONFIG_PATH in .env}/aura:/kometa
+      - ${MEDIA_PATH:?set MEDIA_PATH in .env}:/media
+
+  # Builds collections and overlays in Plex and applies artwork and metadata (including the sets AURA writes), on
+  # its daily schedule. Its config.yml, with the Plex token and API keys, lives in its data directory.
+  kometa:
+    image: kometateam/kometa:v2.5.2@sha256:06e498cded70c9815522c6b2d8708b31759c1e37714746d1eeb56f1e40a8fd95
+    container_name: kometa
+    restart: unless-stopped
+    user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
+    labels:
+      <<: *labels
+      # AURA's artwork, backed up with AURA's data.
+      org.honeybeartech.helios.backup.skip: /auraassets
+    healthcheck:
+      <<: *healthcheck
+      # Kometa's own process (not tini, PID 1) is alive; the image has no pgrep.
+      test:
+        - CMD
+        - /.venv/bin/python3
+        - -c
+        - >-
+          import os, sys;
+          sys.exit(not any(p != "1" and b"kometa.py\0" in open(f"/proc/{p}/cmdline", "rb").read()
+          for p in os.listdir("/proc") if p.isdigit()))
+    environment:
+      TZ: ${TZ:?set TZ in .env}
+      KOMETA_TIMES: ${KOMETA_TIMES:-02:00}
+    volumes:
+      - ${KOMETA_CONFIG_PATH:?set KOMETA_CONFIG_PATH in .env}:/config
+      - ${AURA_CONFIG_PATH:?set AURA_CONFIG_PATH in .env}/auraassets:/auraassets
+
+  # Removes images Plex no longer uses from Plex's data directory, on its schedule. Its .env (Plex's address and
+  # token, the mode, notifications) lives in its data directory; the schedule and Plex's path come from here.
+  imagemaid:
+    image: kometateam/imagemaid:v1.2.0@sha256:94cf9ed79a264238c64cdcbf241822fc3569225cc103de542a6390bfaf393034
+    container_name: imagemaid
+    restart: unless-stopped
+    user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
+    # Plex creates the directories ImageMaid works in.
+    depends_on:
+      plex:
+        condition: service_healthy
+    labels:
+      <<: *labels
+      # Plex's data, backed up (or, for the cache, skipped) with Plex.
+      org.honeybeartech.helios.backup.skip: /plex,/plex/Cache
+    healthcheck:
+      <<: *healthcheck
+      # ImageMaid's own process (not tini, PID 1) is alive; the image has no pgrep.
+      test:
+        - CMD
+        - python3
+        - -c
+        - >-
+          import os, sys;
+          sys.exit(not any(p != "1" and b"imagemaid.py\0" in open(f"/proc/{p}/cmdline", "rb").read()
+          for p in os.listdir("/proc") if p.isdigit()))
+    environment:
+      TZ: ${TZ:?set TZ in .env}
+      PLEX_PATH: /plex
+      SCHEDULE: ${IMAGEMAID_SCHEDULE:?set IMAGEMAID_SCHEDULE in .env}
+    volumes:
+      - ${IMAGEMAID_CONFIG_PATH:?set IMAGEMAID_CONFIG_PATH in .env}:/config
+      - type: bind
+        source: ${PLEX_CONFIG_PATH:?set PLEX_CONFIG_PATH in .env}/Library/Application Support/Plex Media Server
+        target: /plex
+      - ${PLEX_CACHE_PATH:?set PLEX_CACHE_PATH in .env}:/plex/Cache
+
+  # Restarts any container labelled autoheal: "true" that Docker reports unhealthy (Docker itself only restarts a
+  # container whose process exits). It reaches Docker only through socket-proxy, which lets it list, inspect,
+  # restart and stop containers and nothing else. Optional restart notices go to a webhook from autoheal.env.
+  autoheal:
+    image: willfarrell/autoheal:latest@sha256:e7f42d5365c7c4490dd0cafc2858bb9fd2d64a274448d2de2bb5c386f1af7a0f
+    container_name: autoheal
+    restart: unless-stopped
+    # autoheal exits if it can't reach the proxy, so it starts only once the proxy answers. (After a host reboot
+    # Docker starts both at once; autoheal then restarts until the proxy is up, a few seconds.)
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      start_period: 1m
+      test: ["CMD", "pgrep", "-f", "autoheal"]
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+      org.honeybeartech.helios.allow.latest: >-
+        The image publishes "latest" (rebuilt regularly) and versioned tags only up to 1.2.0 from 2021, so the
+        maintained image is "latest", pinned by digest.
+    environment:
+      DOCKER_SOCK: tcp://socket-proxy:2375
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: 10
+      # Give a service time to shut down cleanly (and finish database writes) before it's restarted.
+      AUTOHEAL_DEFAULT_STOP_TIMEOUT: 30
+      # Discord's webhook API reads the message from "content".
+      WEBHOOK_JSON_KEY: content
+    env_file:
+      - path: autoheal.env
+        required: false
+    networks:
+      - default
+      - docker-proxy
+
+  # The only service with the Docker socket. It answers on an internal network with no published port, and passes
+  # on only what autoheal needs: listing and inspecting containers, and restarting or stopping them (CONTAINERS,
+  # ALLOW_RESTARTS). Creating, starting or deleting containers, exec, images, volumes and every other POST are
+  # refused.
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:3.4.6-r0-ls101@sha256:362cadf55b3c7920189347d0f4d60b389e2f80e929581bf10793f2371aab41e5
+    container_name: socket-proxy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    healthcheck:
+      <<: *healthcheck
+      start_period: 1m
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:2375/_ping"]
+    labels:
+      <<: *labels
+      org.honeybeartech.helios.allow.docker-socket: >-
+        A filtering proxy so that autoheal never gets the socket itself: it allows only listing, inspecting,
+        restarting and stopping containers, on an internal network with no published port. The socket mount is
+        read-only, which protects the socket file but not the API; the proxy's filter is what limits it.
+    environment:
+      CONTAINERS: 1
+      ALLOW_RESTARTS: 1
+      POST: 0
+      EVENTS: 0
+      PING: 1
+      VERSION: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-proxy
+
+networks:
+  # autoheal ↔ socket-proxy only: no route out, nothing published.
+  docker-proxy:
+    internal: true

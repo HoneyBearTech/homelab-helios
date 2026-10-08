@@ -104,8 +104,21 @@ for entry in "${entries[@]}"; do
   IFS=$'\t' read -r archive service mount <<<"$entry"
   id=$(docker compose ps --all --quiet "$service")
   echo "Restoring $service $mount"
+  # A mount inside this one (Plex's cache inside its /config) is restored or skipped on its own: neither it nor
+  # the directories leading to it are deleted. (-delete implies -depth, so -prune can't be used; the patterns
+  # exclude them instead.)
+  spare=()
+  while IFS= read -r nested; do
+    spare+=(! -path "$nested" ! -path "$nested/*")
+    parent=${nested%/*}
+    while [ "$parent" != "$mount" ]; do
+      spare+=(! -path "$parent")
+      parent=${parent%/*}
+    done
+  done < <(nested_mounts "$id" "$mount")
+  docker run --rm --network none --volumes-from "$id" "$busybox" \
+    find "$mount" -mindepth 1 "${spare[@]+"${spare[@]}"}" -delete </dev/null
   # tar runs as root in the container, so files get back their original owners and modes.
-  docker run --rm -i --network none --volumes-from "$id" "$busybox" \
-    sh -c 'find "$1" -mindepth 1 -delete && tar -xzf - -C "$1"' restore "$mount" <"$backup/$archive"
+  docker run --rm -i --network none --volumes-from "$id" "$busybox" tar -xzf - -C "$mount" <"$backup/$archive"
 done
 echo "Restored. Services that weren't running before stay stopped: start them with 'docker compose up -d'."

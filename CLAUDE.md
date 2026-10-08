@@ -3,8 +3,8 @@
 The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24.04, amd64, a VM with an NVIDIA
 GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal, every image pinned by tag and digest so
 the server can be upgraded and rebuilt from this repository. The tooling (checker, backup scripts, smoke test,
-CI, release workflow) is in place; `compose.yaml` isn't yet, and the services still run from their old setup on
-the host until the cutover (plan in Chronos).
+CI, release workflow) and `compose.yaml` (+ `compose.gpu.yaml`) are in place; the services still run from their
+old setup on the host until the cutover (plan in Chronos).
 
 ## Before Making Structural Changes
 Read the project's notes first. They live outside this repo, in the owner's Obsidian vault **Chronos** at
@@ -51,8 +51,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - **Amd64.** Every image must publish `linux/amd64`. The smoke test runs on `ubuntu-latest` and the image scan
   scans `linux/amd64`.
 - **The GPU is optional to CI.** GitHub's runners have no GPU, so the NVIDIA device reservation must not stop
-  the stack from starting without one (Proposed: a `compose.gpu.yaml` override, as on deimos; see the
-  Decisions-Log). GPU access is a device reservation, never `privileged: true`.
+  the stack from starting without one (`compose.gpu.yaml`, owner 2026-10-07). GPU access is a device reservation, never `privileged: true`.
 - **The media library is mounted read-write into Plex and AURA only** (owner 2026-10-07: AURA saves artwork
   there and Plex's media deletion stays possible), and is never backed up, restored or deleted by this repo's
   scripts. It is far too large and is protected by the NAS. A service lists such paths in its
@@ -79,7 +78,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   family and ports the same; see the cutover plan in Chronos.
 
 ## Stack
-- Docker Compose v2 (`compose.yaml`, **Planned**), upstream images: `lscr.io/linuxserver/plex` (with
+- Docker Compose v2 (`compose.yaml`; the GPU in `compose.gpu.yaml`, added on the host via `COMPOSE_FILE`), upstream images: `lscr.io/linuxserver/plex` (with
   `VERSION=docker`, so it never self-updates), `lscr.io/linuxserver/tautulli`, `ghcr.io/mediux-team/aura`,
   `kometateam/kometa` and `kometateam/imagemaid` (release tags, not `nightly`/`develop`), autoheal +
   socket-proxy. Not in this repo: Homebox, InvenTree (and its Caddy), TitleCardMaker, Watchtower, Diun, the
@@ -89,7 +88,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   on macOS' bash 3.2); ruff (`select = ["ALL"]`), yamllint, shellcheck, pytest + coverage (90 % branch floor),
   pip-tools for the hash-pinned `requirements-dev.txt`. CI-only: actionlint, gitleaks, CodeQL, Scorecard,
   dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch/minor).
-- Releases (`release.yml`, on a `v*.*.*` tag; it refuses to run without `compose.yaml`): policy check, source archive, CycloneDX SBOM,
+- Releases (`release.yml`, on a `v*.*.*` tag): policy check, source archive, CycloneDX SBOM,
   `SHA256SUMS` signed with cosign keyless, SLSA provenance, GitHub Release from the tag's `CHANGELOG.md`
   section. No images are built or published.
 

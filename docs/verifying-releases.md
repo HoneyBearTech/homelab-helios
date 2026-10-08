@@ -1,7 +1,7 @@
 # Verifying releases
 
-> **Planned:** there is no release yet; the first one comes with `compose.yaml` ([roadmap](roadmap.md)). The
-> release workflow is in place, and this is how its releases will be verified.
+> **Planned:** there is no release yet; the first one is 0.1.0 ([roadmap](roadmap.md)). The release workflow
+> is in place, and this is how its releases will be verified.
 
 Every homelab-helios release will be published by the [`release.yml`](../.github/workflows/release.yml)
 workflow when a version tag is pushed. homelab-helios builds no images: a release is a version of the Compose

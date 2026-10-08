@@ -1,8 +1,5 @@
 # Quick start
 
-> **Planned:** `compose.yaml` isn't in the repository yet, so step 5 has nothing to start. The steps are the
-> ones the stack will use.
-
 You need a Linux host on amd64 (the reference is Ubuntu 24.04) with Docker Engine and the Compose v2 plugin, a
 user in the `docker` group, and, for hardware transcoding, an NVIDIA GPU with its driver, the NVIDIA Container
 Toolkit and a Plex Pass ([installing.md](installing.md#requirements)).
@@ -35,10 +32,11 @@ Toolkit and a Plex Pass ([installing.md](installing.md#requirements)).
      "$IMAGEMAID_CONFIG_PATH"
    ```
 
-4. **Check the GPU** is visible to containers:
+4. **Check the GPU** is visible to containers, and let Plex use it:
 
    ```sh
    docker run --rm --gpus all ubuntu nvidia-smi
+   echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env
    ```
 
 5. **Check and start.**

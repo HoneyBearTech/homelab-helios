@@ -1,24 +1,23 @@
 # Assurance case
 
 Why homelab-helios meets its [security requirements](security.md): the threat model, the trust boundaries,
-the secure design principles it follows, and how common weaknesses are countered. Parts that depend on
-`compose.yaml`, which isn't in the repository yet, are marked **Planned**.
+the secure design principles it follows, and how common weaknesses are countered.
 
 ## Threat model
 
 | Asset | Threat | Countered by |
 | --- | --- | --- |
-| The host | A compromised or malicious image | Digest pins; versions change only by reviewed pull request; no privileged, capability, host-namespace or socket access without a reasoned label (**Planned** for the stack; the checker exists) |
+| The host | A compromised or malicious image | Digest pins; versions change only by reviewed pull request; no privileged, capability, host-namespace or socket access without a reasoned label (enforced by the policy check in CI and before every release) |
 | The host | An internet attacker exploiting Plex, if remote access is on | Plex updates arrive as weekly Dependabot pull requests; no privileges or host namespaces; the operator decides whether remote access is on ([installing.md](installing.md#running-it-securely)) |
 | The media library | A faulty or compromised Plex or AURA changing or deleting files | Only Plex and AURA mount it; Plex's media deletion off unless needed; reviewed upgrades; snapshots on the library's storage (operator) |
 | The media library | A backup or restore script touching it | `/media` is in Plex's and AURA's `org.honeybeartech.helios.backup.skip` labels: `backup.sh` never archives it, and `restore.sh` refuses to write it even if a backup lists it; the smoke test checks both |
 | The media | Someone watching without permission | Plex's own sign-in and sharing (operator's configuration); no "allowed without authentication" networks beyond the LAN |
 | The web UIs | Someone on the LAN using Tautulli or AURA without logging in | LAN only, behind a reverse proxy's access lists; logins on where offered ([installing.md](installing.md#running-it-securely)) |
-| The host | A compromised autoheal using the Docker API | autoheal never gets the socket; socket-proxy (the one `docker-socket` exception) passes on only list, inspect, restart and stop, on an internal network with nothing published (**Planned**) |
+| The host | A compromised autoheal using the Docker API | autoheal never gets the socket; socket-proxy (the one `docker-socket` exception) passes on only list, inspect, restart and stop, on an internal network with nothing published |
 | The host's devices | The GPU granted by running privileged | GPU only as a device reservation through the NVIDIA runtime; `privileged` refused by the policy check |
 | Plex tokens, logins, certificate keys | Committed to the public repository | Kept in the services' data, never in the repo; the claim token in a gitignored `plex.env`; `.gitignore`; GitHub push protection; gitleaks over the history in CI |
 | Plex tokens, logins, viewing history | Leaked through a backup | `scripts/backup.sh` writes backups readable only by the user who ran it; documented as secret, to be kept off the host |
-| The services' data | An upgrade that migrates and breaks it | Backup before every upgrade; rollback = old tag + `scripts/restore.sh`, exercised by the CI smoke test (**Planned** against the real stack; tested against a stand-in) |
+| The services' data | An upgrade that migrates and breaks it | Backup before every upgrade; rollback = old tag + `scripts/restore.sh`, exercised against the real stack by the CI smoke test on every change |
 | The services' data | A crafted backup writing outside the services' data | `restore.sh` verifies `SHA256SUMS` (which covers the `MANIFEST`), accepts only plain archive names and absolute container paths without `..`, and writes only a mount the service has read-write and doesn't exclude from backups |
 | The release | Tampered release files | Keyless-signed `SHA256SUMS`, SLSA provenance, signed tags |
 | The CI pipeline | Untrusted pull request input running with credentials | `pull_request` only, read-only token by default, untrusted values only via `env:`, actions pinned by SHA |
@@ -71,10 +70,10 @@ of the Plex account that owns the server.
 ## Evidence
 
 - CI on every change: ruff (with the bandit rules), yamllint, actionlint, gitleaks over the history,
-  shellcheck, pytest with a 90 % branch-coverage floor; once `compose.yaml` exists, `docker compose config`, the
+  shellcheck, pytest with a 90 % branch-coverage floor, `docker compose config`, the
   policy check, and a smoke test on amd64 that starts every pinned image without a GPU, waits for its health
-  check, round-trips a backup and restore, and checks that excluded mounts are left alone (a dynamic test of the
-  stack and the scripts). Until then the stack steps pass with a notice.
+  check, round-trips a backup and restore, checks that excluded and nested mounts are left alone, and checks that
+  autoheal restarts a container that turns unhealthy (a dynamic test of the stack and the scripts).
 - A weekly Trivy scan of every pinned image, and on every change to `compose.yaml`, into code scanning.
 - CodeQL (Python and Actions) on every pull request and weekly; OpenSSF Scorecard weekly; dependency
   review on every pull request.

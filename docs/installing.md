@@ -2,9 +2,6 @@
 
 The [quick start](quick-start.md) is the short version of this page.
 
-> **Planned:** `compose.yaml` isn't in the repository yet. The requirements and security advice apply now; the
-> install steps apply once the stack is added.
-
 ## Requirements
 
 - Linux with Docker Engine and the Compose v2 plugin (Docker Engine 25 or later and Compose 2.24 or later, for
@@ -37,7 +34,7 @@ The [quick start](quick-start.md) is the short version of this page.
 | ImageMaid's settings | `IMAGEMAID_CONFIG_PATH` | `/config` |
 | Plex's data, cleaned by ImageMaid | `PLEX_CONFIG_PATH`'s `Library/Application Support/Plex Media Server` | ImageMaid: `/plex` |
 
-These are **Planned** paths ([interfaces.md](interfaces.md#volumes-and-mounts)).
+Every mount is listed in [interfaces.md](interfaces.md#volumes-and-mounts).
 
 ## Installing
 

@@ -65,10 +65,16 @@ for service in "${services[@]}"; do
     fi
     archive=$(archive_name "$service" "$mount")
     echo "Archiving $service $mount ($source)"
+    # A mount inside this one (Plex's cache inside its /config) is archived or skipped on its own, not in here.
+    excludes=()
+    while IFS= read -r nested; do
+      echo "  leaving out $nested (a mount of its own)"
+      excludes+=("--exclude=./${nested#"$mount"/}")
+    done < <(nested_mounts "$id" "$mount")
     # tar runs as root in the container so it can read every file; the archive itself is written by this shell,
     # so it belongs to the user running the backup.
-    docker run --rm --network none --volumes-from "$id:ro" "$busybox" tar -czf - -C "$mount" . \
-      </dev/null >"$dest/$archive"
+    docker run --rm --network none --volumes-from "$id:ro" "$busybox" \
+      tar -czf - "${excludes[@]+"${excludes[@]}"}" -C "$mount" . </dev/null >"$dest/$archive"
     printf '%s\t%s\t%s\t%s\t%s\n' "$archive" "$service" "$mount" "$source" "$image" >>"$dest/MANIFEST"
   done < <(data_mounts "$id")
 done

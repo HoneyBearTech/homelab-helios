@@ -25,14 +25,26 @@ skipped_mounts() {
 # socket and the paths the service's skip_label excludes. These are what a backup archives and a restore replaces.
 data_mounts() {
   local dest source skipped
-  skipped=" $(skipped_mounts "$1" | tr '\n' ' ') "
+  skipped=$(skipped_mounts "$1")
   docker inspect --format '{{range .Mounts}}{{if and .RW (or (eq .Type "volume") (eq .Type "bind"))}}'\
 '{{.Destination}}{{"\t"}}{{if .Name}}volume:{{.Name}}{{else}}{{.Source}}{{end}}{{"\n"}}{{end}}{{end}}' "$1" |
     while IFS=$'\t' read -r dest source; do
       if [ -z "$dest" ] || [[ "$source" =~ ^volume:[0-9a-f]{64}$ ]]; then continue; fi
       if [[ "$dest" == *docker.sock || "$source" == *docker.sock ]]; then continue; fi
-      if [[ "$skipped" == *" $dest "* ]]; then continue; fi
+      # Paths may contain spaces (Plex's do), so the skip list is compared line by line.
+      if [ -n "$skipped" ] && grep -qxF -- "$dest" <<<"$skipped"; then continue; fi
       printf '%s\t%s\n' "$dest" "$source"
+    done
+}
+
+# The mounts of container $1 that lie inside its mount at $2 (any other mount at a path below it), one container
+# path per line. Each is backed up on its own, or skipped; a backup of $2 leaves them out, and a restore of $2
+# leaves them and the directories leading to them in place.
+nested_mounts() {
+  local dest
+  docker inspect --format '{{range .Mounts}}{{.Destination}}{{"\n"}}{{end}}' "$1" |
+    while IFS= read -r dest; do
+      if [ -n "$dest" ] && [[ "$dest" == "$2"/* ]]; then printf '%s\n' "$dest"; fi
     done
 }
 
