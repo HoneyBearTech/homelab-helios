@@ -1,0 +1,17 @@
+# The host's NVIDIA GPU for Plex's hardware transcoding (NVENC/NVDEC), as a device reservation through the NVIDIA
+# Container Toolkit, never by running Plex privileged. Kept out of compose.yaml so the stack also starts on a
+# machine without a GPU (CI). On the host: COMPOSE_FILE=compose.yaml:compose.gpu.yaml in .env. Hardware
+# transcoding also needs a Plex Pass on the server's Plex account.
+
+services:
+  plex:
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

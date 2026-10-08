@@ -6,9 +6,6 @@ ImageMaid managing its artwork, collections and metadata. Helios is an Ubuntu 24
 transcoding. The repository holds configuration, not application code: the services run from their upstream
 images, pinned by digest.
 
-> **Planned:** `compose.yaml` isn't in the repository yet. This page describes the stack it will define; the
-> services run today from an older, hand-managed setup on the host and move over in one planned cutover.
-
 ## Services
 
 | Service | Image source | Role |
@@ -77,8 +74,9 @@ updater doesn't apply to its container; a new Plex version arrives as a new imag
 
 | Path | What |
 | --- | --- |
-| `compose.yaml` | The stack (**Planned**) |
-| `.env.example`, `autoheal.env.example` | Templates for the settings and autoheal's optional webhook |
+| `compose.yaml` | The stack |
+| `compose.gpu.yaml` | The NVIDIA GPU for Plex, added on the host with `COMPOSE_FILE` |
+| `.env.example`, `plex.env.example`, `autoheal.env.example` | Templates for the settings, Plex's claim token and autoheal's optional webhook |
 | `scripts/check_compose.py` | The policy check and SBOM generator (standard-library Python) |
 | `scripts/backup.sh`, `scripts/restore.sh` | Backup and restore of every service's data, never the media library |
 | `scripts/smoke-test.sh` | Starts the stack in isolation, waits for health, and round-trips a backup |

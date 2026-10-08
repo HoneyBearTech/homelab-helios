@@ -14,10 +14,6 @@ Docker Compose stack for Helios, a homelab Ubuntu server (24.04, amd64, with an 
 > upgrade ([docs/upgrading.md](docs/upgrading.md)). If you turn on Plex's remote access, Plex is reachable from
 > the internet: read [running it securely](#running-it-securely) first.
 
-> [!NOTE]
-> **Planned:** the stack itself (`compose.yaml`) isn't in the repository yet. The documentation describes what
-> it will be; everything not built yet is marked **Planned**.
-
 ## Documentation
 
 - [Quick start](docs/quick-start.md): getting the stack running on a fresh Docker host
@@ -36,7 +32,7 @@ Docker Compose stack for Helios, a homelab Ubuntu server (24.04, amd64, with an 
 
 ## What's in the stack
 
-**Planned** ([architecture](docs/architecture.md), ports in [interfaces](docs/interfaces.md#services-and-ports)):
+From their upstream images ([architecture](docs/architecture.md), ports in [interfaces](docs/interfaces.md#services-and-ports)):
 
 - **Plex Media Server**: serves the media library to Plex apps, transcoding on the GPU (NVENC/NVDEC)
 - **Tautulli**: watches Plex: activity, history, statistics and notifications
@@ -47,19 +43,20 @@ Docker Compose stack for Helios, a homelab Ubuntu server (24.04, amd64, with an 
 - **autoheal**: restarts any service whose health check fails (Docker on its own only restarts a container that
   exits), reaching Docker only through **socket-proxy**, which lets it list, inspect, restart and stop containers
 
-Every service will have a health check that autoheal watches, and every image will be pinned by tag **and** digest, for
+Every service has a health check that autoheal watches, and every image is pinned by tag **and** digest, for
 `linux/amd64`. New versions arrive as Dependabot pull requests that CI checks and the maintainer merges;
 nothing on the host updates itself.
 
 ## Getting started
 
-**Planned**, once `compose.yaml` exists:
+On a fresh Docker host:
 
 ```sh
 git clone https://github.com/HoneyBearTech/homelab-helios.git && cd homelab-helios
 cp .env.example .env && chmod 600 .env              # then set TZ, PUID/PGID and the paths
 . ./.env && mkdir -p "$PLEX_CONFIG_PATH" "$PLEX_CACHE_PATH" "$PLEX_TRANSCODE_PATH" \
   "$TAUTULLI_CONFIG_PATH" "$AURA_CONFIG_PATH" "$KOMETA_CONFIG_PATH" "$IMAGEMAID_CONFIG_PATH"
+echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU
 docker compose up -d --wait
 ```
 
@@ -80,8 +77,7 @@ Upgrading to a new release: [docs/upgrading.md](docs/upgrading.md).
 
 ## Configuration
 
-Settings come from `.env` (template [`.env.example`](.env.example)), which holds no secrets. **Planned**: the
-list is settled when the stack is added.
+Settings come from `.env` (template [`.env.example`](.env.example)), which holds no secrets.
 
 | Setting | Default in `.env.example` | Meaning |
 | --- | --- | --- |

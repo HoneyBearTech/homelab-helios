@@ -1,0 +1,6 @@
+# Placeholder for the smoke test only (scripts/smoke-test.sh copies it into a throwaway directory): Kometa exits
+# without a config.yml, and with this one it waits for its schedule. It never runs, so the token is never used.
+libraries: {}
+plex:
+  url: http://plex:32400
+  token: smoke-test-placeholder

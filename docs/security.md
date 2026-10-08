@@ -3,9 +3,7 @@
 What homelab-helios is meant to guarantee, what it leaves to the operator and the services, and where secrets
 live. The reasoning behind these requirements is in the [assurance case](assurance-case.md).
 
-> **Planned:** requirements 1 and 2 apply to `compose.yaml`, which isn't in the repository yet; the checker
-> that enforces them already runs in CI and is tested. Requirements 3 to 6 apply now (5 from the first
-> release).
+> Requirement 5 applies from the first release; the others apply now.
 
 ## What homelab-helios protects
 

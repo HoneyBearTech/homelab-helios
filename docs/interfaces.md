@@ -3,9 +3,6 @@
 Everything homelab-helios reads, exposes or runs. homelab-helios has no HTTP API of its own; the services' web
 UIs and APIs are documented by their projects.
 
-> **Planned:** `compose.yaml` isn't in the repository yet. The settings, services, ports and mounts below are the
-> expected ones (the upstream defaults); they are confirmed or corrected when the stack is added. The scripts and commands already exist.
-
 ## Settings
 
 ### `.env`
@@ -15,6 +12,7 @@ setting marked required stops `docker compose` with an error naming it when it's
 
 | Setting | Required | Example | Meaning |
 | --- | --- | --- | --- |
+| `COMPOSE_FILE` | no | `compose.yaml:compose.gpu.yaml` | Read by Docker Compose itself: set it on a host with an NVIDIA GPU so Plex uses it ([GPU](#gpu)). |
 | `TZ` | yes | `Etc/UTC` | Time zone (tz database name) for logs and schedules. |
 | `PUID`, `PGID` | yes | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library. |
 | `MEDIA_PATH` | yes | `/srv/media` | Host path of the media library, mounted read-write into Plex and AURA. Never backed up by this stack. |
@@ -25,11 +23,13 @@ setting marked required stops `docker compose` with an error naming it when it's
 | `AURA_CONFIG_PATH` | yes | `/srv/appdata/aura` | AURA's settings, including its Plex and MediUX tokens. |
 | `KOMETA_CONFIG_PATH` | yes | `/srv/appdata/kometa` | Kometa's `config.yml` (Plex token, API keys), collection and overlay files, assets, logs. AURA writes artwork sets into its `aura` directory. |
 | `KOMETA_TIMES` | no | `02:00` | When Kometa runs each day (`HH:MM`, comma-separated). |
-| `IMAGEMAID_CONFIG_PATH` | yes | `/srv/appdata/imagemaid` | ImageMaid's settings, with its Plex token. |
+| `IMAGEMAID_CONFIG_PATH` | yes | `/srv/appdata/imagemaid` | ImageMaid's settings (its `.env`: Plex's address and token, the mode, notifications). |
+| `IMAGEMAID_SCHEDULE` | yes | `22:00\|weekly(sunday)` | When ImageMaid runs, in its own schedule syntax. |
+| `UMASK` | no | `002` | File-creation mask for Plex and Tautulli. |
 
 ### `autoheal.env`
 
-**Planned.** Read by the `autoheal` service (template: [`autoheal.env.example`](../autoheal.env.example));
+Read by the `autoheal` service (template: [`autoheal.env.example`](../autoheal.env.example));
 optional, mode `600`, gitignored.
 
 | Setting | Meaning |
@@ -38,10 +38,10 @@ optional, mode `600`, gitignored.
 
 ### `plex.env`
 
-**Planned.** Plex's one-time claim token (`PLEX_CLAIM`, from [plex.tv/claim](https://www.plex.tv/claim/), valid
-for a few minutes) links a new server to a Plex account on its first start. It's a secret, so it goes in a
-gitignored `plex.env` (mode `600`) read through `env_file`, with a committed `plex.env.example`, and can be
-emptied once the server is claimed. An adopted server is already claimed and doesn't need it.
+Plex's one-time claim token (`PLEX_CLAIM`, from [plex.tv/claim](https://www.plex.tv/claim/), valid for a few
+minutes) links a new server to a Plex account on its first start. It's a secret, so it goes in the gitignored
+`plex.env` (mode `600`, optional, template [`plex.env.example`](../plex.env.example)), and is emptied once the
+server is claimed. An adopted server is already claimed and doesn't need it.
 
 No other secret is a setting. If a service ever needs one in its environment, it gets its own gitignored
 `<service>.env` (mode `600`) with a committed `<service>.env.example`, listed here.
@@ -68,8 +68,9 @@ Plex runs the version in the pinned image and never downloads another at start. 
 
 Plex gets the host's NVIDIA GPU as a Compose device reservation (`driver: nvidia`, `capabilities: [gpu]`, with
 `NVIDIA_DRIVER_CAPABILITIES` including `video` for NVENC/NVDEC), which needs the NVIDIA Container Toolkit on the
-host. Hardware transcoding in Plex also needs a Plex Pass. **Planned:** the reservation lives in a separate
-override file, so the stack also starts on a machine without a GPU (such as CI).
+host. Hardware transcoding in Plex also needs a Plex Pass. The reservation lives in
+[`compose.gpu.yaml`](../compose.gpu.yaml), so the stack also starts on a machine without a GPU (such as CI);
+the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml` in `.env`.
 
 ## Volumes and mounts
 
@@ -97,8 +98,8 @@ published; autoheal also joins the default network, to reach its webhook.
 
 | Label | Meaning |
 | --- | --- |
-| `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `healthcheck` ([security.md](security.md#policy)). Planned: `socket-proxy` (`docker-socket`), and `autoheal` (`latest`) while its image publishes no version tags, as on the sibling stacks. |
-| `org.honeybeartech.helios.backup.skip` | Container paths (comma-separated, exact) that `scripts/backup.sh` never archives and `scripts/restore.sh` refuses to write, even if a backup lists them. Planned: `/media`, the cache and `/transcode` for Plex; `/media` and `/kometa` for AURA; `/auraassets` for Kometa; `/plex` and `/plex/Cache` for ImageMaid (each of those is either never backed up or already backed up with the service that owns it). |
+| `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `healthcheck` ([security.md](security.md#policy)). In use: `socket-proxy` (`docker-socket`), and `autoheal` (`latest`, since its image publishes no current version tags), as on the sibling stacks. |
+| `org.honeybeartech.helios.backup.skip` | Container paths (comma-separated, exact) that `scripts/backup.sh` never archives and `scripts/restore.sh` refuses to write, even if a backup lists them. In use: `/media`, the cache and `/transcode` for Plex; `/media` and `/kometa` for AURA; `/auraassets` for Kometa; `/plex` and `/plex/Cache` for ImageMaid (each of those is either never backed up or already backed up with the service that owns it). |
 | `autoheal` | `"true"` on every service autoheal may restart when its health check fails (every service, socket-proxy included). autoheal restarts only containers with this label, so other containers on the host are left alone. |
 | `com.centurylinklabs.watchtower.enable` | `"false"` on every service, so an auto-updater such as Watchtower running on the same host never replaces a pinned version. |
 
@@ -110,8 +111,8 @@ published; autoheal also joins the default network, to reach its webhook.
 | `make check` | `docker compose config --format json \| python scripts/check_compose.py`: the policy check |
 | `python scripts/check_compose.py [FILE] [--sbom OUT]` | Checks a resolved Compose config (from `FILE` or stdin); `--sbom` also writes a CycloneDX 1.6 SBOM of the images. Exit 0 = no violations, 1 = violations (one line each), 2 = unreadable input |
 | `make test`, `make lint` | The checker's tests and the linters |
-| `scripts/backup.sh [DIR]` | Stops the stack, archives every service's data mounts (every read-write volume or bind mount except the Docker socket, anonymous volumes and the paths in the service's `backup.skip` label: the media library, Plex's cache and transcode directory), `.env` and any `<service>.env` into `DIR` (default `backups/<date>-<time>`, gitignored) with a `MANIFEST` and `SHA256SUMS`, all mode `600`, then starts what was running |
-| `scripts/restore.sh [--yes] DIR [SERVICE...]` | Verifies `DIR/SHA256SUMS`, checks the `MANIFEST`, asks for confirmation (unless `--yes`), stops the services, replaces the contents of each listed mount with its archive, and starts what was running. Writes only mounts the service still has read-write; never the Docker socket or a path in the service's `backup.skip` label |
+| `scripts/backup.sh [DIR]` | Stops the stack, archives every service's data mounts (every read-write volume or bind mount except the Docker socket, anonymous volumes and the paths in the service's `backup.skip` label: the media library, Plex's cache and transcode directory; a mount inside another mount, such as Plex's cache inside its `/config`, is left out of the outer archive), `.env` and any `<service>.env` into `DIR` (default `backups/<date>-<time>`, gitignored) with a `MANIFEST` and `SHA256SUMS`, all mode `600`, then starts what was running |
+| `scripts/restore.sh [--yes] DIR [SERVICE...]` | Verifies `DIR/SHA256SUMS`, checks the `MANIFEST`, asks for confirmation (unless `--yes`), stops the services, replaces the contents of each listed mount with its archive, and starts what was running. Writes only mounts the service still has read-write; never the Docker socket, a path in the service's `backup.skip` label, or another mount inside the one it restores |
 | `make smoke` | `scripts/smoke-test.sh`: starts every service under a separate Compose project with throwaway directories, no GPU and no published ports, waits until all are healthy, round-trips a backup and restore over every data mount, checks that excluded mounts were neither archived nor overwritten, then removes what it created. Exit 0 = all healthy and restored (or no `compose.yaml` yet) |
 
 ## Outbound connections

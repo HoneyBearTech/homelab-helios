@@ -61,9 +61,13 @@ while IFS= read -r line; do
   key=${line%%=*}
   case $key in
     *_ROOT | *_PATH)
-      value=$work/$(echo "$key" | tr 'A-Z_' 'a-z-')
+      name=$(echo "$key" | tr 'A-Z_' 'a-z-')
+      value=$work/$name
+      mkdir -p "$value"
+      # Placeholder data a service needs to start at all (Kometa's config.yml), from tests/smoke/<setting>/.
+      if [ -d "$root/tests/smoke/$name" ]; then cp -R "$root/tests/smoke/$name/." "$value/"; fi
       # Writable by any user: some services run as a fixed uid that isn't the caller's.
-      mkdir -p "$value" && chmod 0777 "$value"
+      chmod -R a+rwX "$value"
       ;;
     *_PREFIX) value=${project}_ ;;
     *_VOLUME) value=${project}_$(echo "$key" | tr 'A-Z_' 'a-z-') ;;

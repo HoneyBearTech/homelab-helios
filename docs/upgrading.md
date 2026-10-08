@@ -5,8 +5,8 @@ migrate their database when they start a new version and can't go back afterward
 so **every upgrade starts with a backup**. The same steps apply to updating a checkout of `main`, which is
 possible but unsupported for anything you depend on.
 
-> **Planned:** there are no releases yet and no `compose.yaml`. The backup and restore scripts exist and are
-> tested against a stand-in stack; they run in CI against the real one once it's added.
+> There are no releases yet: until the first one, follow these steps with a checkout of `main`. The backup and
+> restore scripts are exercised against the real stack by CI's smoke test on every change.
 
 ## Before you upgrade
 
