@@ -8,6 +8,12 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Added
 
+- Kometa Quickstart (`kometateam/quickstart`), a web UI for building and validating Kometa configurations, as a
+  tool started on demand: it is in the `tools` profile, so `docker compose up -d` doesn't start it and it isn't
+  restarted after a reboot (`docker compose --profile tools up -d quickstart`). It publishes 7171 for the LAN
+  and has no login; its data (`QUICKSTART_CONFIG_PATH`) holds the tokens entered in it
+  ([docs/quickstart.md](docs/quickstart.md)). The policy check, the image scan, the release SBOM, backups,
+  restores and the smoke test all include the tools; a backup skips a tool that has never been started.
 - `compose.yaml`: Plex, Tautulli, AURA, Kometa and ImageMaid, with autoheal behind a filtering socket proxy.
   Every image is pinned by tag and digest for `linux/amd64`, every service has a health check and the `autoheal`
   label, and none of them is touched by a host auto-updater (`com.centurylinklabs.watchtower.enable: "false"`).

@@ -47,7 +47,7 @@ a non-empty reason:
 
 ## What it doesn't protect
 
-- **The services themselves.** A vulnerability in Plex, Tautulli, AURA, Kometa or ImageMaid is that project's to fix;
+- **The services themselves.** A vulnerability in Plex, Tautulli, AURA, Kometa, ImageMaid or Kometa Quickstart is that project's to fix;
   homelab-helios ships the fixed version once it's released ([dependencies.md](dependencies.md)).
 - **Who can watch.** Plex's sign-in, its shared users, its "allowed without authentication" networks and its
   remote access are configured in Plex and stored in its data; deciding them is the operator's job
@@ -56,7 +56,9 @@ a non-empty reason:
 - **Viewing history.** Plex and Tautulli record who watched what and from where. It stays in their data and in
   backups; anyone given Tautulli access sees it.
 - **Access to the other web UIs.** Keeping Tautulli and AURA on the LAN, behind a reverse proxy's access lists,
-  is the operator's job.
+  is the operator's job. Kometa Quickstart has no login at all: anyone on the LAN can read the tokens in it while
+  it runs, so the stack doesn't start it with the others and doesn't restart it after a reboot; running it only
+  while it's used, and never beyond the LAN, is the operator's job ([quickstart.md](quickstart.md)).
 - **Plex's data, to ImageMaid.** ImageMaid mounts Plex's data directory read-write and deletes images Plex no
   longer uses; a faulty version could delete more. Back up before upgrading it, as for Plex.
 - **The media library.** Plex and AURA mount it read-write: AURA writes artwork into it, and Plex deletes files
@@ -88,5 +90,6 @@ a non-empty reason:
 | AURA's Plex token and MediUX token | AURA's data | same |
 | Kometa's Plex token and API keys (TMDb and any others you add) | Kometa's `config.yml`, in its data | same |
 | ImageMaid's Plex token | ImageMaid's data | same |
+| The Plex token and API keys entered in Kometa Quickstart, and the configs built there | Quickstart's data (SQLite); readable by anyone who reaches port 7171 while it runs, since it has no login | same; never forward 7171 |
 | autoheal's webhook URL | `autoheal.env` (mode `600`, gitignored) | same |
 | Backups of the data | off the host, mode `600` | anywhere public |

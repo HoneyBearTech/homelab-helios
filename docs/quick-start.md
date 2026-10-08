@@ -29,7 +29,7 @@ Toolkit and a Plex Pass ([installing.md](installing.md#requirements)).
    ```sh
    . ./.env && mkdir -p "$PLEX_CONFIG_PATH" "$PLEX_CACHE_PATH" "$PLEX_TRANSCODE_PATH" \
      "$TAUTULLI_CONFIG_PATH" "$AURA_CONFIG_PATH" "$KOMETA_CONFIG_PATH" \
-     "$IMAGEMAID_CONFIG_PATH"
+     "$IMAGEMAID_CONFIG_PATH" "$QUICKSTART_CONFIG_PATH"
    ```
 
 4. **Check the GPU** is visible to containers, and let Plex use it:

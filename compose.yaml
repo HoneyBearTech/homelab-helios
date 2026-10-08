@@ -136,6 +136,33 @@ services:
       - ${KOMETA_CONFIG_PATH:?set KOMETA_CONFIG_PATH in .env}:/config
       - ${AURA_CONFIG_PATH:?set AURA_CONFIG_PATH in .env}/auraassets:/auraassets
 
+  # Kometa Quickstart: a web UI for building and validating Kometa configurations. A tool, started on demand and
+  # not by `docker compose up -d`: `docker compose --profile tools up -d quickstart`, then
+  # `docker compose stop quickstart` when done. It has no login, and its data (SQLite) holds the Plex token and
+  # API keys entered in it, so anyone who can reach port 7171 while it runs can read them (docs/security.md).
+  # Its configs hold real values: they reach kometa/ only through the placeholders. Its own Kometa and ImageMaid
+  # runs and its self-updater download unpinned code from GitHub; the stack's pinned Kometa and ImageMaid do that
+  # work instead (docs/quickstart.md).
+  quickstart:
+    image: kometateam/quickstart:v0.10.12@sha256:edb5319f7a4884c62fb175dd4f1c210bbc95d8c86b2a48291d05e231ffa90cc5
+    container_name: quickstart
+    profiles: [tools]
+    # Not restarted after a reboot: it is reachable without a login only while someone has it running.
+    restart: "no"
+    user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
+    labels:
+      <<: *labels
+    healthcheck:
+      <<: *healthcheck
+      # The image's own check: its status endpoint answers.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:7171/kometa-status"]
+    environment:
+      TZ: ${TZ:?set TZ in .env}
+    ports:
+      - "7171:7171"
+    volumes:
+      - ${QUICKSTART_CONFIG_PATH:?set QUICKSTART_CONFIG_PATH in .env}:/config
+
   # Removes images Plex no longer uses from Plex's data directory, on its schedule. Its .env (Plex's address and
   # token, the mode, notifications) lives in its data directory; the schedule and Plex's path come from here.
   imagemaid:

@@ -73,8 +73,9 @@ jobs:
             exit 0
           fi
           cp .env.example .env
-          docker compose config --quiet
-          docker compose config --format json | python scripts/check_compose.py
+          # --profile tools: the tools started on demand (Quickstart) must meet the policy too.
+          docker compose --profile tools config --quiet
+          docker compose --profile tools config --format json | python scripts/check_compose.py
 
   smoke:
     # A required check on main, like "Checks + tests", so an image that doesn't start can't be auto-merged.

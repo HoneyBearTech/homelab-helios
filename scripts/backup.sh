@@ -27,10 +27,16 @@ umask 077
 mkdir -p "$dest/env"
 dest=$(cd "$dest" && pwd)
 
-# Every service needs a container (running or stopped) to read its mounts from.
+# Every service needs a container (running or stopped) to read its mounts from. A tool that has never been started
+# (a service in tool_profiles, such as Quickstart) has no data yet and is skipped.
 services=()
+always_on=" $(COMPOSE_PROFILES='' docker compose config --services | tr '\n' ' ') "
 for service in $(docker compose config --services); do
   if [ -z "$(docker compose ps --all --quiet "$service")" ]; then
+    if [[ "$always_on" != *" $service "* ]]; then
+      echo "Skipping $service (a tool that has never been started: no data yet)"
+      continue
+    fi
     echo "error: $service has no container; run 'docker compose create' or 'docker compose up -d' first" >&2
     exit 1
   fi

@@ -15,6 +15,7 @@ images, pinned by digest.
 | AURA | MediUX's own image | Browses MediUX artwork sets and applies them to Plex: saves artwork next to the media, or writes sets for Kometa to apply |
 | Kometa | the project's own image | Once a day, builds collections and overlays in Plex and applies artwork and metadata, including the sets AURA writes for it |
 | ImageMaid | Kometa's project | Removes images Plex no longer uses from Plex's data directory, to keep it from growing |
+| Kometa Quickstart | Kometa's project | A tool, started on demand: a web UI for building and validating Kometa configurations ([quickstart.md](quickstart.md)) |
 | autoheal | the project's own image | Restarts any service whose health check fails, and can post a notice to a webhook (Docker on its own only restarts a container that exits) |
 | socket-proxy | LinuxServer.io | Gives autoheal a filtered view of the Docker API (list, inspect, restart and stop containers only) on an internal network |
 
