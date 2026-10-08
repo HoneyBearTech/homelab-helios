@@ -47,6 +47,14 @@ docker compose up -d --wait
 docker compose ps
 ```
 
+If `kometa/` changed, Kometa needs a new container to see it (its files are single-file mounts, which keep the
+old file until the container is recreated), and its configuration should be checked with the real values:
+
+```sh
+docker compose run --rm kometa --validate --validate-level full   # ends with "Result: PASSED"
+docker compose up -d --force-recreate kometa
+```
+
 Then check each service's web UI and logs (`docker compose logs <service>`) for migration errors, that Plex
 still lists its libraries and watch history, that one stream transcodes on the GPU (Plex's dashboard shows
 "(hw)"), and that Tautulli still reaches Plex.

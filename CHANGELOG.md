@@ -25,7 +25,11 @@ All notable changes to homelab-helios are documented here. The format follows
   `kometa.env.example` lists them all. A test fails the build on any value under a credential, address or path
   key that isn't such a placeholder, on a placeholder name Kometa reserves for its own settings, and on a file in
   `kometa/` that `config.yml` doesn't link. The collection files that only tag or refresh items set
-  `sync_mode: append`, which Kometa requires for them. Not deployed yet: Helios' Kometa still reads its own copy.
+  `sync_mode: append`, which Kometa requires for them.
+- Kometa reads `kometa/` from the checkout: each file is mounted read-only over `/config/<name>`, with
+  `KOMETA_READ_ONLY_CONFIG` so Kometa never tries to rewrite `config.yml` (without it, a missing setting stops the
+  run). Its secrets go in `.env` in its data directory, which Kometa loads itself, so they stay out of the
+  container's environment. After a change to `kometa/`, recreate the container (docs/upgrading.md).
 - `compose.yaml`: Plex, Tautulli, AURA, Kometa and ImageMaid, with autoheal behind a filtering socket proxy.
   Every image is pinned by tag and digest for `linux/amd64`, every service has a health check and the `autoheal`
   label, and none of them is touched by a host auto-updater (`com.centurylinklabs.watchtower.enable: "false"`).

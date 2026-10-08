@@ -29,7 +29,8 @@ The [quick start](quick-start.md) is the short version of this page.
 | Tautulli's database and settings | `TAUTULLI_CONFIG_PATH` | `/config` |
 | AURA's settings and tokens | `AURA_CONFIG_PATH` | `/config` |
 | Artwork sets AURA hands to Kometa | `KOMETA_CONFIG_PATH`'s `aura` directory | AURA: `/kometa` |
-| Kometa's configuration, collections, overlays, assets | `KOMETA_CONFIG_PATH` | `/config` |
+| Kometa's secrets (`.env`), overlays, assets, cache, logs | `KOMETA_CONFIG_PATH` | `/config` |
+| Kometa's configuration and collection files (placeholders only) | `kometa/` in the checkout, read-only | `/config/config.yml`, `/config/<name>.yml` |
 | AURA's artwork, read by Kometa | `AURA_CONFIG_PATH`'s `auraassets` directory | Kometa: `/auraassets` |
 | ImageMaid's settings | `IMAGEMAID_CONFIG_PATH` | `/config` |
 | Kometa Quickstart's database, with the configs and tokens entered in it | `QUICKSTART_CONFIG_PATH` | `/config` |
@@ -42,7 +43,13 @@ Every mount is listed in [interfaces.md](interfaces.md#volumes-and-mounts).
 1. Clone the repository (or download a release's source archive and verify it,
    [verifying-releases.md](verifying-releases.md)).
 2. Create `.env` from `.env.example` (mode `600`) and set every value.
-3. Create the data directories, then `docker compose up -d`.
+3. Create the data directories. Create Kometa's secrets file from `kometa.env.example`, owned by `PUID` and
+   readable only by it, and fill in every value:
+   `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <KOMETA_CONFIG_PATH>/.env` (the values from
+   `.env`). Kometa reads it itself, so the values stay out of the container's environment. Its configuration,
+   `kometa/`, holds only `<<UPPER_SNAKE>>` placeholders, which Kometa fills from these `KOMETA_*` values.
+4. `docker compose up -d`, then check Kometa's configuration with the real values:
+   `docker compose run --rm kometa --validate --validate-level full` should end with `Result: PASSED`.
 
 **Adopting existing containers.** If the services already run on the host (from Portainer stacks or another
 Compose project), point the stack at their existing data instead of starting empty: stop the old containers,

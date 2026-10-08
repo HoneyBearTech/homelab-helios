@@ -34,7 +34,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - Commit as `31805425+HoneyBearTech@users.noreply.github.com` (set as this repo's `user.email`), with
   `git commit -s` for the DCO sign-off; commits and tags are SSH-signed.
 - No secrets: Plex's server token, the Plex tokens Tautulli, AURA, Kometa and ImageMaid hold, AURA's MediUX
-  token, Kometa's API keys (in its `config.yml`) and logins stay in the
+  token, Kometa's API keys (in the `.env` in its data directory) and logins stay in the
   services' data on the host, never in `compose.yaml`, `.env` or the `*.example` files. A secret a service can
   only take from its environment gets its own gitignored `<service>.env` (`env_file`) with a committed
   `<service>.env.example`: Plex's one-time `PLEX_CLAIM` goes in `plex.env`. `.gitignore` covers `.env`, keys,
@@ -79,12 +79,15 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   family and ports the same; see the cutover plan in Chronos.
 
 ## Kometa
-Kometa's configuration is moving into the repo (`kometa/`, **Planned**; the Decisions-Log entries from
-2026-10-08), with CI validation and a weekly upstream watch.
+Kometa's configuration is in the repo (`kometa/`, mounted read-only over `/config/<name>` with
+`KOMETA_READ_ONLY_CONFIG`; the Decisions-Log entries from 2026-10-08); CI validation and a weekly upstream watch
+are **Planned**.
 - **Secrets and host facts in Kometa's YAML are placeholders**: `<<UPPER_SNAKE>>`, which Kometa fills from
   the `KOMETA_<UPPER_SNAKE>` environment variable (`<<lower_snake>>` doesn't match, and an unmatched
   placeholder silently becomes empty). That covers tokens, API keys, Plex's URL, notification URLs and
-  Radarr/Sonarr addresses and root folders. The values go in the gitignored `kometa.env`, never in the repo.
+  Radarr/Sonarr addresses and root folders. The values go in `.env` in Kometa's data directory (Kometa loads
+  it itself), never in the repo. Every file in `kometa/` is linked from `config.yml` and mounted in compose
+  (the placeholder test checks both). Kometa reserves some `KOMETA_*` names (`KOMETA_PLEX_URL`/`_TOKEN`).
 - **Never read Kometa's `config.yml`, its `.bak` copies or `config.cache` on the host as they are**: only
   through the fail-closed redaction script, run on the host, so the secrets never reach your context. Before
   reading any other file of Kometa's from the host, grep it there for secret-looking keys and show the matches

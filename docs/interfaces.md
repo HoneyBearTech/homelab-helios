@@ -21,7 +21,7 @@ setting marked required stops `docker compose` with an error naming it when it's
 | `PLEX_TRANSCODE_PATH` | yes | `/srv/plex-transcode` | Scratch space for transcodes in progress (not backed up). |
 | `TAUTULLI_CONFIG_PATH` | yes | `/srv/appdata/tautulli` | Tautulli's database and settings. |
 | `AURA_CONFIG_PATH` | yes | `/srv/appdata/aura` | AURA's settings, including its Plex and MediUX tokens. |
-| `KOMETA_CONFIG_PATH` | yes | `/srv/appdata/kometa` | Kometa's `config.yml` (Plex token, API keys), collection and overlay files, assets, logs. AURA writes artwork sets into its `aura` directory. |
+| `KOMETA_CONFIG_PATH` | yes | `/srv/appdata/kometa` | Kometa's data: the `.env` with its Plex token and API keys (from `kometa.env.example`), overlays, assets, cache, logs. Its `config.yml` and collection files come from `kometa/` (read-only). AURA writes artwork sets into its `aura` directory. |
 | `KOMETA_TIMES` | no | `02:00` | When Kometa runs each day (`HH:MM`, comma-separated). |
 | `IMAGEMAID_CONFIG_PATH` | yes | `/srv/appdata/imagemaid` | ImageMaid's settings (its `.env`: Plex's address and token, the mode, notifications). |
 | `QUICKSTART_CONFIG_PATH` | yes | `/srv/appdata/quickstart` | Kometa Quickstart's data: its SQLite database, with the configs built in it and the Plex token and API keys entered there. |
@@ -85,7 +85,8 @@ the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml` in `.env`.
 | `/config` | `TAUTULLI_CONFIG_PATH` | Tautulli: database, settings, Plex token |
 | `/config` | `AURA_CONFIG_PATH` | AURA: settings, Plex and MediUX tokens |
 | `/kometa` | `KOMETA_CONFIG_PATH/aura` | AURA: artwork sets for Kometa (backed up with Kometa's data) |
-| `/config` | `KOMETA_CONFIG_PATH` | Kometa: `config.yml`, collections, overlays, assets, logs |
+| `/config` | `KOMETA_CONFIG_PATH` | Kometa: its `.env` (secrets), overlays, assets, cache, logs |
+| `/config/config.yml` and `/config/<name>.yml` for each collection file | `kometa/` in the checkout, read-only | Kometa: its configuration, placeholders only (not backed up: it's in git) |
 | `/auraassets` | `AURA_CONFIG_PATH/auraassets` | Kometa: AURA's artwork (backed up with AURA's data) |
 | `/config` | `IMAGEMAID_CONFIG_PATH` | ImageMaid: settings |
 | `/config` | `QUICKSTART_CONFIG_PATH` | Quickstart: its SQLite database (configs, with the Plex token and API keys entered in it), logs, caches |

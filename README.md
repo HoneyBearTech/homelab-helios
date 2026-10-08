@@ -92,7 +92,7 @@ Settings come from `.env` (template [`.env.example`](.env.example)), which holds
 | `PLEX_TRANSCODE_PATH` | `/srv/plex-transcode` | Scratch space for transcodes in progress (not backed up) |
 | `TAUTULLI_CONFIG_PATH` | `/srv/appdata/tautulli` | Tautulli's database and settings |
 | `AURA_CONFIG_PATH` | `/srv/appdata/aura` | AURA's settings, including its Plex and MediUX tokens |
-| `KOMETA_CONFIG_PATH` | `/srv/appdata/kometa` | Kometa's `config.yml` (with its Plex token and API keys), collections, overlays, assets |
+| `KOMETA_CONFIG_PATH` | `/srv/appdata/kometa` | Kometa's data: its `.env` (Plex token, API keys; from `kometa.env.example`), overlays, assets. Its configuration is `kometa/`, mounted read-only |
 | `KOMETA_TIMES` | `02:00` | When Kometa runs each day |
 | `IMAGEMAID_CONFIG_PATH` | `/srv/appdata/imagemaid` | ImageMaid's settings, with its Plex token |
 | `QUICKSTART_CONFIG_PATH` | `/srv/appdata/quickstart` | Kometa Quickstart's database, with the configs and tokens entered in it |

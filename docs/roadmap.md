@@ -14,6 +14,9 @@ file changes with them, in the same pull request.
 - Done: the smoke test against the real stack in CI. Next: the first image scan and its triage.
 - Done: Kometa Quickstart as an on-demand config editor (not started with the stack, no login, LAN only while it
   runs).
+- Done: Kometa's configuration in `kometa/`, with every secret as a placeholder (a test enforces it), mounted
+  read-only into Kometa. Next: validating it against Kometa's schemas in CI, a weekly watch for new Kometa
+  releases, and `docs/kometa.md`.
 - First release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
 - Switch Helios to run the stack from a checkout of this repository, adopting the existing data, ports and

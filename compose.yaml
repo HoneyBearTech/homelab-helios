@@ -108,7 +108,10 @@ services:
       - ${MEDIA_PATH:?set MEDIA_PATH in .env}:/media
 
   # Builds collections and overlays in Plex and applies artwork and metadata (including the sets AURA writes), on
-  # its daily schedule. Its config.yml, with the Plex token and API keys, lives in its data directory.
+  # its daily schedule. Its config.yml and collection files come from kometa/ in this checkout, mounted read-only
+  # over the copies in its data directory; their placeholders are filled from the .env Kometa reads in its data
+  # directory (kometa.env.example). Logs, cache, assets and overlays stay in the data directory. A single-file
+  # mount keeps the old file after a git pull until the container is recreated (docs/upgrading.md).
   kometa:
     image: kometateam/kometa:v2.5.2@sha256:06e498cded70c9815522c6b2d8708b31759c1e37714746d1eeb56f1e40a8fd95
     container_name: kometa
@@ -132,8 +135,16 @@ services:
     environment:
       TZ: ${TZ:?set TZ in .env}
       KOMETA_TIMES: ${KOMETA_TIMES:-02:00}
+      # config.yml is mounted read-only: without this, Kometa tries to add a missing setting to it and the run
+      # stops (still exiting 0). With it, Kometa uses the setting's default and logs a warning.
+      KOMETA_READ_ONLY_CONFIG: "true"
     volumes:
       - ${KOMETA_CONFIG_PATH:?set KOMETA_CONFIG_PATH in .env}:/config
+      - ./kometa/config.yml:/config/config.yml:ro
+      - ./kometa/movies_refresh.yml:/config/movies_refresh.yml:ro
+      - ./kometa/tv_refresh.yml:/config/tv_refresh.yml:ro
+      - ./kometa/separator_franchise.yml:/config/separator_franchise.yml:ro
+      - ./kometa/radarr4k_tags.yml:/config/radarr4k_tags.yml:ro
       - ${AURA_CONFIG_PATH:?set AURA_CONFIG_PATH in .env}/auraassets:/auraassets
 
   # Kometa Quickstart: a web UI for building and validating Kometa configurations. A tool, started on demand and

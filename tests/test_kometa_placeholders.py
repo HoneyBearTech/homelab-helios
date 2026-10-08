@@ -113,3 +113,9 @@ def test_every_file_is_linked_from_config() -> None:
     text = (KOMETA / "config.yml").read_text(encoding="utf-8")
     unlinked = [p.name for p in KOMETA_FILES if p.name != "config.yml" and f"file: config/{p.name}" not in text]
     assert unlinked == []
+
+
+def test_every_file_is_mounted_read_only() -> None:
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    unmounted = [p.name for p in KOMETA_FILES if f"- ./kometa/{p.name}:/config/{p.name}:ro\n" not in compose]
+    assert unmounted == []
