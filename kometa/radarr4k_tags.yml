@@ -1,0 +1,42 @@
+# Tags the 4K Radarr's movies by their HDR and audio formats, as Plex sees them. Tagging only: no collections are
+# built in Plex (build_collection: false, so sync_mode must be append).
+
+collections:
+  # 1. HDR files
+  HDR Movies:
+    plex_search:
+      all:
+        hdr: true
+    item_radarr_tag: hdr
+    build_collection: false
+    sync_mode: append
+
+  # 2. Atmos audio tracks. audio_track_title is a filter, not a plex_search attribute (Kometa 2.5.2 rejects it
+  #    there), so every movie is read and filtered by its audio track titles.
+  Atmos Movies:
+    plex_all: true
+    filters:
+      audio_track_title.regex: '(?i)atmos'
+    item_radarr_tag: atmos
+    build_collection: false
+    sync_mode: append
+
+  # 3. Dolby Vision
+  Plex Dolby Vision Movies:
+    plex_search:
+      all:
+        dovi: true
+    item_radarr_tag: dv
+    build_collection: false
+    sync_mode: append
+
+  # 4. HDR10+
+  Plex HDR10 Plus Movies:
+    plex_search:
+      all:
+        hdr: true
+    filters:
+      filepath.regex: 'HDR10\+|HDR10P'
+    item_radarr_tag: hdr10plus
+    build_collection: false
+    sync_mode: append

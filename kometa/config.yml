@@ -1,0 +1,588 @@
+# Kometa's configuration for Helios (Kometa v2.5.2). Every secret and host fact is a <<UPPER_SNAKE>> placeholder,
+# which Kometa fills from the KOMETA_<UPPER_SNAKE> environment variable; the names and what each holds are in
+# kometa.env.example. An unset placeholder silently becomes empty. Plex's placeholders are PLEX_SERVER_URL and
+# PLEX_SERVER_TOKEN because Kometa reserves KOMETA_PLEX_URL and KOMETA_PLEX_TOKEN for its own use and never
+# fills a placeholder from them.
+libraries:
+  Anime:
+    report_path: config/missing/anime_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt1190634
+    collection_files:
+    - default: separator_chart
+    - default: basic
+    - file: config/tv_refresh.yml
+    schedule_overlays: weekly(sunday)
+    overlay_files:
+    - default: resolution
+    - default: resolution
+      template_variables:
+        builder_level: episode
+    - default: audio_codec
+    - default: audio_codec
+      template_variables:
+        builder_level: season
+    - default: streaming
+    settings:
+      asset_directory:
+      - config/aura/anime
+      prioritize_assets: true
+    sonarr:
+      url: <<SONARR_URL>>
+      token: <<SONARR_TOKEN>>
+      add_missing: false
+      add_existing: false
+      root_folder_path: <<ANIME_ROOT_FOLDER>>
+      monitor: none
+      quality_profile: Anime
+      language_profile: English
+      series_type: anime
+      season_folder: true
+      tag: kometa
+      search: false
+      cutoff_search: false
+      sonarr_path: <<ANIME_ROOT_FOLDER>>
+      plex_path: <<ANIME_PLEX_PATH>>
+      upgrade_existing: false
+      monitor_existing: false
+      ignore_cache: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+  Movies:
+    report_path: config/missing/movies_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt8579674
+    collection_files:
+    - default: based
+    - default: separator_chart
+    - default: basic
+    - default: universe
+    - default: decade
+    - default: imdb
+    - default: genre
+    - default: country
+      template_variables:
+        style: color
+    - file: config/separator_franchise.yml
+      template_variables:
+        collection_section: '035'
+    - default: franchise
+      template_variables:
+        collection_section: '035'
+    - default: seasonal
+      template_variables:
+        schedule_years: range(12/26-01/04)
+        schedule_valentine: range(02/01-02/29)
+        schedule_patrick: range(03/01-03/18)
+        schedule_easter: range(03/20-04/30)
+        schedule_mother: range(05/05-05/10)
+        schedule_memorial: range(5/18-6/7)
+        schedule_father: range(06/15-06/20)
+        schedule_independence: range(06/23-07/11)
+        schedule_labor: range(09/01-09/10)
+        schedule_halloween: range(10/01-10/31)
+        schedule_veteran: range(11/01-11/30)
+        schedule_thanksgiving: range(11/01-11/30)
+        schedule_christmas: range(12/01-12/31)
+        schedule_women: range(02/28-03/31)
+        use_aapi: false
+        use_disabilities: false
+        use_black_history: false
+        use_lgbtq: false
+        use_latinx: false
+    - file: config/movies_refresh.yml
+    schedule_overlays: daily
+    overlay_files:
+    - default: resolution
+    - default: audio_codec
+    settings:
+      asset_directory:
+      - config/aura/movies
+      prioritize_assets: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+  Kid's Movies:
+    report_path: config/missing/movieskids_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt8579674
+    collection_files:
+    - default: based
+    - default: separator_chart
+    - default: basic
+    - default: universe
+    - default: decade
+    - default: imdb
+    - default: genre
+    - default: country
+      template_variables:
+        style: color
+    - file: config/separator_franchise.yml
+      template_variables:
+        collection_section: '035'
+    - default: franchise
+      template_variables:
+        collection_section: '035'
+    - default: seasonal
+      template_variables:
+        schedule_years: range(12/26-01/04)
+        schedule_valentine: range(02/01-02/29)
+        schedule_patrick: range(03/01-03/18)
+        schedule_easter: range(03/20-04/30)
+        schedule_mother: range(05/05-05/10)
+        schedule_memorial: range(5/18-6/7)
+        schedule_father: range(06/15-06/20)
+        schedule_independence: range(06/23-07/11)
+        schedule_labor: range(09/01-09/10)
+        schedule_halloween: range(10/01-10/31)
+        schedule_veteran: range(11/01-11/30)
+        schedule_thanksgiving: range(11/01-11/30)
+        schedule_christmas: range(12/01-12/31)
+        schedule_women: range(02/28-03/31)
+        use_aapi: false
+        use_disabilities: false
+        use_black_history: false
+        use_lgbtq: false
+        use_latinx: false
+    - file: config/movies_refresh.yml
+    schedule_overlays: weekly(sunday)
+    overlay_files:
+    - default: resolution
+    - default: audio_codec
+    settings:
+      asset_directory:
+      - config/aura/movieskids
+      prioritize_assets: true
+    radarr:
+      url: <<RADARR_URL>>
+      token: <<RADARR_TOKEN>>
+      add_missing: false
+      add_existing: false
+      ignore_cache: true
+      root_folder_path: <<KIDS_MOVIES_ROOT_FOLDER>>
+      monitor: false
+      availability: announced
+      quality_profile: SQP-1 (1080p)
+      tag: kometa
+      search: false
+      radarr_path: <<KIDS_MOVIES_ROOT_FOLDER>>
+      plex_path: <<KIDS_MOVIES_PLEX_PATH>>
+      upgrade_existing: false
+      monitor_existing: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+  TV Shows:
+    report_path: config/missing/tvshows_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt1190634
+    collection_files:
+    - default: separator_chart
+    - default: basic
+    - default: network
+    - default: imdb
+    - default: franchise
+    - default: separator_award
+    - default: choice
+    - default: emmy
+      template_variables:
+        data:
+          starting: current_year-5
+          ending: current_year-1
+    - default: golden
+    - default: streaming
+    - default: country
+      template_variables:
+        style: color
+    - default: region
+      template_variables:
+        style: color
+    - default: continent
+      template_variables:
+        style: color
+    - file: config/tv_refresh.yml
+    schedule_overlays: daily
+    overlay_files:
+    - default: resolution
+    - default: resolution
+      template_variables:
+        builder_level: episode
+    - default: audio_codec
+    - default: audio_codec
+      template_variables:
+        builder_level: season
+    settings:
+      asset_directory:
+      - config/aura/tvshows
+      prioritize_assets: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+  Kid's TV Shows:
+    report_path: config/missing/tvshowskids_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt1190634
+    collection_files:
+    - default: separator_chart
+    - default: basic
+    - default: imdb
+    - default: franchise
+    - default: separator_award
+    - default: choice
+    - default: emmy
+      template_variables:
+        data:
+          starting: current_year-5
+          ending: current_year-1
+    - default: golden
+    - file: config/tv_refresh.yml
+    schedule_overlays: weekly(sunday)
+    overlay_files:
+    - default: resolution
+    - default: resolution
+      template_variables:
+        builder_level: season
+    - default: audio_codec
+    - default: audio_codec
+      template_variables:
+        builder_level: season
+    settings:
+      asset_directory:
+      - config/aura/tvshowskids
+      prioritize_assets: true
+    sonarr:
+      url: <<SONARR_URL>>
+      token: <<SONARR_TOKEN>>
+      add_missing: false
+      add_existing: false
+      root_folder_path: <<KIDS_TV_SHOWS_ROOT_FOLDER>>
+      monitor: none
+      quality_profile: WEB-DL (1080p)
+      language_profile: English
+      series_type: standard
+      season_folder: true
+      tag: kometa
+      search: false
+      cutoff_search: false
+      sonarr_path: <<KIDS_TV_SHOWS_ROOT_FOLDER>>
+      plex_path: <<KIDS_TV_SHOWS_PLEX_PATH>>
+      upgrade_existing: false
+      monitor_existing: false
+      ignore_cache: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+  4k Movies:
+    report_path: config/missing/4kmovies_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt8579674
+    collection_files:
+    - default: based
+    - default: separator_chart
+    - default: basic
+    - default: universe
+    - default: decade
+    - default: imdb
+    - default: genre
+    - default: country
+      template_variables:
+        style: color
+    - file: config/separator_franchise.yml
+      template_variables:
+        collection_section: '035'
+    - default: franchise
+      template_variables:
+        collection_section: '035'
+    - default: seasonal
+      template_variables:
+        schedule_years: range(12/26-01/04)
+        schedule_valentine: range(02/01-02/29)
+        schedule_patrick: range(03/01-03/18)
+        schedule_easter: range(03/20-04/30)
+        schedule_mother: range(05/05-05/10)
+        schedule_memorial: range(5/18-6/7)
+        schedule_father: range(06/15-06/20)
+        schedule_independence: range(06/23-07/11)
+        schedule_labor: range(09/01-09/10)
+        schedule_halloween: range(10/01-10/31)
+        schedule_veteran: range(11/01-11/30)
+        schedule_thanksgiving: range(11/01-11/30)
+        schedule_christmas: range(12/01-12/31)
+        schedule_women: range(02/28-03/31)
+        use_aapi: false
+        use_disabilities: false
+        use_black_history: false
+        use_lgbtq: false
+        use_latinx: false
+    - file: config/movies_refresh.yml
+    - file: config/radarr4k_tags.yml
+    schedule_overlays: daily
+    overlay_files:
+    - default: resolution
+    - default: audio_codec
+    settings:
+      asset_directory:
+      - config/aura/movies4k
+      prioritize_assets: true
+    radarr:
+      url: <<RADARR_4K_URL>>
+      token: <<RADARR_4K_TOKEN>>
+      add_missing: false
+      add_existing: true
+      ignore_cache: true
+      root_folder_path: <<MOVIES_4K_ROOT_FOLDER>>
+      monitor: false
+      availability: announced
+      quality_profile: SQP-3 Remux|IMAX-E|2160p
+      tag: kometa
+      search: false
+      radarr_path: <<MOVIES_4K_ROOT_FOLDER>>
+      plex_path: <<MOVIES_4K_PLEX_PATH>>
+      upgrade_existing: false
+      monitor_existing: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+  4k TV Shows:
+    report_path: config/missing/4ktvshows_report.yml
+    remove_overlays: false
+    reapply_overlays: false
+    template_variables:
+      sep_style: gray
+      collection_mode: hide
+      language: en
+      placeholder_imdb_id: tt1190634
+    collection_files:
+    - default: separator_chart
+    - default: basic
+    - default: imdb
+    - default: franchise
+    - default: separator_award
+    - default: choice
+    - default: emmy
+      template_variables:
+        data:
+          starting: current_year-5
+          ending: current_year-1
+    - default: golden
+    - file: config/tv_refresh.yml
+    schedule_overlays: daily
+    overlay_files:
+    - default: resolution
+    - default: resolution
+      template_variables:
+        builder_level: episode
+    - default: audio_codec
+    - default: audio_codec
+      template_variables:
+        builder_level: season
+    settings:
+      asset_directory:
+      - config/aura/tvshows4k
+      prioritize_assets: true
+    sonarr:
+      url: <<SONARR_4K_URL>>
+      token: <<SONARR_4K_TOKEN>>
+      add_missing: false
+      add_existing: false
+      ignore_cache: true
+      root_folder_path: <<TV_SHOWS_4K_ROOT_FOLDER>>
+      monitor: none
+      quality_profile: WEB-DL (2160p)
+      language_profile: English
+      series_type: standard
+      season_folder: true
+      tag: kometa
+      search: false
+      cutoff_search: false
+      sonarr_path: <<TV_SHOWS_4K_ROOT_FOLDER>>
+      plex_path: <<TV_SHOWS_4K_PLEX_PATH>>
+      upgrade_existing: false
+      monitor_existing: true
+    operations:
+    - schedule: daily
+      split_duplicates: false
+      assets_for_all: true
+      delete_collections:
+        configured: false
+        managed: false
+playlist_files:
+- default: playlist
+  template_variables:
+    libraries: Movies, TV Shows, 4k Movies, 4k TV Shows
+    radarr_add_missing: false
+    sonarr_add_missing: false
+    delete_playlist_dragonball: false
+settings:
+  cache: true
+  cache_expiration: 60
+  asset_directory:
+  - config/aura/anime
+  - config/aura/movies
+  - config/aura/movieskids
+  - config/aura/movies4k
+  - config/aura/tvshows
+  - config/aura/tvshows4k
+  - config/aura/tvshowskids
+  asset_folders: true
+  asset_depth: 6
+  create_asset_folders: true
+  prioritize_assets: true
+  dimensional_asset_rename: true
+  download_url_assets: true
+  show_missing_season_assets: true
+  show_missing_episode_assets: true
+  show_asset_not_needed: true
+  sync_mode: sync
+  minimum_items: 2
+  default_collection_order: null
+  delete_below_minimum: true
+  delete_not_scheduled: false
+  run_again_delay: 1
+  missing_only_released: true
+  only_filter_missing: false
+  show_unmanaged: true
+  show_filtered: true
+  show_options: true
+  show_missing: false
+  show_missing_assets: true
+  save_report: true
+  tvdb_language: eng
+  ignore_ids: 33739,68295,46922,10318,64198,1668,443,2730,156902,2316,57532,2190,60554,14766,157747,1291091
+  ignore_imdb_ids: null
+  item_refresh_delay: 0
+  playlist_sync_to_users: all
+  playlist_exclude_users: null
+  playlist_report: true
+  verify_ssl: false
+  custom_repo: null
+  show_unconfigured: true
+  run_order:
+  - operations
+  - metadata
+  - collections
+  - overlays
+  overlay_artwork_filetype: jpg
+  overlay_artwork_quality: 75
+  show_unfiltered: false
+  auto_sort_hubs: null
+webhooks:
+  error: <<NOTIFICATION_WEBHOOK>>
+  version: <<NOTIFICATION_WEBHOOK>>
+  run_start: <<NOTIFICATION_WEBHOOK>>
+  run_end: <<NOTIFICATION_WEBHOOK>>
+  changes: <<NOTIFICATION_WEBHOOK>>
+  delete: <<NOTIFICATION_WEBHOOK>>
+plex:
+  url: <<PLEX_SERVER_URL>>
+  token: <<PLEX_SERVER_TOKEN>>
+  timeout: 360
+  clean_bundles: false
+  empty_trash: false
+  optimize: false
+  db_cache: null
+  verify_ssl: false
+tmdb:
+  apikey: <<TMDB_APIKEY>>
+  language: en
+  cache_expiration: 60
+  region: US
+tautulli:
+  url: <<TAUTULLI_URL>>
+  apikey: <<TAUTULLI_APIKEY>>
+omdb:
+  apikey: <<OMDB_APIKEY>>
+  cache_expiration: 60
+mdblist:
+  apikey: <<MDBLIST_APIKEY>>
+  cache_expiration: 60
+radarr:
+  url: <<RADARR_URL>>
+  token: <<RADARR_TOKEN>>
+  add_missing: false
+  add_existing: false
+  ignore_cache: true
+  root_folder_path: <<RADARR_ROOT_FOLDER>>
+  monitor: false
+  availability: announced
+  quality_profile: SQP-1 (1080p)
+  tag: kometa
+  search: false
+  radarr_path: <<RADARR_ROOT_FOLDER>>
+  plex_path: <<RADARR_PLEX_PATH>>
+  upgrade_existing: false
+  monitor_existing: true
+sonarr:
+  url: <<SONARR_URL>>
+  token: <<SONARR_TOKEN>>
+  add_missing: false
+  add_existing: false
+  ignore_cache: true
+  root_folder_path: <<SONARR_ROOT_FOLDER>>
+  monitor: none
+  quality_profile: WEB-DL (1080p)
+  language_profile: English
+  series_type: standard
+  season_folder: true
+  tag: kometa
+  search: false
+  cutoff_search: false
+  sonarr_path: <<SONARR_ROOT_FOLDER>>
+  plex_path: <<SONARR_PLEX_PATH>>
+  upgrade_existing: false
+  monitor_existing: true

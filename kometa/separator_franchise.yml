@@ -1,0 +1,13 @@
+# The "Franchise Collections" separator, from Kometa's default separator template.
+
+external_templates:
+  default: templates
+  template_variables:
+    collection_section: '035'
+collections:
+  Franchise Collections:
+    template:
+    - name: separator
+      separator: franchise
+      key_name: Franchise
+      translation_key: separator
