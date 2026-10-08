@@ -1,10 +1,10 @@
 name: Dependabot auto-merge
 
-# Turns on GitHub's auto-merge for Dependabot's patch and minor update PRs, so they're squash-merged once every
-# required check passes (the main ruleset still decides: CI with the Compose policy check, CodeQL, dependency
-# review, signed commits). Nothing is checked out or run from the PR; the job only reads Dependabot's metadata
-# and calls `gh`. A merge changes main only: a server picks it up when its operator pulls and redeploys
-# (docs/upgrading.md), never by itself.
+# Turns on GitHub's auto-merge for Dependabot's version update PRs (patch, minor and major), so they're
+# squash-merged once every required check passes (the main ruleset still decides: CI with the Compose policy
+# check, CodeQL, dependency review, signed commits). Nothing is checked out or run from the PR; the job only reads
+# Dependabot's metadata and calls `gh`. A merge changes main only: a server picks it up when its operator pulls
+# and redeploys (docs/upgrading.md), never by itself.
 on: pull_request
 
 permissions:
@@ -27,13 +27,15 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Images, Python tools and Actions: patch and minor updates. Major updates (and any update Dependabot can't
-      # classify, such as a tag scheme it doesn't read as a version) wait for the maintainer: a new major app
-      # version can migrate its database one way.
-      - name: Enable auto-merge for patch and minor updates
+      # Images, Python tools and Actions: patch, minor and major updates (maintainer 2026-10-08). A merge never
+      # deploys: a new major app version, which can migrate its database one way, is read about before the
+      # deliberate redeploy (docs/upgrading.md). An update Dependabot can't classify (a tag scheme it doesn't
+      # read as a version) still waits for the maintainer.
+      - name: Enable auto-merge for version updates
         if: >-
           (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor')
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-major')
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}

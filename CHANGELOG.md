@@ -6,6 +6,12 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Dependabot's major updates merge automatically too, once every required check passes, like patch and minor
+  ones. A merge still never deploys: a major version's release notes are read before the redeploy
+  ([docs/upgrading.md](docs/upgrading.md)).
+
 ### Added
 
 - Kometa Quickstart (`kometateam/quickstart`), a web UI for building and validating Kometa configurations, as a

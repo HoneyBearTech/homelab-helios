@@ -41,11 +41,13 @@ Each release will carry a CycloneDX SBOM listing every service's image and diges
   versions, and opens a pull request for each. Dependabot alerts and security updates are on.
 - The CI-only images in `run:` steps and the scripts' busybox image aren't seen by Dependabot; they're bumped
   by hand at least every quarter.
-- **Patch and minor updates merge automatically** once every required check has passed (CI with the Compose
+- **Patch, minor and major updates merge automatically** once every required check has passed (CI with the Compose
   policy check and the smoke test, CodeQL, dependency review). That includes Plex, which releases often: it
   can't touch the media library, and its updates often fix security issues.
-- **Major updates are merged by hand**, after reading the service's release notes: a new major version can
-  migrate its data one way.
+- **Major updates are read about before they're deployed**, not before they merge: a new major version can
+  migrate its data one way, so the service's release notes are read, and a backup taken, before the redeploy
+  that brings it to the server ([upgrading.md](upgrading.md#before-you-upgrade)). An update Dependabot can't
+  classify waits for the maintainer.
 - **A merge doesn't deploy.** The server runs what it last pulled; updates reach it when the operator pulls
   and redeploys, with a backup first ([upgrading.md](upgrading.md)).
 - **Dependency review** blocks a pull request that adds or changes a Python or Actions dependency with a known

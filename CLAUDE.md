@@ -45,9 +45,10 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 
 ## Rules for the stack
 - **Every image is pinned as `name:tag@sha256:<digest>`.** Never `latest`, never tag-only. Dependabot
-  (`docker-compose` ecosystem) updates tag and digest together. Patch and minor updates auto-merge once the
-  required checks pass (Plex included: it can't touch the media); major updates wait for the owner. A merge
-  never deploys: Helios changes only on a deliberate pull.
+  (`docker-compose` ecosystem) updates tag and digest together. Patch, minor and major updates auto-merge once
+  the required checks pass (Plex included: it can't touch the media; majors too, owner 2026-10-08). A merge
+  never deploys: Helios changes only on a deliberate pull, and a major's release notes are read before it
+  (it can migrate a service's data one way).
 - **Amd64.** Every image must publish `linux/amd64`. The smoke test runs on `ubuntu-latest` and the image scan
   scans `linux/amd64`.
 - **The GPU is optional to CI.** GitHub's runners have no GPU, so the NVIDIA device reservation must not stop
@@ -103,8 +104,8 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   full SHA with a version comment; untrusted `${{ github.event.* }}` only through `env:`.
 - Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, DCO sign-off,
   Dependency review, CodeQL's Analyze (python) / Analyze (actions). Don't rename those jobs.
-- Claude opens a PR for every change and may turn on auto-merge for it (`gh pr merge --auto --squash`), as on
-  the sibling repos. Never bypass a check or the ruleset.
+- Claude opens a PR for every change and turns on auto-merge for it (`gh pr merge --auto --squash`; owner
+  2026-10-08), as on the sibling repos. Never bypass a check or the ruleset.
 
 ## Commands
 ```sh
