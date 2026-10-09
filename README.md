@@ -38,7 +38,8 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
 - **Tautulli**: watches Plex: activity, history, statistics and notifications
 - **AURA** (MediUX): browses MediUX artwork sets and applies them to Plex, saving artwork next to the media or
   handing sets to Kometa
-- **Kometa**: builds Plex collections and overlays and applies artwork and metadata, once a day
+- **Kometa**: builds Plex collections and overlays and applies artwork and metadata, once a day; its
+  configuration is in `kometa/`, secrets as placeholders, checked in CI and watched upstream ([docs/kometa.md](docs/kometa.md))
 - **ImageMaid**: cleans out images Plex no longer uses from Plex's data directory
 - **Kometa Quickstart**: a web UI for building Kometa configurations; a tool started on demand, without a login
   ([docs/quickstart.md](docs/quickstart.md))

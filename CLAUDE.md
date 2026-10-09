@@ -81,7 +81,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 ## Kometa
 Kometa's configuration is in the repo (`kometa/`, mounted read-only over `/config/<name>` with
 `KOMETA_READ_ONLY_CONFIG`; the Decisions-Log entries from 2026-10-08), validated by the required `CI / Kometa config`
-check (`scripts/kometa-validate.sh`); a weekly upstream watch is **Planned**.
+check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.py`, one issue; docs/kometa.md).
 - **Secrets and host facts in Kometa's YAML are placeholders**: `<<UPPER_SNAKE>>`, which Kometa fills from
   the `KOMETA_<UPPER_SNAKE>` environment variable (`<<lower_snake>>` doesn't match, and an unmatched
   placeholder silently becomes empty). That covers tokens, API keys, Plex's URL, notification URLs and

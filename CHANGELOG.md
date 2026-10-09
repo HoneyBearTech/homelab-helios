@@ -20,6 +20,8 @@ All notable changes to homelab-helios are documented here. The format follows
   key that isn't such a placeholder, on a placeholder name Kometa reserves for its own settings, and on a file in
   `kometa/` that `config.yml` doesn't link. The collection files that only tag or refresh items set
   `sync_mode: append`, which Kometa requires for them.
+- [docs/kometa.md](docs/kometa.md): Kometa's placeholders and `.env`, the CI check, the weekly upstream watch and
+  the safe upgrade path; `docs/upgrading.md` checks Kometa's configuration with the real values before starting it.
 - A weekly Kometa upstream watch (`.github/workflows/kometa-upstream-watch.yml`, `scripts/kometa_watch.py`): when
   Kometa has a release newer than the pinned one, or `kometa/` doesn't validate against the latest, it keeps one
   issue, "Kometa upstream changes", up to date with the validation against the latest release, the release-note
