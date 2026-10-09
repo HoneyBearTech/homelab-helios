@@ -60,6 +60,13 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   `restore.sh` refuses to write them, and the smoke test checks both. Plex's must list `/media`, its
   cache and `/transcode`; AURA's `/media` and `/kometa`; Kometa's `/auraassets`; ImageMaid's `/plex` and `/plex/Cache` (the
   overlapping mounts are backed up once, with the service that owns the data).
+- **Nightly backups leave out what the services re-create** (owner 2026-10-09): paths inside a data mount listed in
+  a service's `org.honeybeartech.helios.backup.exclude` label aren't archived, and `restore.sh` leaves them in
+  place: Plex's `Metadata` and `Media` (artwork, preview thumbnails: 65 of its 82 GB on Helios) and Kometa's
+  `/config/assets`. `backup.sh` stops one service at a time, only while it copies that service's data, and
+  compresses after starting it again (gzip of Plex's 12 GB of databases takes ~14 min on Helios, the copy ~2).
+  `scripts/scheduled-backup.sh` + `deploy/systemd/` run it nightly at 01:00 (before Kometa's 02:00 run) and copy it
+  off the host; the backup server's name lives only in the host's `~/.ssh/config` and `backup.env`, never here.
 - **No privileged containers, added capabilities, host network/PID or Docker socket mounts** unless the
   service carries `org.honeybeartech.helios.allow.<rule>: "<reason>"` and the owner agreed (Plex runs on the
   stack's network, publishing only 32400: owner 2026-10-07; it ran in host mode before the cutover). `scripts/check_compose.py` enforces it in CI
@@ -116,8 +123,8 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   Not in this repo: Homebox, InvenTree (and its Caddy), TitleCardMaker, Watchtower, Diun, the
   Argus agent and Argus' Loki, the Portainer agent.
 - Tooling (ported from homelab-deimos): `scripts/check_compose.py` (Python, standard library only:
-  policy check + CycloneDX SBOM), `scripts/backup.sh`, `restore.sh`, `smoke-test.sh`, `lib.sh` (bash, must run
-  on macOS' bash 3.2); ruff (`select = ["ALL"]`), yamllint, shellcheck, pytest + coverage (90 % branch floor),
+  policy check + CycloneDX SBOM), `scripts/backup.sh`, `restore.sh`, `scheduled-backup.sh`, `smoke-test.sh`, `lib.sh` (bash,
+  must run on macOS' bash 3.2; `scheduled-backup.sh` also with macOS' openrsync, so no `--chmod`); ruff (`select = ["ALL"]`), yamllint, shellcheck, pytest + coverage (90 % branch floor),
   pip-tools for the hash-pinned `requirements-dev.txt`. CI-only: actionlint, gitleaks, CodeQL, Scorecard,
   dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch/minor).
 - GitLab copy: the owner's self-hosted GitLab (CE, LAN only; host facts in Chronos) holds a mirror. GitHub stays
@@ -143,7 +150,7 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
 make test     # checker tests + coverage floor (no Docker, no network)
 make lint     # ruff check, ruff format --check, yamllint --strict, shellcheck -x
 make check    # docker compose config --format json | scripts/check_compose.py  (needs .env and compose.yaml)
-make smoke    # scripts/smoke-test.sh: throwaway project, healthy, backup/restore round trip (needs Docker)
+make smoke    # scripts/smoke-test.sh: throwaway project, healthy, backup/restore round trip, scheduled backup (needs Docker)
 make config   # docker compose config (resolved file)
 make kometa   # scripts/kometa-validate.sh: kometa/ against the pinned Kometa + its schemas (needs Docker, network)
 ```

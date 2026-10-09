@@ -26,8 +26,8 @@ make test     # creates .venv with the hash-pinned tools, runs the checker's tes
 make lint     # ruff, ruff format, yamllint, shellcheck
 cp .env.example .env && make check   # the policy check over the resolved Compose file
 make smoke    # starts the whole stack with throwaway settings, waits until every service is healthy,
-              # then backs it up, changes it and restores it (and, once the stack has autoheal, checks that it
-              # restarts an unhealthy container)
+              # then backs it up, changes it and restores it, runs the scheduled backup against a stand-in
+              # backup server (and, once the stack has autoheal, checks that it restarts an unhealthy container)
 ```
 
 How the stack fits together is in [docs/architecture.md](docs/architecture.md).
@@ -41,7 +41,8 @@ the checker's unit tests with a coverage floor, `docker compose config` and the 
 ([`scripts/smoke-test.sh`](scripts/smoke-test.sh)), on an amd64 runner like the server (without a GPU), starts
 every service with throwaway directories and volumes, fails unless each one reports healthy within five
 minutes, runs a backup and restore round trip over every data mount, checks that mounts excluded from backups
-(the media library) are neither archived nor overwritten, and, once the stack has autoheal, checks that it
+(the media library) and paths left out of them (Plex's artwork) are neither archived nor overwritten, runs the
+scheduled backup against a stand-in backup server and checks the copy and the pruning, and, once the stack has autoheal, checks that it
 restarts a container that turns unhealthy. Until `compose.yaml` exists, the stack steps pass with a notice.
 "Kometa config" ([`scripts/kometa-validate.sh`](scripts/kometa-validate.sh), also `make kometa`) validates
 `kometa/` with the Kometa image pinned in `compose.yaml` and the JSON schemas from the same release, with dummy

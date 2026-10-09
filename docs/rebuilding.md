@@ -69,6 +69,11 @@ reach Plex. Plex rebuilds its cache by itself.
 
 ## What the backup doesn't bring back
 
+- **Plex's artwork and preview thumbnails, and Kometa's downloaded assets**: left out of backups. Plex shows
+  blank posters until it fetches them again (refresh the libraries' metadata); Kometa downloads its assets and
+  puts its overlays and the AURA sets saved for it back on its next run (its overlay originals are in the
+  backup); sets applied in AURA directly have to be applied again there; Plex regenerates preview thumbnails in
+  its scheduled tasks.
 - **The media library**: it lives on its own storage, protected there.
 - **Host settings**: the static address, the GPU passthrough, the network share's mount, SSH keys, monitoring
   agents.

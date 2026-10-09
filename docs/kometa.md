@@ -15,7 +15,7 @@ Sonarr's addresses, keys and root folders.
   which lists every name with a comment:
   `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <KOMETA_CONFIG_PATH>/.env`. Kometa reads that file
   itself when it starts, so the values never enter the container's environment (`docker inspect` doesn't show
-  them). Backups include it, as they include the rest of Kometa's data.
+  them). Backups include it, as they include the rest of Kometa's data except the downloaded `assets/`.
 - A placeholder whose variable isn't set silently becomes empty, and `<<lower_snake>>` is never filled.
 - Plex's placeholders are `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`: Kometa reads `KOMETA_PLEX_URL` and
   `KOMETA_PLEX_TOKEN` as its own settings and never fills a placeholder from them (nor from any other name it

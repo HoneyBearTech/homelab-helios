@@ -1,0 +1,13 @@
+# Starts homelab-helios-backup.service every night. Each service is stopped only while its own data is copied (a few
+# minutes for Plex), so pick a quiet hour: 01:00 leaves time to finish before Kometa's run at 02:00 (KOMETA_TIMES).
+# Persistent: a run missed while the host was off happens at the next boot.
+[Unit]
+Description=Nightly backup of the homelab-helios stack
+
+[Timer]
+OnCalendar=*-*-* 01:00:00
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

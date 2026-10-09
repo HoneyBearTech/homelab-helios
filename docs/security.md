@@ -21,7 +21,7 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
 5. **Releases are verifiable.** Release files are listed in a `SHA256SUMS` signed keylessly by the release
    workflow, with SLSA provenance and an SBOM of the pinned images ([verifying-releases.md](verifying-releases.md)).
 6. **Backups don't leak and can't reach the media.** `scripts/backup.sh` writes archives readable only by the
-   user who ran it, and `scripts/restore.sh` writes only the mounts the backup's checksummed `MANIFEST` lists and
+   user who ran it (the scheduled copy off the host keeps those modes), and `scripts/restore.sh` writes only the mounts the backup's checksummed `MANIFEST` lists and
    the service still has read-write, never the media library or any other path a service excludes with its
    `org.honeybeartech.helios.backup.skip` label.
 
@@ -71,6 +71,10 @@ a non-empty reason:
 - **Restart loops.** autoheal restarts an unhealthy service every few minutes for as long as it stays
   unhealthy; that keeps a hung service available but can hide a real fault. Restarts are logged (and sent to the
   webhook if one is set).
+- **Backups off the host from the host itself.** The scheduled backup can delete old backups on the backup
+  server, so whoever controls this host can delete or overwrite them too. Snapshots or a versioned copy on the
+  backup server, outside this host's reach, are what protect them; a recycle bin may not see deletions made over
+  rsync (Synology's doesn't).
 - **The GPU driver and runtime.** The NVIDIA driver and Container Toolkit on the host are trusted and kept up to
   date by the operator.
 - **The host.** Anyone with root, `docker` group membership or write access to `.env` or the services' data
@@ -91,3 +95,5 @@ a non-empty reason:
 | The Plex token and API keys entered in Kometa Quickstart, and the configs built there | Quickstart's data (SQLite); readable by anyone who reaches port 7171 while it runs, since it has no login | same; never forward 7171 |
 | autoheal's webhook URL | `autoheal.env` (mode `600`, gitignored) | same |
 | Backups of the data | off the host, mode `600` | anywhere public |
+| The backup push monitor's URL | `backup.env` (mode `600`, gitignored) | the repository, issues, logs you paste |
+| The key for the backup server | the backup user's `~/.ssh` on the host, restricted on the server to this host | same |

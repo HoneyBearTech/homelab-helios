@@ -81,12 +81,78 @@ Running `main` instead of a release is possible but unsupported for anything you
   privileged to reach the GPU.
 - Keep `.env` at mode `600`; it holds no secrets by design, but it describes your host. `plex.env` holds the
   claim token: mode `600`, emptied once the server is claimed.
-- Back up the services' data directories ([upgrading.md](upgrading.md#backing-up)). They hold Plex and MediUX
-  tokens and Kometa's API keys.
+- Back up the services' data directories ([upgrading.md](upgrading.md#backing-up)), and schedule a nightly copy
+  off the host ([Scheduled backups](#scheduled-backups)). They hold Plex and MediUX tokens and Kometa's API keys.
 - Don't add services that mount the Docker socket, run privileged or use the host network without a documented
   reason; the policy check refuses them ([security.md](security.md)).
 - Don't run an auto-updater (such as Watchtower) on these containers: it would replace the pinned, reviewed
   versions with whatever a tag points to today.
+
+## Scheduled backups
+
+`scripts/scheduled-backup.sh` takes a backup (`scripts/backup.sh`), copies it to another machine with rsync, keeps
+only the newest few in both places and reports to an Uptime Kuma push monitor. A systemd timer runs it nightly.
+Every setting is in the optional `backup.env` ([interfaces.md](interfaces.md#backupenv)). The backups hold every
+login and token: copy them only to a machine you trust as much as this one.
+
+A nightly backup leaves out Plex's artwork and preview thumbnails and Kometa's downloaded assets (their
+`backup.exclude` labels, [interfaces.md](interfaces.md#labels)), so it is the databases, settings and Kometa's
+overlay originals rather than the whole of Plex's data: Plex is stopped for a few minutes, not for hours. A
+restore leaves those paths alone, and on a new host Plex, Kometa and AURA re-create them
+([rebuilding.md](rebuilding.md#what-the-backup-doesnt-bring-back)).
+
+1. **On the backup server**, create a folder for the backups and a user that can write only there and use rsync
+   over SSH (on a Synology: a shared folder, a non-admin user with read/write on that folder only, rsync allowed
+   under Application Privileges, SSH on, the rsync service on under File Services, and the user home service on so
+   the user can have an `authorized_keys`). Whoever controls this host can delete or overwrite what it copied
+   there, so keep older versions where the backup user can't reach them: snapshots of the folder, or a versioned
+   copy of it made on the server after the nightly backup (on a Synology without Btrfs, a Hyper Backup task with
+   rotation, into a folder the backup user has no access to). A recycle bin isn't enough: Synology's doesn't keep
+   files deleted over rsync.
+2. **On this host**, as the user who runs the stack, install rsync and curl (and pigz, which compresses the
+   archives on every core instead of one), and create a key used only for the backups, with an alias for it in
+   `~/.ssh/config`:
+
+   ```sh
+   sudo apt install -y rsync curl pigz
+   ssh-keygen -t ed25519 -N '' -f ~/.ssh/homelab-helios-backup
+   ```
+
+   ```text
+   Host backup-host
+     HostName <the backup server's address>
+     User <the backup user>
+     IdentityFile ~/.ssh/homelab-helios-backup
+     IdentitiesOnly yes
+   ```
+
+   Add the public key to the backup user's `~/.ssh/authorized_keys` on the server, prefixed with
+   `restrict,from="<this host's address>"` (no shell or forwarding, and only from this host), then check that
+   `rsync --list-only backup-host:/volume1/<folder>/` works without a password prompt.
+3. **Settings**: `cp backup.env.example backup.env && chmod 600 backup.env`, then set
+   `BACKUP_REMOTE=backup-host:/volume1/<folder>` and, optionally, the retention and `BACKUP_PING_URL`. For the
+   ping, add a monitor of type **Push** in Uptime Kuma with a heartbeat interval of 25 hours, and copy its URL.
+4. **Try it**: `scripts/scheduled-backup.sh`. Each service stops only while its own data is copied, and the
+   archives are compressed after it has started again.
+5. **Schedule it**, with the systemd user units in [`deploy/systemd/`](../deploy/systemd/) (they expect the
+   checkout at `~/homelab-helios`; edit both paths in the `.service` file if it's elsewhere). Lingering lets the
+   timer run while you're logged out:
+
+   ```sh
+   mkdir -p ~/.config/systemd/user
+   cp deploy/systemd/homelab-helios-backup.* ~/.config/systemd/user/
+   sudo loginctl enable-linger "$USER"
+   systemctl --user daemon-reload
+   systemctl --user enable --now homelab-helios-backup.timer
+   systemctl --user list-timers homelab-helios-backup.timer   # next run: 01:00, plus up to 5 minutes
+   journalctl --user -u homelab-helios-backup                 # what the last runs did
+   ```
+
+   01:00 leaves the backup time to finish before Kometa's run at 02:00 (`KOMETA_TIMES`); if you move either, keep
+   them apart, since the backup stops Kometa while it copies Kometa's data.
+
+Restore a copy from the backup server as [rebuilding.md](rebuilding.md) describes; `scripts/restore.sh` verifies
+its `SHA256SUMS` first, and a copy that was cut off has none yet, so it is refused.
 
 ## Uninstalling
 

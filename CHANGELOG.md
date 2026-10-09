@@ -6,6 +6,24 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Scheduled backups copied off the host: `scripts/scheduled-backup.sh` takes a backup, copies it to
+  `BACKUP_REMOTE` with rsync (`SHA256SUMS` last, so a cut-off copy is refused on restore), keeps the newest
+  `BACKUP_KEEP` (3) here and `BACKUP_REMOTE_KEEP` (14) there, and reports to an Uptime Kuma push monitor. Settings
+  in the optional, gitignored `backup.env` (template `backup.env.example`); systemd user units in `deploy/systemd/`
+  run it nightly at 01:00, before Kometa's run ([docs/installing.md](docs/installing.md#scheduled-backups)).
+- The `org.honeybeartech.helios.backup.exclude` label: paths inside a data mount that backups leave out and
+  restores leave in place. Plex leaves out its artwork (`Metadata`) and preview thumbnails (`Media`), Kometa its
+  downloaded `assets/`; the services re-create them after a rebuild
+  ([docs/rebuilding.md](docs/rebuilding.md#what-the-backup-doesnt-bring-back)).
+
+### Changed
+
+- `scripts/backup.sh` stops one service at a time, only while it copies that service's data, and compresses the
+  copy after starting the service again (with pigz when it's installed), instead of stopping the whole stack for
+  the whole backup: Plex is down for minutes, not hours. The archives and `scripts/restore.sh` are unchanged.
+
 ## [0.1.0] - 2026-10-09
 
 The first release: the Helios stack (Plex, Tautulli, AURA, Kometa and ImageMaid, with autoheal, and Kometa

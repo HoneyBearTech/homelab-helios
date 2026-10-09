@@ -157,6 +157,12 @@ for service in $(compose config --services); do
     if is_dir "$id" "$mount"; then skipped+=("$service	$mount"); fi
   done < <(skipped_mounts "$id")
 done
+# Every path a service leaves out of a mount's archive (its backup.exclude label): not archived, not deleted.
+excluded=()
+for service in $(compose config --services); do
+  id=$(compose ps --all --quiet "$service")
+  while IFS= read -r path; do excluded+=("$service	$path"); done < <(label_paths "$id" "$exclude_label")
+done
 if [ ${#targets[@]} -eq 0 ]; then
   echo "No service has a data mount; skipping the backup and restore round trip"
 else
@@ -164,6 +170,11 @@ else
     IFS=$'\t' read -r service mount <<<"$target"
     docker run --rm --network none --volumes-from "$(compose ps --quiet "$service")" "$busybox" \
       sh -c 'echo kept >"$1/.smoke-skipped"' mark "$mount" </dev/null
+  done
+  for entry in "${excluded[@]+"${excluded[@]}"}"; do
+    IFS=$'\t' read -r service path <<<"$entry"
+    docker run --rm --network none --volumes-from "$(compose ps --quiet "$service")" "$busybox" \
+      sh -c 'mkdir -p "$1" && echo kept >"$1/.smoke-excluded"' mark "$path" </dev/null
   done
   echo "Backup and restore round trip over ${#targets[@]} data mount(s)"
   for target in "${targets[@]}"; do
@@ -190,6 +201,19 @@ else
       fail "$service $mount is excluded from backups but restore.sh touched it"
   done
   if [ ${#skipped[@]} -gt 0 ]; then echo "${#skipped[@]} excluded mount(s) were neither archived nor overwritten"; fi
+  for entry in "${excluded[@]+"${excluded[@]}"}"; do
+    IFS=$'\t' read -r service path <<<"$entry"
+    while IFS=$'\t' read -r archive s mount _; do
+      if [ "$s" = "$service" ] && [[ "$path" == "$mount"/* ]] &&
+        grep -qF -- "./${path#"$mount"/}/" <(tar -tzf "$work/backup/$archive"); then
+        fail "$service $path is left out of backups but is in $archive"
+      fi
+    done <"$work/backup/MANIFEST"
+    docker run --rm --network none --volumes-from "$(compose ps --all --quiet "$service"):ro" "$busybox" \
+      sh -c 'test "$(cat "$1/.smoke-excluded")" = kept' check "$path" </dev/null ||
+      fail "$service $path is left out of backups but restore.sh deleted it"
+  done
+  if [ ${#excluded[@]} -gt 0 ]; then echo "${#excluded[@]} left-out path(s) were neither archived nor deleted"; fi
 
   for target in "${targets[@]}"; do
     IFS=$'\t' read -r service mount <<<"$target"
@@ -198,6 +222,28 @@ else
   done
   compose up --detach --wait --wait-timeout "$timeout"
   echo "Every data mount was restored, and every service is healthy again"
+fi
+
+# The unattended backup, copying to a stand-in for the backup server (a local directory, which rsync treats the same
+# way) that already holds two old backups and a directory that isn't one; keeping two there and one here must leave
+# the newer old one and the new one there, only the new one here, and the other directory alone.
+if [ ${#targets[@]} -gt 0 ]; then
+  echo "Scheduled backup: copy off the host and prune old backups"
+  mkdir -p "$work/scheduled/20200101-000000" "$work/remote/20200101-000000" "$work/remote/20200102-000000" \
+    "$work/remote/keep-me"
+  printf 'BACKUP_DIR=%s\nBACKUP_KEEP=1\nBACKUP_REMOTE=%s\nBACKUP_REMOTE_KEEP=2\n' "$work/scheduled" "$work/remote" \
+    >"$work/backup.env"
+  BACKUP_ENV_FILE=$work/backup.env "$root/scripts/scheduled-backup.sh"
+  entries() { find "$1" -mindepth 1 -maxdepth 1 -exec basename {} \; | sort | tr '\n' ' '; }
+  new=$(entries "$work/scheduled" | tr -d ' ')
+  [[ $new =~ ^[0-9]{8}-[0-9]{6}$ ]] || fail "expected only the new backup in BACKUP_DIR, found: $new"
+  [ "$(entries "$work/remote")" = "20200102-000000 $new keep-me " ] ||
+    fail "wrong backups kept at the remote: $(entries "$work/remote")"
+  (cd "$work/remote/$new" && sha256 -c --quiet SHA256SUMS) || fail "the copy off the host doesn't match its SHA256SUMS"
+  [ -z "$(find "$work/remote/$new" -perm -004)" ] || fail "the copy off the host is readable by other users"
+  [ "$(compose ps --services --status running | wc -l)" -eq "$(compose config --services | wc -l)" ] ||
+    fail "scheduled-backup.sh didn't leave every service running"
+  echo "The scheduled backup was copied intact, and only the newest backups were kept"
 fi
 
 if $has_autoheal; then

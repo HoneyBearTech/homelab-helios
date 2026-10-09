@@ -7,7 +7,9 @@
 #
 # Without SERVICE, every service that has an archive in DIR is restored. The checksums are verified first, and it
 # asks for confirmation (unless --yes) after listing what it will overwrite. It only writes to a container path
-# the service still mounts read-write, never to the Docker socket or a path the service excludes from backups. On a new host, restore .env from DIR/env first;
+# the service still mounts read-write, never to the Docker socket or a path the service excludes from backups, and
+# leaves the paths a service's exclude label lists inside a mount as they are. On a new host, restore .env from
+# DIR/env first;
 # the volumes and containers are created as needed. Uses `docker compose` from the checkout, so the standard
 # Compose variables select another project, as in scripts/backup.sh.
 set -euo pipefail
@@ -104,9 +106,9 @@ for entry in "${entries[@]}"; do
   IFS=$'\t' read -r archive service mount <<<"$entry"
   id=$(docker compose ps --all --quiet "$service")
   echo "Restoring $service $mount"
-  # A mount inside this one (Plex's cache inside its /config) is restored or skipped on its own: neither it nor
-  # the directories leading to it are deleted. (-delete implies -depth, so -prune can't be used; the patterns
-  # exclude them instead.)
+  # A mount inside this one (Plex's cache inside its /config) is restored or skipped on its own, and the paths the
+  # service's exclude label lists (Plex's artwork) aren't in the archive: neither they nor the directories leading
+  # to them are deleted. (-delete implies -depth, so -prune can't be used; the patterns exclude them instead.)
   spare=()
   while IFS= read -r nested; do
     spare+=(! -path "$nested" ! -path "$nested/*")
@@ -115,7 +117,7 @@ for entry in "${entries[@]}"; do
       spare+=(! -path "$parent")
       parent=${parent%/*}
     done
-  done < <(nested_mounts "$id" "$mount")
+  done < <(left_out "$id" "$mount")
   docker run --rm --network none --volumes-from "$id" "$busybox" \
     find "$mount" -mindepth 1 "${spare[@]+"${spare[@]}"}" -delete </dev/null
   # tar runs as root in the container, so files get back their original owners and modes.

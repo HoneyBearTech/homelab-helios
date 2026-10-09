@@ -46,6 +46,11 @@ services:
       # transcodes in progress are disposable.
       org.honeybeartech.helios.backup.skip: >-
         /media,/config/Library/Application Support/Plex Media Server/Cache,/transcode
+      # Artwork (Metadata, 59 GB on Helios) and preview thumbnails (Media) are left out of /config's archive, which
+      # keeps the databases and settings: after a restore, Plex, AURA and Kometa download and apply the artwork again.
+      org.honeybeartech.helios.backup.exclude: >-
+        /config/Library/Application Support/Plex Media Server/Metadata,
+        /config/Library/Application Support/Plex Media Server/Media
     healthcheck:
       <<: *healthcheck
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:32400/identity"]
@@ -122,6 +127,9 @@ services:
       <<: *labels
       # AURA's artwork, backed up with AURA's data.
       org.honeybeartech.helios.backup.skip: /auraassets
+      # Downloaded assets, which Kometa downloads again; overlays/ (the original posters it needs to remove an overlay)
+      # is kept.
+      org.honeybeartech.helios.backup.exclude: /config/assets
     healthcheck:
       <<: *healthcheck
       # Kometa's own process (not tini, PID 1) is alive; the image has no pgrep.
