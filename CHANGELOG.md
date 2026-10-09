@@ -8,6 +8,11 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Added
 
+- `.gitlab-ci.yml` for the copy of the repository on the maintainer's self-hosted GitLab. GitHub stays the
+  project's home and its Actions the required checks; on GitLab a scheduled job mirrors `main` and the tags from
+  GitHub (fast-forward only, with a project access token in a masked, protected CI/CD variable), and every
+  commit that arrives gets the checks that need no Docker daemon: ruff, yamllint, shellcheck, the unit tests
+  with the coverage floor, gitleaks over the whole history, actionlint and the Compose policy check.
 - Kometa Quickstart (`kometateam/quickstart`), a web UI for building and validating Kometa configurations, as a
   tool started on demand: it is in the `tools` profile, so `docker compose up -d` doesn't start it and it isn't
   restarted after a reboot (`docker compose --profile tools up -d quickstart`). It publishes 7171 for the LAN
