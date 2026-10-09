@@ -88,7 +88,7 @@ a non-empty reason:
 | Plex's claim token (first start only, expires within minutes) | `plex.env`, gitignored, mode `600` | same |
 | The Plex token Tautulli uses, Tautulli's login and notification credentials | Tautulli's data | same |
 | AURA's Plex token and MediUX token | AURA's data | same |
-| Kometa's Plex token and API keys (TMDb and any others you add) | Kometa's `config.yml`, in its data | same |
+| Kometa's Plex token, API keys (TMDb, OMDb, MDBList, Tautulli, Radarr, Sonarr) and notification webhook | `.env` in Kometa's data, mode `600`; Kometa reads it itself, so the values aren't in the container's environment. `kometa/` holds only placeholders, and a test fails the build otherwise | same |
 | ImageMaid's Plex token | ImageMaid's data | same |
 | The Plex token and API keys entered in Kometa Quickstart, and the configs built there | Quickstart's data (SQLite); readable by anyone who reaches port 7171 while it runs, since it has no login | same; never forward 7171 |
 | autoheal's webhook URL | `autoheal.env` (mode `600`, gitignored) | same |

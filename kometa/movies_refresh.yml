@@ -1,0 +1,10 @@
+# Asks Plex to refresh the metadata of movies released in the last 7 days. Builds no collection.
+
+collections:
+  Refresh Metadata:
+    plex_search:
+      all:
+        release: 7
+    item_refresh: true
+    build_collection: false
+    sync_mode: append

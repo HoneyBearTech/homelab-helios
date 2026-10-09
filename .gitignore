@@ -12,6 +12,11 @@ data/
 media/
 transcode/
 
+# Kometa's committed configuration is kometa/*.yml and nothing else. If kometa/ is ever Kometa's /config, what
+# Kometa writes there (logs/, config.cache, config.yml.bak*, assets/, overlays/, reports, missing/) stays untracked
+kometa/*
+!kometa/*.yml
+
 # Backups written by scripts/backup.sh: they hold the services' databases and logins
 backups/
 

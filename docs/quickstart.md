@@ -23,7 +23,8 @@ data (a Quickstart that has never been started has none and is skipped).
   don't give it a name on a reverse proxy without the proxy's own authentication
   ([security.md](security.md#where-secrets-live)).
 - **Its configs hold the real values.** A config exported from Quickstart contains the Plex token and API keys:
-  never commit it. Bring the parts you want into Kometa's configuration by hand.
+  never commit it. Bring the parts you want into `kometa/` by hand, with every secret, address and host path as
+  its `<<UPPER_SNAKE>>` placeholder (`kometa.env.example` lists them); CI's placeholder test fails otherwise.
 - **Don't use its Kometa or ImageMaid runs, or its self-updater.** Quickstart can install Kometa and ImageMaid from
   their GitHub branches into its data directory and run them, and update itself the same way. That code isn't
   pinned, reviewed or scanned like the stack's images; the stack's own Kometa and ImageMaid do the runs.

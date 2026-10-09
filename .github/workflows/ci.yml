@@ -94,3 +94,59 @@ jobs:
       # printed if one doesn't. Passes with a notice while there is no compose.yaml.
       - name: Start the stack and wait until every service is healthy
         run: scripts/smoke-test.sh
+
+  kometa:
+    # A required check on main, like the two above: Dependabot's Kometa updates (majors too) merge automatically
+    # once the required checks pass, so a release that rejects our configuration must fail here. It always runs
+    # (a skipped required check would block the pull request) and takes about a minute. No secrets: the
+    # placeholders get dummy values (scripts/kometa-validate.sh).
+    name: Kometa config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read Kometa's release tag from compose.yaml
+        id: kometa
+        run: echo "tag=$(scripts/kometa-validate.sh --print-tag)" >>"$GITHUB_OUTPUT"
+
+      # The image doesn't ship its JSON schemas, and without them Kometa skips schema validation and passes.
+      - name: Fetch Kometa's JSON schemas at the same release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Kometa-Team/Kometa
+          ref: ${{ steps.kometa.outputs.tag }}
+          sparse-checkout: json-schema
+          path: kometa-upstream
+          persist-credentials: false
+
+      # Fails on a schema error, on no result (Kometa needs network), and on keys the schema doesn't know.
+      - name: Validate kometa/ against Kometa and its schemas
+        env:
+          KOMETA_SCHEMA_PATH: ${{ github.workspace }}/kometa-upstream/json-schema
+          KOMETA_LOG: ${{ runner.temp }}/kometa-validate.log
+        run: scripts/kometa-validate.sh
+
+      # The check fails when it should: a wrong type in a linked file, and a key the schema doesn't know (which
+      # Kometa itself only reports).
+      - name: Broken fixtures fail the check
+        env:
+          KOMETA_SCHEMA_PATH: ${{ github.workspace }}/kometa-upstream/json-schema
+        run: |
+          for fixture in tests/fixtures/kometa-invalid/*/; do
+            if GITHUB_STEP_SUMMARY=/dev/null scripts/kometa-validate.sh "$fixture"; then
+              echo "::error::$fixture passed the Kometa check, but it is broken on purpose"
+              exit 1
+            fi
+          done
+
+      - name: Keep Kometa's full output
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: kometa-validate-log
+          path: ${{ runner.temp }}/kometa-validate.log
+          if-no-files-found: ignore
+          retention-days: 14

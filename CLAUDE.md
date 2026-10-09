@@ -34,7 +34,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - Commit as `31805425+HoneyBearTech@users.noreply.github.com` (set as this repo's `user.email`), with
   `git commit -s` for the DCO sign-off; commits and tags are SSH-signed.
 - No secrets: Plex's server token, the Plex tokens Tautulli, AURA, Kometa and ImageMaid hold, AURA's MediUX
-  token, Kometa's API keys (in its `config.yml`) and logins stay in the
+  token, Kometa's API keys (in the `.env` in its data directory) and logins stay in the
   services' data on the host, never in `compose.yaml`, `.env` or the `*.example` files. A secret a service can
   only take from its environment gets its own gitignored `<service>.env` (`env_file`) with a committed
   `<service>.env.example`: Plex's one-time `PLEX_CLAIM` goes in `plex.env`. `.gitignore` covers `.env`, keys,
@@ -78,6 +78,33 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
   reverse proxy reach the services by their published ports. Adopt the existing data and keep paths, image
   family and ports the same; see the cutover plan in Chronos.
 
+## Kometa
+Kometa's configuration is in the repo (`kometa/`, mounted read-only over `/config/<name>` with
+`KOMETA_READ_ONLY_CONFIG`; the Decisions-Log entries from 2026-10-08), validated by the required `CI / Kometa config`
+check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.py`, one issue; docs/kometa.md).
+- **Secrets and host facts in Kometa's YAML are placeholders**: `<<UPPER_SNAKE>>`, which Kometa fills from
+  the `KOMETA_<UPPER_SNAKE>` environment variable (`<<lower_snake>>` doesn't match, and an unmatched
+  placeholder silently becomes empty). That covers tokens, API keys, Plex's URL, notification URLs and
+  Radarr/Sonarr addresses and root folders. The values go in `.env` in Kometa's data directory (Kometa loads
+  it itself), never in the repo. Every file in `kometa/` is linked from `config.yml` and mounted in compose
+  (the placeholder test checks both). Kometa reserves some `KOMETA_*` names (`KOMETA_PLEX_URL`/`_TOKEN`).
+- **Never read Kometa's `config.yml`, its `.bak` copies or `config.cache` on the host as they are**: only
+  through the fail-closed redaction script, run on the host, so the secrets never reach your context. Before
+  reading any other file of Kometa's from the host, grep it there for secret-looking keys and show the matches
+  with values redacted.
+- **Verify Kometa's CLI and behaviour against the pinned image** (`docker run --rm <pinned image> --help`),
+  never from memory. Known for v2.5.2: validation needs network and a `config.yml`; the image has no
+  `json-schema/` (fetch it at the pinned tag and pass `--schema-path`, or schema checks are silently skipped and
+  the run still passes). A failed validation exits 1, but without network Kometa gives up after its retries
+  and exits 0 with no result, so a gate requires the `Result: PASSED` line as well as exit 0. Pass Kometa's
+  flags as separate arguments: given flags it doesn't recognise, it starts its scheduler and waits silently.
+  Schema validation passes some configs that fail at run time (a filter attribute such as
+  `audio_track_title.regex` used under `plex_search`), so a passing check is not proof the config runs.
+- **Kometa's validation is a required check.** Dependabot's Kometa updates (majors too) auto-merge, so the
+  validation runs as an always-running job (never path-filtered: a skipped required check blocks the PR).
+- Reviews of Kometa's configuration (optimization findings) are private planning: they go in Chronos, not
+  `docs/`.
+
 ## Stack
 - Docker Compose v2 (`compose.yaml`; the GPU in `compose.gpu.yaml`, added on the host via `COMPOSE_FILE`), upstream images: `lscr.io/linuxserver/plex` (with
   `VERSION=docker`, so it never self-updates), `lscr.io/linuxserver/tautulli`, `ghcr.io/mediux-team/aura`,
@@ -102,7 +129,7 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - Docs in `docs/` change in the same PR as the behaviour; anything not built yet is marked **Planned**.
 - Workflows: top-level `permissions: contents: read` (Scorecard: `read-all`), raise per job; actions pinned by
   full SHA with a version comment; untrusted `${{ github.event.* }}` only through `env:`.
-- Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, DCO sign-off,
+- Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, `CI / Kometa config`, DCO sign-off,
   Dependency review, CodeQL's Analyze (python) / Analyze (actions). Don't rename those jobs.
 - Claude opens a PR for every change and turns on auto-merge for it (`gh pr merge --auto --squash`; owner
   2026-10-08), as on the sibling repos. Never bypass a check or the ruleset.
@@ -114,6 +141,7 @@ make lint     # ruff check, ruff format --check, yamllint --strict, shellcheck -
 make check    # docker compose config --format json | scripts/check_compose.py  (needs .env and compose.yaml)
 make smoke    # scripts/smoke-test.sh: throwaway project, healthy, backup/restore round trip (needs Docker)
 make config   # docker compose config (resolved file)
+make kometa   # scripts/kometa-validate.sh: kometa/ against the pinned Kometa + its schemas (needs Docker, network)
 ```
 Release (only when the owner asks): as in homelab-ares' CLAUDE.md: CHANGELOG section in a PR, then a signed
 tag (`git tag -s vX.Y.Z`) checked against `.github/allowed_signers`, pushed; verify from outside afterwards.

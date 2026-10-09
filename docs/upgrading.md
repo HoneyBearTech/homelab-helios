@@ -43,9 +43,16 @@ only by the user who ran the backup, and it contains Plex tokens. **Copy it off 
 git fetch --tags
 git checkout vX.Y.Z
 docker compose pull
+docker compose run --rm kometa --validate --validate-level full   # must end with "Result: PASSED"
 docker compose up -d --wait
+docker compose up -d --force-recreate kometa                      # when kometa/ changed
 docker compose ps
 ```
+
+The Kometa check is the only one that uses its real secrets: it validates `kometa/` against Plex and the other
+services with the new image, before Kometa runs. If it fails, stay on the previous version and fix `kometa/`
+first. Kometa's files are single-file mounts, which keep the old file until the container is recreated: hence
+`--force-recreate` when `kometa/` changed ([kometa.md](kometa.md#upgrading-kometa-safely)).
 
 Then check each service's web UI and logs (`docker compose logs <service>`) for migration errors, that Plex
 still lists its libraries and watch history, that one stream transcodes on the GPU (Plex's dashboard shows

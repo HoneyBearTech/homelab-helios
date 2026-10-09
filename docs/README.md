@@ -10,6 +10,7 @@ Start with the [README](../README.md) for what homelab-helios is and how to run 
 | [Rebuilding](rebuilding.md) | Bringing the stack back on a new or wiped host from a backup |
 | [Architecture](architecture.md) | The services, who talks to whom, and how updates flow from Dependabot to the host |
 | [Interfaces](interfaces.md) | Every setting, port, volume, label and command |
+| [Kometa's configuration](kometa.md) | The placeholders and Kometa's `.env`, the CI check, the weekly upstream watch, upgrading Kometa safely |
 | [Kometa Quickstart](quickstart.md) | Starting and stopping the config editor, and what it can reach |
 | [Verifying releases](verifying-releases.md) | Checking that release files came from this repository, unchanged |
 | [Security requirements](security.md) | What the stack protects, what it doesn't, and where secrets live |

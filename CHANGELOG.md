@@ -6,12 +6,6 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
-
-- Dependabot's major updates merge automatically too, once every required check passes, like patch and minor
-  ones. A merge still never deploys: a major version's release notes are read before the redeploy
-  ([docs/upgrading.md](docs/upgrading.md)).
-
 ### Added
 
 - Kometa Quickstart (`kometateam/quickstart`), a web UI for building and validating Kometa configurations, as a
@@ -20,6 +14,29 @@ All notable changes to homelab-helios are documented here. The format follows
   and has no login; its data (`QUICKSTART_CONFIG_PATH`) holds the tokens entered in it
   ([docs/quickstart.md](docs/quickstart.md)). The policy check, the image scan, the release SBOM, backups,
   restores and the smoke test all include the tools; a backup skips a tool that has never been started.
+- `kometa/`: Kometa's configuration (`config.yml` and the four collection files it links), with every secret and
+  host fact as a `<<UPPER_SNAKE>>` placeholder that Kometa fills from `KOMETA_<UPPER_SNAKE>`;
+  `kometa.env.example` lists them all. A test fails the build on any value under a credential, address or path
+  key that isn't such a placeholder, on a placeholder name Kometa reserves for its own settings, and on a file in
+  `kometa/` that `config.yml` doesn't link. The collection files that only tag or refresh items set
+  `sync_mode: append`, which Kometa requires for them.
+- [docs/kometa.md](docs/kometa.md): Kometa's placeholders and `.env`, the CI check, the weekly upstream watch and
+  the safe upgrade path; `docs/upgrading.md` checks Kometa's configuration with the real values before starting it.
+- A weekly Kometa upstream watch (`.github/workflows/kometa-upstream-watch.yml`, `scripts/kometa_watch.py`): when
+  Kometa has a release newer than the pinned one, or `kometa/` doesn't validate against the latest, it keeps one
+  issue, "Kometa upstream changes", up to date with the validation against the latest release, the release-note
+  bullets that name something our configuration uses, and the diff of the Kometa defaults it references. Unchanged
+  findings edit nothing; new ones update the issue with one comment and an optional alert (`NTFY_URL`,
+  `DISCORD_WEBHOOK` secrets); it closes once the pin is the latest release again. `scripts/kometa-validate.sh`
+  takes `KOMETA_IMAGE` to validate against another image.
+- CI job "Kometa config" (`scripts/kometa-validate.sh`, `make kometa`): validates `kometa/` with the Kometa image
+  pinned in `compose.yaml` and the JSON schemas from the same release, with dummy values for the placeholders.
+  It fails on a schema error, when Kometa gives no result (it exits 0 without network), and on keys the schema
+  doesn't know (Kometa itself only reports those). Broken fixtures prove it fails.
+- Kometa reads `kometa/` from the checkout: each file is mounted read-only over `/config/<name>`, with
+  `KOMETA_READ_ONLY_CONFIG` so Kometa never tries to rewrite `config.yml` (without it, a missing setting stops the
+  run). Its secrets go in `.env` in its data directory, which Kometa loads itself, so they stay out of the
+  container's environment. After a change to `kometa/`, recreate the container (docs/upgrading.md).
 - `compose.yaml`: Plex, Tautulli, AURA, Kometa and ImageMaid, with autoheal behind a filtering socket proxy.
   Every image is pinned by tag and digest for `linux/amd64`, every service has a health check and the `autoheal`
   label, and none of them is touched by a host auto-updater (`com.centurylinklabs.watchtower.enable: "false"`).
@@ -52,8 +69,9 @@ All notable changes to homelab-helios are documented here. The format follows
 - CI on every change: ruff, yamllint, shellcheck, actionlint, gitleaks over the whole history, the checker's
   tests, the policy check and the smoke test on an amd64 runner. CodeQL,
   OpenSSF Scorecard, dependency review, a DCO check and a weekly image scan (Trivy, `linux/amd64`) also run.
-- Dependabot for the images, the Python tools and the Actions; patch and minor updates merge automatically
-  once every required check passes; major updates wait for the maintainer.
+- Dependabot for the images, the Python tools and the Actions; patch, minor and major updates merge
+  automatically once every required check passes. A merge never deploys: a major version's release notes are
+  read before the redeploy ([docs/upgrading.md](docs/upgrading.md)).
 - A release workflow that publishes a source archive, the SBOM, `SHA256SUMS` signed keylessly with cosign,
   and SLSA build provenance ([docs/verifying-releases.md](docs/verifying-releases.md)).
 

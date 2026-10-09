@@ -34,15 +34,19 @@ How the stack fits together is in [docs/architecture.md](docs/architecture.md).
 
 ## When and how tests run
 
-Every push and pull request runs two CI jobs ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), both
-required checks on `main`. "Checks + tests" runs the linters below, a gitleaks scan of the whole history,
+Every push and pull request runs three CI jobs ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), both
+all required checks on `main`. "Checks + tests" runs the linters below, a gitleaks scan of the whole history,
 the checker's unit tests with a coverage floor, `docker compose config` and the policy check
 ([`scripts/check_compose.py`](scripts/check_compose.py)). "Stack smoke test"
 ([`scripts/smoke-test.sh`](scripts/smoke-test.sh)), on an amd64 runner like the server (without a GPU), starts
 every service with throwaway directories and volumes, fails unless each one reports healthy within five
 minutes, runs a backup and restore round trip over every data mount, checks that mounts excluded from backups
 (the media library) are neither archived nor overwritten, and, once the stack has autoheal, checks that it
-restarts a container that turns unhealthy. Until `compose.yaml` exists, the stack steps pass with a notice. CodeQL, dependency review, a DCO check and OpenSSF
+restarts a container that turns unhealthy. Until `compose.yaml` exists, the stack steps pass with a notice.
+"Kometa config" ([`scripts/kometa-validate.sh`](scripts/kometa-validate.sh), also `make kometa`) validates
+`kometa/` with the Kometa image pinned in `compose.yaml` and the JSON schemas from the same release, with dummy
+values for the placeholders (no secrets), and fails on a schema error, on no result and on keys the schema
+doesn't know; two broken fixtures in `tests/fixtures/kometa-invalid/` prove it fails. CodeQL, dependency review, a DCO check and OpenSSF
 Scorecard also run on the repository.
 
 The checker's tests are offline: they feed it JSON fixtures in [`tests/fixtures/`](tests/fixtures/), with no
