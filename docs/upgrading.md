@@ -5,23 +5,21 @@ migrate their database when they start a new version and can't go back afterward
 so **every upgrade starts with a backup**. The same steps apply to updating a checkout of `main`, which is
 possible but unsupported for anything you depend on.
 
-> There are no releases yet: until the first one, follow these steps with a checkout of `main`. The backup and
-> restore scripts are exercised against the real stack by CI's smoke test on every change.
-
 ## Before you upgrade
 
 1. Read the release notes (the `CHANGELOG.md` section) for every release between yours and the new one, and
    the services' own release notes for any major version bump. Anything under **Upgrading** needs action.
 2. Verify the new release ([verifying-releases.md](verifying-releases.md)).
-3. Pick a time when nobody is watching: Tautulli's activity page shows current streams. The backup stops the
-   stack, and so does the upgrade.
+3. Pick a time when nobody is watching: Tautulli's activity page shows current streams. The backup stops each
+   service for a few minutes, and the upgrade restarts the stack.
 
 ## Backing up
 
 The state worth keeping is each service's data: Plex's database, metadata and settings, Tautulli's database
-and settings, AURA's settings, and Kometa's and ImageMaid's configuration. `scripts/backup.sh` stops the stack so the databases are
-consistent, archives each of those mounts, copies `.env` and any `<service>.env`, and starts again whatever was
-running:
+and settings, AURA's settings, and Kometa's and ImageMaid's configuration. `scripts/backup.sh` stops one service at a
+time, copies its mounts while it is stopped so its database is consistent, starts it again if it was running, and
+then compresses the copy; services with nothing to archive keep running. It also copies `.env` and any
+`<service>.env`:
 
 ```sh
 scripts/backup.sh                       # into backups/<date>-<time>/ in the checkout (gitignored)
@@ -29,9 +27,11 @@ scripts/backup.sh /path/to/backup-dir   # or a directory of your choice (new or 
 ```
 
 It **never** archives the media library, Plex's cache or its transcode directory: the library is far too large
-and is protected by snapshots on the storage that holds it; the cache and transcodes are disposable. Plex's
-metadata and thumbnails are archived, so with a large library the backup can be tens of gigabytes and take a
-while; Plex stays stopped until it's done.
+and is protected by snapshots on the storage that holds it; the cache and transcodes are disposable. It also
+leaves out Plex's artwork (`Metadata`) and preview thumbnails (`Media`) and Kometa's downloaded `assets/` (the
+services' `backup.exclude` labels): they are most of the data, and the services re-create them. Plex's databases
+are archived, so Plex stays stopped for a few minutes. A restore leaves the left-out paths as they are.
+[Scheduled backups](installing.md#scheduled-backups) do this nightly and copy each backup off the host.
 
 The directory holds one `<service>--<path>.tar.gz` per mount, the settings under `env/`, a `MANIFEST` naming
 each archive's service, container path, host path and image, and `SHA256SUMS`. Everything in it is readable

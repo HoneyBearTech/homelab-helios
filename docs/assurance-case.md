@@ -72,7 +72,7 @@ of the Plex account that owns the server.
 - CI on every change: ruff (with the bandit rules), yamllint, actionlint, gitleaks over the history,
   shellcheck, pytest with a 90 % branch-coverage floor, `docker compose config`, the
   policy check, and a smoke test on amd64 that starts every pinned image without a GPU, waits for its health
-  check, round-trips a backup and restore, checks that excluded and nested mounts are left alone, and checks that
+  check, round-trips a backup and restore, checks that excluded and nested mounts and left-out paths are left alone, runs the scheduled backup against a stand-in backup server, and checks that
   autoheal restarts a container that turns unhealthy (a dynamic test of the stack and the scripts); a test that
   Kometa's configuration holds only placeholders, and its validation with the pinned Kometa and its JSON schemas
   (fails on errors, on no result and on unknown keys).

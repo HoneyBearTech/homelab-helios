@@ -19,11 +19,20 @@ sha256() { if command -v sha256sum >/dev/null; then sha256sum "$@"; else shasum 
 # shellcheck disable=SC2034 # used by the scripts that source this file
 skip_label=org.honeybeartech.helios.backup.skip
 
-# The container paths container $1 excludes from backups (its skip_label), one per line.
-skipped_mounts() {
-  docker inspect --format "{{index .Config.Labels \"$skip_label\"}}" "$1" |
+# A service label listing paths inside its data mounts (comma-separated, exact container paths) that a backup leaves
+# out of the mount's archive and a restore leaves in place: data the services re-create, too large to copy every
+# night, such as Plex's artwork and preview thumbnails or Kometa's downloaded assets.
+# shellcheck disable=SC2034 # used by the scripts that source this file
+exclude_label=org.honeybeartech.helios.backup.exclude
+
+# The paths label $2 of container $1 lists, one per line.
+label_paths() {
+  docker inspect --format "{{index .Config.Labels \"$2\"}}" "$1" |
     tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | grep -v '^$' || true
 }
+
+# The container paths container $1 excludes from backups (its skip_label), one per line.
+skipped_mounts() { label_paths "$1" "$skip_label"; }
 
 # The data mounts of container $1, one "<container path><TAB><volume:NAME or host path>" per line: every read-write
 # volume or bind mount, except anonymous volumes (an image's own, holding nothing the stack set up), the Docker
@@ -51,6 +60,16 @@ nested_mounts() {
     while IFS= read -r dest; do
       if [ -n "$dest" ] && [[ "$dest" == "$2"/* ]]; then printf '%s\n' "$dest"; fi
     done
+}
+
+# The paths inside container $1's mount at $2 that the mount's archive leaves out and a restore of it spares, one per
+# line: the mounts below it (nested_mounts) and the paths its exclude_label lists there.
+left_out() {
+  local path
+  { nested_mounts "$1" "$2" && label_paths "$1" "$exclude_label"; } |
+    while IFS= read -r path; do
+      if [[ "$path" == "$2"/* ]]; then printf '%s\n' "$path"; fi
+    done | sort -u
 }
 
 # Whether $2 is a directory in container $1 (a bind-mounted file isn't archived).
