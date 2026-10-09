@@ -80,4 +80,11 @@ All notable changes to homelab-helios are documented here. The format follows
 - A release workflow that publishes a source archive, the SBOM, `SHA256SUMS` signed keylessly with cosign,
   and SLSA build provenance ([docs/verifying-releases.md](docs/verifying-releases.md)).
 
+### Security
+
+- First triage of the image scan, recorded in [docs/dependencies.md](docs/dependencies.md#current-findings).
+  Every image is on its newest release, so no update fixes anything yet. AURA's critical Next.js finding isn't
+  reachable, because AURA doesn't use `next/og`. Most of ImageMaid's 525 findings are in packages it never
+  uses; Pillow is reachable only in its `OVERLAYS_ONLY` mode, which is off by default.
+
 [Unreleased]: https://github.com/HoneyBearTech/homelab-helios/commits/main

@@ -11,7 +11,8 @@ file changes with them, in the same pull request.
   health check for each service and autoheal (behind a filtering socket proxy) to restart one that turns
   unhealthy, the GPU for Plex as an optional override,
   Dependabot proposing updates.
-- Done: the smoke test against the real stack in CI. Next: the first image scan and its triage.
+- Done: the smoke test against the real stack in CI, and the weekly image scan with its first triage
+  ([dependencies.md](dependencies.md#current-findings)).
 - Done: Kometa Quickstart as an on-demand config editor (not started with the stack, no login, LAN only while it
   runs).
 - Done: Kometa's configuration in `kometa/`, with every secret as a placeholder (a test enforces it), mounted

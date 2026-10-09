@@ -13,7 +13,7 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
 2. **No container gets more of the host than it needs.** No service runs privileged, adds Linux
    capabilities, shares the host's network or PID namespace, or mounts the Docker socket (which is root on
    the host), unless the exception is written into the service as a reasoned label and reviewed: the one
-   planned exception is socket-proxy, which holds the socket read-only on autoheal's behalf. The GPU is
+   exception is socket-proxy, which holds the socket read-only on autoheal's behalf. The GPU is
    granted as a device reservation through the NVIDIA runtime, not by privilege.
 3. **No secrets in the repository.** The services keep their logins, Plex tokens and keys in their own data,
    outside the repository. `.env` holds settings only; Plex's one-time claim token goes in a gitignored
