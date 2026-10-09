@@ -13,6 +13,8 @@
 #        scripts/kometa-validate.sh --print-image  print the pinned image (name:tag@digest)
 #        scripts/kometa-validate.sh --print-tag    print its release tag
 # Environment:
+#   KOMETA_IMAGE         validate with this image (name:vX.Y.Z@digest) instead of the one pinned in compose.yaml
+#                        (the weekly upstream watch tries the latest release this way)
 #   KOMETA_SCHEMA_PATH   Kometa's json-schema/ directory at the image's release tag; when unset, it is fetched
 #                        with git into a temporary directory (needs network)
 #   KOMETA_LOG           a file to keep Kometa's full output in
@@ -21,7 +23,8 @@ set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 
-image=$(docker compose --project-directory "$root" -f "$root/compose.yaml" --env-file "$root/.env.example" \
+image=${KOMETA_IMAGE:-}
+[ -n "$image" ] || image=$(docker compose --project-directory "$root" -f "$root/compose.yaml" --env-file "$root/.env.example" \
   config --format json | python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["kometa"]["image"])')
 tag=${image#*:}
 tag=${tag%@*}
