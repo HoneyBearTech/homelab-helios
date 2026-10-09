@@ -19,7 +19,7 @@ file changes with them, in the same pull request.
   read-only into Kometa, and validated in CI with the pinned Kometa and its JSON schemas (a required check, so
   a Kometa update that rejects it doesn't merge), and a weekly watch for new Kometa releases that keeps one issue
   with what changed upstream ([kometa.md](kometa.md)).
-- First release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
+- Done: first release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
 - Switch Helios to run the stack from a checkout of this repository, adopting the existing data, ports and
   library paths so nothing that reaches the server notices: Plex keeps its libraries, watch history and
