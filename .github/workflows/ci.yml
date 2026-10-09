@@ -96,7 +96,7 @@ jobs:
         run: scripts/smoke-test.sh
 
   kometa:
-    # A required check on main, like the two above: Dependabot's patch and minor Kometa updates merge automatically
+    # A required check on main, like the two above: Dependabot's Kometa updates (majors too) merge automatically
     # once the required checks pass, so a release that rejects our configuration must fail here. It always runs
     # (a skipped required check would block the pull request) and takes about a minute. No secrets: the
     # placeholders get dummy values (scripts/kometa-validate.sh).

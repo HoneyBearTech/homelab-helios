@@ -100,7 +100,7 @@ check (`scripts/kometa-validate.sh`); a weekly upstream watch is **Planned**.
   flags as separate arguments: given flags it doesn't recognise, it starts its scheduler and waits silently.
   Schema validation passes some configs that fail at run time (a filter attribute such as
   `audio_track_title.regex` used under `plex_search`), so a passing check is not proof the config runs.
-- **Kometa's validation is a required check.** Dependabot's patch and minor Kometa updates auto-merge, so the
+- **Kometa's validation is a required check.** Dependabot's Kometa updates (majors too) auto-merge, so the
   validation runs as an always-running job (never path-filtered: a skipped required check blocks the PR).
 - Reviews of Kometa's configuration (optimization findings) are private planning: they go in Chronos, not
   `docs/`.

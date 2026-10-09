@@ -6,12 +6,6 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
-
-- Dependabot's major updates merge automatically too, once every required check passes, like patch and minor
-  ones. A merge still never deploys: a major version's release notes are read before the redeploy
-  ([docs/upgrading.md](docs/upgrading.md)).
-
 ### Added
 
 - Kometa Quickstart (`kometateam/quickstart`), a web UI for building and validating Kometa configurations, as a
@@ -66,8 +60,9 @@ All notable changes to homelab-helios are documented here. The format follows
 - CI on every change: ruff, yamllint, shellcheck, actionlint, gitleaks over the whole history, the checker's
   tests, the policy check and the smoke test on an amd64 runner. CodeQL,
   OpenSSF Scorecard, dependency review, a DCO check and a weekly image scan (Trivy, `linux/amd64`) also run.
-- Dependabot for the images, the Python tools and the Actions; patch and minor updates merge automatically
-  once every required check passes; major updates wait for the maintainer.
+- Dependabot for the images, the Python tools and the Actions; patch, minor and major updates merge
+  automatically once every required check passes. A merge never deploys: a major version's release notes are
+  read before the redeploy ([docs/upgrading.md](docs/upgrading.md)).
 - A release workflow that publishes a source archive, the SBOM, `SHA256SUMS` signed keylessly with cosign,
   and SLSA build provenance ([docs/verifying-releases.md](docs/verifying-releases.md)).
 

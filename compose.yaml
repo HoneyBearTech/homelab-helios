@@ -1,8 +1,9 @@
 # The Helios stack. Every setting comes from .env (template: .env.example; reference: docs/interfaces.md); the
 # secrets a service can only take from its environment from plex.env (Plex's one-time claim token) and
 # autoheal.env (autoheal's optional webhook), both optional and gitignored.
-# Every image is pinned as name:tag@sha256:<digest>; Dependabot proposes updates (patch and minor ones merge
-# automatically once CI passes). scripts/check_compose.py enforces the policy (docs/security.md#policy).
+# Every image is pinned as name:tag@sha256:<digest>; Dependabot proposes updates (patch, minor and major ones
+# merge automatically once CI passes; a merge never deploys). scripts/check_compose.py enforces the policy
+# (docs/security.md#policy).
 # The NVIDIA GPU for Plex is in compose.gpu.yaml, so the stack also starts without one (CI has none); the host
 # adds it with COMPOSE_FILE in .env.
 
