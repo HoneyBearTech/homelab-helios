@@ -20,6 +20,13 @@ All notable changes to homelab-helios are documented here. The format follows
   key that isn't such a placeholder, on a placeholder name Kometa reserves for its own settings, and on a file in
   `kometa/` that `config.yml` doesn't link. The collection files that only tag or refresh items set
   `sync_mode: append`, which Kometa requires for them.
+- A weekly Kometa upstream watch (`.github/workflows/kometa-upstream-watch.yml`, `scripts/kometa_watch.py`): when
+  Kometa has a release newer than the pinned one, or `kometa/` doesn't validate against the latest, it keeps one
+  issue, "Kometa upstream changes", up to date with the validation against the latest release, the release-note
+  bullets that name something our configuration uses, and the diff of the Kometa defaults it references. Unchanged
+  findings edit nothing; new ones update the issue with one comment and an optional alert (`NTFY_URL`,
+  `DISCORD_WEBHOOK` secrets); it closes once the pin is the latest release again. `scripts/kometa-validate.sh`
+  takes `KOMETA_IMAGE` to validate against another image.
 - CI job "Kometa config" (`scripts/kometa-validate.sh`, `make kometa`): validates `kometa/` with the Kometa image
   pinned in `compose.yaml` and the JSON schemas from the same release, with dummy values for the placeholders.
   It fails on a schema error, when Kometa gives no result (it exits 0 without network), and on keys the schema

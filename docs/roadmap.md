@@ -16,8 +16,8 @@ file changes with them, in the same pull request.
   runs).
 - Done: Kometa's configuration in `kometa/`, with every secret as a placeholder (a test enforces it), mounted
   read-only into Kometa, and validated in CI with the pinned Kometa and its JSON schemas (a required check, so
-  a Kometa update that rejects it doesn't merge). Next: a weekly watch for new Kometa releases, and
-  `docs/kometa.md`.
+  a Kometa update that rejects it doesn't merge), and a weekly watch for new Kometa releases that keeps one issue
+  with what changed upstream. Next: `docs/kometa.md`.
 - First release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
 - Switch Helios to run the stack from a checkout of this repository, adopting the existing data, ports and
