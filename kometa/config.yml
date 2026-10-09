@@ -50,7 +50,6 @@ libraries:
       plex_path: <<ANIME_PLEX_PATH>>
       upgrade_existing: false
       monitor_existing: false
-      ignore_cache: true
     operations:
     - schedule: daily
       split_duplicates: false
@@ -79,8 +78,6 @@ libraries:
       template_variables:
         style: color
     - file: config/separator_franchise.yml
-      template_variables:
-        collection_section: '035'
     - default: franchise
       template_variables:
         collection_section: '035'
@@ -128,8 +125,6 @@ libraries:
       template_variables:
         style: color
     - file: config/separator_franchise.yml
-      template_variables:
-        collection_section: '035'
     - default: franchise
       template_variables:
         collection_section: '035'
@@ -154,7 +149,6 @@ libraries:
       token: <<RADARR_TOKEN>>
       add_missing: false
       add_existing: false
-      ignore_cache: true
       root_folder_path: <<KIDS_MOVIES_ROOT_FOLDER>>
       monitor: false
       availability: announced
@@ -282,7 +276,6 @@ libraries:
       plex_path: <<KIDS_TV_SHOWS_PLEX_PATH>>
       upgrade_existing: false
       monitor_existing: false
-      ignore_cache: true
     operations:
     - schedule: daily
       split_duplicates: false
@@ -311,8 +304,6 @@ libraries:
       template_variables:
         style: color
     - file: config/separator_franchise.yml
-      template_variables:
-        collection_section: '035'
     - default: franchise
       template_variables:
         collection_section: '035'
@@ -398,7 +389,6 @@ libraries:
       token: <<SONARR_4K_TOKEN>>
       add_missing: false
       add_existing: false
-      ignore_cache: true
       root_folder_path: <<TV_SHOWS_4K_ROOT_FOLDER>>
       monitor: none
       quality_profile: WEB-DL (2160p)
@@ -468,11 +458,6 @@ settings:
   verify_ssl: false
   custom_repo: null
   show_unconfigured: true
-  run_order:
-  - operations
-  - metadata
-  - collections
-  - overlays
   overlay_artwork_filetype: jpg
   overlay_artwork_quality: 75
   show_unfiltered: false
@@ -512,7 +497,6 @@ radarr:
   token: <<RADARR_TOKEN>>
   add_missing: false
   add_existing: false
-  ignore_cache: true
   root_folder_path: <<RADARR_ROOT_FOLDER>>
   monitor: false
   availability: announced
@@ -528,7 +512,6 @@ sonarr:
   token: <<SONARR_TOKEN>>
   add_missing: false
   add_existing: false
-  ignore_cache: true
   root_folder_path: <<SONARR_ROOT_FOLDER>>
   monitor: none
   quality_profile: WEB-DL (1080p)
