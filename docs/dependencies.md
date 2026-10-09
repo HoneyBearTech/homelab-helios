@@ -34,7 +34,7 @@ decision about those players, not about this stack. It runs with no added privil
 | GitHub Actions | [`.github/workflows/`](../.github/workflows/) | full commit SHA (version in a comment) | GitHub Actions |
 | Images of the GitLab copy's pipeline (Python, Docker CLI, git, gitleaks, actionlint) | [`.gitlab-ci.yml`](../.gitlab-ci.yml) | version tag and digest | GitLab Runner (Docker executor) |
 
-Each release will carry a CycloneDX SBOM listing every service's image and digest
+Each release carries a CycloneDX SBOM listing every service's image and digest
 ([verifying-releases.md](verifying-releases.md)).
 
 ## Tracking dependencies

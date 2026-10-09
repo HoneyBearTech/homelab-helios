@@ -6,6 +6,12 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-09
+
+The first release: the Helios stack (Plex, Tautulli, AURA, Kometa and ImageMaid, with autoheal, and Kometa
+Quickstart as an on-demand tool) as a Compose file, every image pinned by version tag and digest for
+`linux/amd64`, with Kometa's configuration, health checks, backups and release signing around it.
+
 ### Added
 
 - `.gitlab-ci.yml` for the copy of the repository on the maintainer's self-hosted GitLab. GitHub stays the
@@ -87,4 +93,5 @@ All notable changes to homelab-helios are documented here. The format follows
   reachable, because AURA doesn't use `next/og`. Most of ImageMaid's 525 findings are in packages it never
   uses; Pillow is reachable only in its `OVERLAYS_ONLY` mode, which is off by default.
 
-[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/commits/main
+[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/HoneyBearTech/homelab-helios/releases/tag/v0.1.0
