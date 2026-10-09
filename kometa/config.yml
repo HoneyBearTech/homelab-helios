@@ -485,9 +485,9 @@ settings:
   prioritize_assets: true
   dimensional_asset_rename: true
   download_url_assets: true
-  show_missing_season_assets: true
-  show_missing_episode_assets: true
-  show_asset_not_needed: true
+  show_missing_season_assets: false
+  show_missing_episode_assets: false
+  show_asset_not_needed: false
   sync_mode: sync
   minimum_items: 2
   default_collection_order: null
@@ -497,8 +497,6 @@ settings:
   missing_only_released: true
   only_filter_missing: false
   show_unmanaged: true
-  show_filtered: true
-  show_options: true
   show_missing: false
   show_missing_assets: true
   save_report: true
