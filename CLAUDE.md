@@ -120,6 +120,10 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   on macOS' bash 3.2); ruff (`select = ["ALL"]`), yamllint, shellcheck, pytest + coverage (90 % branch floor),
   pip-tools for the hash-pinned `requirements-dev.txt`. CI-only: actionlint, gitleaks, CodeQL, Scorecard,
   dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch/minor).
+- GitLab copy: the owner's self-hosted GitLab (CE, LAN only; host facts in Chronos) holds a mirror. GitHub stays
+  the home (OpenSSF badges, Scorecard, Dependabot, releases); every change goes to GitHub as a PR, never to
+  GitLab. `.gitlab-ci.yml` mirrors GitHub on a schedule (fast-forward only, `MIRROR_TOKEN` CI/CD variable) and
+  re-runs the daemon-free checks; smoke test and Kometa check stay GitHub-only (owner 2026-10-08).
 - Releases (`release.yml`, on a `v*.*.*` tag): policy check, source archive, CycloneDX SBOM,
   `SHA256SUMS` signed with cosign keyless, SLSA provenance, GitHub Release from the tag's `CHANGELOG.md`
   section. No images are built or published.

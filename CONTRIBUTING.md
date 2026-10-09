@@ -49,6 +49,10 @@ values for the placeholders (no secrets), and fails on a schema error, on no res
 doesn't know; two broken fixtures in `tests/fixtures/kometa-invalid/` prove it fails. CodeQL, dependency review, a DCO check and OpenSSF
 Scorecard also run on the repository.
 
+The maintainer also keeps a copy on a self-hosted GitLab, mirrored from GitHub by a scheduled job in
+[`.gitlab-ci.yml`](.gitlab-ci.yml), which re-runs the "Checks + tests" steps that need no Docker daemon on
+every commit it receives. Changes go to GitHub only; a commit made on the GitLab copy stops the mirror.
+
 The checker's tests are offline: they feed it JSON fixtures in [`tests/fixtures/`](tests/fixtures/), with no
 Docker and no network. The smoke test needs both: it pulls the pinned images.
 

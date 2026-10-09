@@ -47,6 +47,7 @@ Who can change the code, releases and project settings, as of the date of this f
 | Publishing GitHub Releases | the release workflow, on a version tag pushed by the maintainer | GitHub Actions, short-lived `GITHUB_TOKEN` |
 | Signing release files | the release workflow, on a version tag | Sigstore keyless signing with the job's GitHub identity; no stored key |
 | Signing commits and version tags | the maintainer | personal SSH key (public half in [`.github/allowed_signers`](.github/allowed_signers)) |
+| Mirroring the repository into the maintainer's self-hosted GitLab | the scheduled mirror job in [`.gitlab-ci.yml`](.gitlab-ci.yml) | a GitLab project access token (Maintainer role, `write_repository` only, with an expiry) in a masked, protected CI/CD variable on that GitLab; the maintainer creates and rotates it |
 | Reading the repository from the maintainer's own server (planned) | that server | a read-only deploy key that only works for this repository |
 | The OpenSSF Best Practices badge entry | the maintainer | GitHub sign-in |
 | Security advisories and private vulnerability reports | the maintainer | GitHub |
