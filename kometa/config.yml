@@ -190,9 +190,6 @@ libraries:
           ending: current_year-1
     - default: golden
     - default: streaming
-    - default: country
-      template_variables:
-        style: color
     - default: region
       template_variables:
         style: color
