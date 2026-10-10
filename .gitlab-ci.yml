@@ -41,7 +41,7 @@ mirror:
     MIRROR_SOURCE: https://github.com/HoneyBearTech/homelab-helios.git
   # The token reaches git through a credential helper for this GitLab only, never a URL or an argument.
   script:
-    - git init -q mirror && cd mirror
+    - git init -q --bare mirror && cd mirror
     - git config "credential.$CI_SERVER_URL.helper" '!f() { echo username=oauth2; echo "password=$MIRROR_TOKEN"; }; f'
     - git fetch --no-tags "$MIRROR_SOURCE" "refs/heads/main:refs/heads/main" "refs/tags/*:refs/tags/*"
     - git push "$CI_SERVER_URL/$CI_PROJECT_PATH.git" "refs/heads/main:refs/heads/main" "refs/tags/*:refs/tags/*"
