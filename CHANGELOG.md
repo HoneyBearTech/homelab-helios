@@ -10,6 +10,11 @@ All notable changes to homelab-helios are documented here. The format follows
 
 - The GitLab mirror job fetches into a bare repository: git refuses to fetch into the checked-out branch of a
   non-bare one, so the job couldn't update `main`.
+- A backup copies a service's data several times faster, so the service is back sooner: the container that
+  archives it no longer has Docker's log driver also write the whole archive into its log, and the systemd unit
+  runs at the lowest best-effort I/O priority instead of the idle class, which waited behind every other disk user
+  on the host. On Helios the first scheduled backup copied Plex at 5 to 10 MB/s, keeping it stopped for 35
+  minutes, instead of the 90 MB/s measured by hand.
 
 ## [0.2.0] - 2026-10-10
 

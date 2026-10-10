@@ -98,8 +98,9 @@ for service in "${services[@]}"; do
     done < <(left_out "$id" "$mount")
     # tar runs as root in the container so it can read every file; the archive itself is written by this shell,
     # so it belongs to the user running the backup. Uncompressed here: compressing takes far longer than copying,
-    # and the service stays stopped only for the copy.
-    docker run --rm --network none --volumes-from "$id:ro" "$busybox" \
+    # and the service stays stopped only for the copy. No log driver: Docker's default one would also write the whole
+    # archive, which arrives on stdout, into the container's log, and the copy would take several times as long.
+    docker run --rm --log-driver none --network none --volumes-from "$id:ro" "$busybox" \
       tar -cf - "${excludes[@]+"${excludes[@]}"}" -C "$mount" . </dev/null >"$dest/${archive%.gz}"
     printf '%s\t%s\t%s\t%s\t%s\n' "$archive" "$service" "$mount" "$source" "$image" >>"$dest/MANIFEST"
     archives+=("$archive")
