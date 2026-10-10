@@ -6,6 +6,11 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The GitLab mirror job fetches into a bare repository: git refuses to fetch into the checked-out branch of a
+  non-bare one, so the job couldn't update `main`.
+
 ## [0.2.0] - 2026-10-10
 
 Scheduled backups copied off the host, without what the services re-create, and shorter downtime while a
