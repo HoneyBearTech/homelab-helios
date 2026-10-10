@@ -6,6 +6,11 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-10
+
+Scheduled backups copied off the host, without what the services re-create, and shorter downtime while a
+backup runs.
+
 ### Added
 
 - Scheduled backups copied off the host: `scripts/scheduled-backup.sh` takes a backup, copies it to
@@ -111,5 +116,6 @@ Quickstart as an on-demand tool) as a Compose file, every image pinned by versio
   reachable, because AURA doesn't use `next/og`. Most of ImageMaid's 525 findings are in packages it never
   uses; Pillow is reachable only in its `OVERLAYS_ONLY` mode, which is off by default.
 
-[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/HoneyBearTech/homelab-helios/releases/tag/v0.1.0
