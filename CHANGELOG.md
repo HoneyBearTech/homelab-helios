@@ -6,6 +6,13 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Kometa no longer unmonitors shows in Sonarr or movies in Radarr. With `monitor_existing: true`, Kometa
+  applied its `monitor` setting (`none` for Sonarr, `false` for Radarr, meant for items it adds) to every
+  existing item its collections matched, so airing shows stopped being searched for. `monitor_existing` is now
+  `false` for every Radarr and Sonarr connection, so Kometa leaves monitoring alone.
+
 ## [0.2.1] - 2026-10-10
 
 Backups stop each service for a fraction of the time, and the GitLab mirror updates `main` again.

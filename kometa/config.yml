@@ -158,7 +158,7 @@ libraries:
       radarr_path: <<KIDS_MOVIES_ROOT_FOLDER>>
       plex_path: <<KIDS_MOVIES_PLEX_PATH>>
       upgrade_existing: false
-      monitor_existing: true
+      monitor_existing: false
     operations:
     - schedule: daily
       split_duplicates: false
@@ -336,7 +336,7 @@ libraries:
       radarr_path: <<MOVIES_4K_ROOT_FOLDER>>
       plex_path: <<MOVIES_4K_PLEX_PATH>>
       upgrade_existing: false
-      monitor_existing: true
+      monitor_existing: false
     operations:
     - schedule: daily
       split_duplicates: false
@@ -398,7 +398,7 @@ libraries:
       sonarr_path: <<TV_SHOWS_4K_ROOT_FOLDER>>
       plex_path: <<TV_SHOWS_4K_PLEX_PATH>>
       upgrade_existing: false
-      monitor_existing: true
+      monitor_existing: false
     operations:
     - schedule: daily
       split_duplicates: false
@@ -503,7 +503,7 @@ radarr:
   radarr_path: <<RADARR_ROOT_FOLDER>>
   plex_path: <<RADARR_PLEX_PATH>>
   upgrade_existing: false
-  monitor_existing: true
+  monitor_existing: false
 sonarr:
   url: <<SONARR_URL>>
   token: <<SONARR_TOKEN>>
@@ -521,4 +521,4 @@ sonarr:
   sonarr_path: <<SONARR_ROOT_FOLDER>>
   plex_path: <<SONARR_PLEX_PATH>>
   upgrade_existing: false
-  monitor_existing: true
+  monitor_existing: false
