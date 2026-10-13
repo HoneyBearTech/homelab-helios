@@ -12,6 +12,10 @@ All notable changes to homelab-helios are documented here. The format follows
   hub on another host, which shows every host's logs in one web UI. It mounts the Docker socket read-only, an
   allowed `docker-socket` exception; keep port 7007 on the LAN. A host that already runs a container named
   `dozzle-agent` outside the stack must remove it before `docker compose up -d`.
+- `deploy/apt/51unattended-upgrades-nvidia`, which keeps the NVIDIA driver out of unattended upgrades. An
+  unattended driver update without a reboot left Plex unable to start with the GPU ("driver/library version
+  mismatch") until the host was rebooted. The rebuild guide installs it and the DKMS driver it assumes; update the
+  driver by hand and reboot straight after.
 
 ### Fixed
 
