@@ -6,6 +6,11 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-13
+
+A pinned Dozzle agent joins the stack, Kometa runs about two hours shorter on most nights and checks TLS
+certificates again, it stops unmonitoring shows and movies, and the NVIDIA driver stays out of unattended upgrades.
+
 ### Added
 
 - A Dozzle agent (`dozzle-agent`: `dozzle agent`, port 7007, 11.3.2, the hub's version) for the homelab's Dozzle
@@ -166,7 +171,8 @@ Quickstart as an on-demand tool) as a Compose file, every image pinned by versio
   reachable, because AURA doesn't use `next/og`. Most of ImageMaid's 525 findings are in packages it never
   uses; Pillow is reachable only in its `OVERLAYS_ONLY` mode, which is off by default.
 
-[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/HoneyBearTech/homelab-helios/releases/tag/v0.1.0
