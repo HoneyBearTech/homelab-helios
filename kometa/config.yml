@@ -197,7 +197,7 @@ libraries:
       template_variables:
         style: color
     - file: config/tv_refresh.yml
-    schedule_overlays: daily
+    schedule_overlays: weekly(sunday)
     overlay_files:
     - default: resolution
     - default: resolution
@@ -452,7 +452,6 @@ settings:
   playlist_sync_to_users: all
   playlist_exclude_users: null
   playlist_report: true
-  verify_ssl: false
   custom_repo: null
   show_unconfigured: true
   overlay_artwork_filetype: jpg
@@ -474,7 +473,6 @@ plex:
   empty_trash: false
   optimize: false
   db_cache: null
-  verify_ssl: false
 tmdb:
   apikey: <<TMDB_APIKEY>>
   language: en
