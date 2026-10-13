@@ -326,6 +326,7 @@ def test_post(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(kw.urllib.request, "urlopen", lambda request, **_: seen.append(request) or FakeResponse())
     kw.post("https://ntfy.example.com/x", b"hi", {"Title": "t"})
     assert seen[0].data == b"hi"
+    assert seen[0].get_header("User-agent") == kw.USER_AGENT
 
 
 def test_notify(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:

@@ -32,6 +32,8 @@ All notable changes to homelab-helios are documented here. The format follows
 - Kometa's Refresh Metadata collections no longer fail when nothing was released or aired in the last 7 days.
   Each library with nothing new logged `Plex Error: No Items found in Plex`, was reported as a Kometa Failure
   and sent an error notification, about six every night; with `ignore_blank_results` it's a warning.
+- The Kometa upstream watch's Discord alert is delivered: Discord refused it with 403 (Cloudflare error 1010)
+  because it carried urllib's default `User-Agent`. Alerts now name the watch in their `User-Agent`.
 
 ### Security
 
