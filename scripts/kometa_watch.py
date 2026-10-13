@@ -62,6 +62,8 @@ MAX_PAGES = 30
 MAX_PATCH = 6000  # characters of one file's diff in the issue
 MAX_BODY = 60000  # GitHub's limit for an issue body is 65536
 TIMEOUT = 30
+# Discord (behind Cloudflare) refuses urllib's default "Python-urllib/x.y" with 403, error 1010.
+USER_AGENT = f"homelab-helios-kometa-watch (+https://github.com/{DEFAULT_REPO})"
 VALIDATION_FAILED = 1  # kometa-validate.sh: 0 = passed, 1 = failed, anything else = it couldn't run
 
 
@@ -410,7 +412,7 @@ def apply(github: GitHub, repo: str, action: str, issue: dict[str, Any] | None, 
 
 def post(url: str, data: bytes, headers: dict[str, str]) -> None:
     """POST data to a notification endpoint."""
-    request = urllib.request.Request(url, data=data, headers=headers, method="POST")  # noqa: S310 (https checked by notify)
+    request = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT, **headers}, method="POST")  # noqa: S310 (https checked by notify)
     with urllib.request.urlopen(request, timeout=TIMEOUT):  # noqa: S310 (https checked by notify)
         pass
 
