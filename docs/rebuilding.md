@@ -22,7 +22,23 @@ Mount the media library at the same host path as before (`MEDIA_PATH` in the bac
 
 ## 2. The GPU driver
 
-Install the NVIDIA driver (`sudo ubuntu-drivers install`, then reboot) and check it with `nvidia-smi`.
+Install the NVIDIA driver as a DKMS build, for example the headless server branch
+(`sudo apt install nvidia-headless-<branch>-server nvidia-utils-<branch>-server`; `ubuntu-drivers list --gpgpu`
+shows the branches), then reboot and check it with `nvidia-smi`.
+
+Then keep the driver out of unattended upgrades. An update replaces the driver's libraries at once but its kernel
+module only at the next reboot, and until then every new GPU container, Plex's included, fails with
+"driver/library version mismatch". From the repository (step 4), or with the file fetched from GitHub:
+
+```sh
+sudo install -m 644 deploy/apt/51unattended-upgrades-nvidia /etc/apt/apt.conf.d/
+apt-config dump Unattended-Upgrade::Package-Blacklist     # lists "^nvidia-" and "^libnvidia-"
+```
+
+Kernel updates still install unattended: DKMS builds the installed driver's module for each new kernel. Update
+the driver yourself in a quiet window and reboot straight after (`sudo apt update && sudo apt upgrade && sudo
+reboot`). The rule doesn't cover a driver installed as prebuilt kernel modules (`linux-modules-nvidia-*`), whose
+versions follow the kernel's.
 
 ## 3. Docker and the NVIDIA Container Toolkit
 

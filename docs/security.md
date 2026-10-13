@@ -81,7 +81,9 @@ a non-empty reason:
   backup server, outside this host's reach, are what protect them; a recycle bin may not see deletions made over
   rsync (Synology's doesn't).
 - **The GPU driver and runtime.** The NVIDIA driver and Container Toolkit on the host are trusted and kept up to
-  date by the operator.
+  date by the operator. The driver is kept out of unattended upgrades ([rebuilding.md](rebuilding.md#2-the-gpu-driver)),
+  so its security updates wait for the operator to install them and reboot; that trades a delay for a GPU that
+  doesn't stop working halfway between an update and a reboot.
 - **The host.** Anyone with root, `docker` group membership or write access to `.env` or the services' data
   controls the stack; those are trusted.
 - **Upstream images' internals.** Some images run as root inside the container; that is the image's design and

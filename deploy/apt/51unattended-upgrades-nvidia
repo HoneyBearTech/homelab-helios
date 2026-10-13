@@ -1,0 +1,13 @@
+// Keeps the NVIDIA driver out of unattended-upgrades (docs/rebuilding.md, "The GPU driver").
+//
+// An update of the driver's packages replaces its userspace libraries at once but the kernel module only at the
+// next reboot. Until then every new GPU container, Plex's included, fails with "driver/library version mismatch".
+// Update the driver by hand in a quiet window and reboot straight after:
+//   sudo apt update && sudo apt upgrade && sudo reboot
+//
+// With the DKMS driver (nvidia-dkms-*), kernel updates still install unattended: DKMS builds the installed
+// driver's module for each new kernel. Entries are regular expressions matched against package names.
+Unattended-Upgrade::Package-Blacklist {
+    "^nvidia-";
+    "^libnvidia-";
+};
