@@ -13,6 +13,12 @@ All notable changes to homelab-helios are documented here. The format follows
   allowed `docker-socket` exception; keep port 7007 on the LAN. A host that already runs a container named
   `dozzle-agent` outside the stack must remove it before `docker compose up -d`.
 
+### Changed
+
+- Kometa applies the TV Shows overlays (resolution and audio badges on shows, seasons and episodes) on Sundays
+  instead of every day, as Anime and Kid's TV Shows already did. Walking every episode for two badges was more
+  than half of each nightly run (about 1 h 55 min); a new episode or season now gets its badges within a week.
+
 ### Fixed
 
 - Kometa no longer unmonitors shows in Sonarr or movies in Radarr. With `monitor_existing: true`, Kometa
@@ -22,6 +28,13 @@ All notable changes to homelab-helios are documented here. The format follows
 - Kometa's Refresh Metadata collections no longer fail when nothing was released or aired in the last 7 days.
   Each library with nothing new logged `Plex Error: No Items found in Plex`, was reported as a Kometa Failure
   and sent an error notification, about six every night; with `ignore_blank_results` it's a warning.
+
+### Security
+
+- Kometa checks TLS certificates again. `settings.verify_ssl: false` turned certificate checks off for every
+  HTTPS request Kometa made, including the ones that carry the TMDb, OMDb and MDBList API keys; both
+  `verify_ssl: false` lines are gone, so the default (verify) applies. Plex, Tautulli, Radarr and Sonarr are
+  reached over plain HTTP on the LAN, so nothing else changes.
 
 ## [0.2.1] - 2026-10-10
 
