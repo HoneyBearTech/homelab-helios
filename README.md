@@ -45,6 +45,8 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
   ([docs/quickstart.md](docs/quickstart.md))
 - **autoheal**: restarts any service whose health check fails (Docker on its own only restarts a container that
   exits), reaching Docker only through **socket-proxy**, which lets it list, inspect, restart and stop containers
+- **Dozzle agent**: serves the containers' logs to the homelab's Dozzle on another host, which shows every host's
+  logs in one web UI
 
 Every service has a health check that autoheal watches, and every image is pinned by tag **and** digest, for
 `linux/amd64`. New versions arrive as Dependabot pull requests that CI checks and the maintainer merges;
@@ -113,9 +115,10 @@ A new Plex server's one-time claim token goes in a gitignored `plex.env`, never 
 - The GPU is given to Plex as a device reservation through the NVIDIA runtime, never by running it privileged.
 - Secrets (Plex and MediUX tokens, Kometa's API keys, logins) live only in each service's data, never in this repository
   or `.env`. Backups contain them, and Plex's and Tautulli's viewing history: keep them private and off the host.
-- autoheal never gets the Docker socket: it goes through a proxy that only lets it list, inspect, restart and
-  stop containers. Its optional webhook URL (restart notices, for example to Discord) goes in `autoheal.env`
-  (template [`autoheal.env.example`](autoheal.env.example), mode `600`, gitignored).
+- The Dozzle agent reads logs through the Docker socket: keep its port (7007) on the LAN. autoheal never gets the
+  Docker socket: it goes through a proxy that only lets it list, inspect, restart and stop containers. Its
+  optional webhook URL (restart notices, for example to Discord) goes in `autoheal.env` (template
+  [`autoheal.env.example`](autoheal.env.example), mode `600`, gitignored).
 - Don't run an auto-updater such as Watchtower on these containers; upgrade by release instead.
 - The policy check refuses privileged containers, added capabilities, host networking and Docker socket
   mounts unless a service documents why ([docs/security.md](docs/security.md)).

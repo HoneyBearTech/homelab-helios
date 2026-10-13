@@ -6,6 +6,13 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A Dozzle agent (`dozzle-agent`: `dozzle agent`, port 7007, 11.3.2, the hub's version) for the homelab's Dozzle
+  hub on another host, which shows every host's logs in one web UI. It mounts the Docker socket read-only, an
+  allowed `docker-socket` exception; keep port 7007 on the LAN. A host that already runs a container named
+  `dozzle-agent` outside the stack must remove it before `docker compose up -d`.
+
 ### Fixed
 
 - Kometa no longer unmonitors shows in Sonarr or movies in Radarr. With `monitor_existing: true`, Kometa

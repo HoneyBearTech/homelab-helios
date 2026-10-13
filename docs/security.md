@@ -10,9 +10,10 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
    as a pull request that changes the digest.
 2. **No container gets more of the host than it needs.** No service runs privileged, adds Linux
    capabilities, shares the host's network or PID namespace, or mounts the Docker socket (which is root on
-   the host), unless the exception is written into the service as a reasoned label and reviewed: the one
-   exception is socket-proxy, which holds the socket read-only on autoheal's behalf. The GPU is
-   granted as a device reservation through the NVIDIA runtime, not by privilege.
+   the host), unless the exception is written into the service as a reasoned label and reviewed: the two
+   exceptions are socket-proxy, which holds the socket read-only on autoheal's behalf, and the Dozzle agent,
+   which holds it read-only to read the containers' logs for the homelab's Dozzle. The GPU is granted as a
+   device reservation through the NVIDIA runtime, not by privilege.
 3. **No secrets in the repository.** The services keep their logins, Plex tokens and keys in their own data,
    outside the repository. `.env` holds settings only; Plex's one-time claim token goes in a gitignored
    `plex.env`, and autoheal's optional webhook URL in a gitignored `autoheal.env`. Secret scanning with push protection and a gitleaks scan of the whole history in CI back this up.
@@ -63,6 +64,10 @@ a non-empty reason:
   when its "allow media deletion" option is on. A faulty version or a compromised service could change or delete
   files; only snapshots on the storage that holds the library protect against that, and this stack never backs
   it up.
+- **Dozzle's access to Docker.** The Dozzle agent needs the Docker socket to read logs; read-only mounting
+  doesn't limit the Docker API, so any Dozzle that can reach the agent's port, and anyone who can use that
+  Dozzle's web UI, can see every container's logs. It is an allowed exception (label in `compose.yaml`); keep its
+  port on the LAN.
 - **autoheal's reach.** autoheal never holds the socket: `socket-proxy` does, and passes on only listing,
   inspecting, restarting and stopping containers, on an internal network with no published port. Whoever
   controls autoheal or the proxy can still stop any container on the host and read containers' settings,

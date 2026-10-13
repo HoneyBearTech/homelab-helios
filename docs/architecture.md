@@ -18,6 +18,7 @@ images, pinned by digest.
 | Kometa Quickstart | Kometa's project | A tool, started on demand: a web UI for building and validating Kometa configurations ([quickstart.md](quickstart.md)) |
 | autoheal | the project's own image | Restarts any service whose health check fails, and can post a notice to a webhook (Docker on its own only restarts a container that exits) |
 | socket-proxy | LinuxServer.io | Gives autoheal a filtered view of the Docker API (list, inspect, restart and stop containers only) on an internal network |
+| Dozzle agent | the project's own image | Agent that serves the containers' logs (read through the Docker socket) to the homelab's Dozzle on another host, which shows every host's logs in one web UI |
 
 Every service has a health check; autoheal acts on it.
 
@@ -35,6 +36,7 @@ come from their own projects; this stack doesn't include or manage them.
 | Household viewers | Play media through Plex apps on the LAN, and from outside it if Plex's remote access is on |
 | plex.tv | Signs viewers in, and relays or brokers connections from outside the LAN |
 | Other tools | Read Tautulli's or Plex's API (optional) |
+| The homelab's Dozzle (another host) | Shows this host's container logs, read through the Dozzle agent |
 
 ## Data flow
 
@@ -48,6 +50,7 @@ Plex ──scratch files──▶ transcode directory
 
 Tautulli ──API──▶ Plex
 autoheal ──internal network──▶ socket-proxy ──read-only socket──▶ Docker (restarts unhealthy services)
+Dozzle hub (another host) ──:7007──▶ Dozzle agent ──read-only socket──▶ Docker (container logs)
 AURA ──API──▶ Plex · MediUX;  AURA ──artwork──▶ media library, Kometa's config
 Kometa ──API──▶ Plex · TMDb and other metadata sources;  Kometa ◀──artwork sets── AURA
 ImageMaid ──read/write──▶ Plex's data directory (removes unused images)
