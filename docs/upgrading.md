@@ -34,8 +34,10 @@ are archived, so Plex stays stopped for a few minutes. A restore leaves the left
 [Scheduled backups](installing.md#scheduled-backups) do this nightly and copy each backup off the host.
 
 The directory holds one `<service>--<path>.tar.gz` per mount, the settings under `env/`, a `MANIFEST` naming
-each archive's service, container path, host path and image, and `SHA256SUMS`. Everything in it is readable
-only by the user who ran the backup, and it contains Plex tokens. **Copy it off the host.**
+each archive's service, container path, host path and image, `NETWORKS` (the address range of any network the
+stack uses but doesn't create, for a rebuild; this stack creates all of its own), `VERSION` (the checkout's
+`git describe`) and `SHA256SUMS`. Everything in it is readable only by the user who ran the backup, and it contains
+Plex tokens. **Copy it off the host.**
 
 ## Upgrading
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Smoke test of the stack: start every service in compose.yaml with throwaway settings, wait until each one reports
 # healthy, then mark every data mount, take a backup, change the data, restore the backup and check that the data
-# and health came back (and that mounts excluded from backups were neither archived nor overwritten), make a test container unhealthy and check that autoheal restarts it (when the stack has
-# autoheal), and remove everything it created. CI runs it on every change; `make smoke` runs it locally.
+# and health came back (and that mounts and paths excluded from backups were neither archived nor overwritten), run
+# the scheduled backup against a stand-in backup server, make a test container unhealthy and check that autoheal
+# restarts it (when the stack has autoheal), and remove everything it created. CI runs it on every
+# change; `make smoke` runs it locally.
 # Without a compose.yaml there is nothing to test, and it says so and passes.
 #
 # It stays away from any real installation on the same Docker host: its own Compose project, settings from
@@ -182,6 +184,11 @@ else
     put_marker "$(compose ps --quiet "$service")" "$mount" backed-up
   done
   "$root/scripts/backup.sh" "$work/backup"
+  for network in "${networks[@]+"${networks[@]}"}"; do
+    grep -Eq "^$network"$'\t'"[0-9a-f.:]+/[0-9]+"$'\t' "$work/backup/NETWORKS" ||
+      fail "the backup's NETWORKS doesn't record the address range of $network"
+  done
+  [ -s "$work/backup/VERSION" ] || fail "the backup has no VERSION"
   [ "$(compose ps --services --status running | wc -l)" -eq "$(compose config --services | wc -l)" ] ||
     fail "backup.sh didn't start every service again"
 

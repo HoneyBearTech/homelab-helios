@@ -2,9 +2,11 @@
 
 The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24.04, amd64, a VM with an NVIDIA
 GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal and a Dozzle agent (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
-the server can be upgraded and rebuilt from this repository. The tooling (checker, backup scripts, smoke test,
-CI, release workflow) and `compose.yaml` (+ `compose.gpu.yaml`) are in place; the services still run from their
-old setup on the host until the cutover (plan in Chronos).
+the server can be upgraded and rebuilt from this repository. Helios runs the stack (`compose.yaml` +
+`compose.gpu.yaml`) from a checkout of a release tag (cut over 2026-10-09); its nightly backups go off the host.
+homelab-ares is the template for the homelab stacks: tooling that isn't specific to this host's services (checker,
+backup scripts, smoke test, workflows) is kept the same as ares'; a change here that isn't about this host's
+services goes to ares too (owner 2026-10-13).
 
 ## Before Making Structural Changes
 Read the project's notes first. They live outside this repo, in the owner's Obsidian vault **Chronos** at
@@ -22,9 +24,13 @@ Keep them current as work lands: tick roadmap checkboxes, add a Pass-Map row per
 Decisions-Log entries. **The notes never go into this repo.** Chronos is versioned in its own private repo;
 only commit or push it when the owner asks. The old in-repo vault path `.obsidian-docs/` stays gitignored.
 
-The sibling repos `~/GitHub/homelab-ares`, `~/GitHub/homelab-atlas` and `~/GitHub/homelab-deimos` follow the same
-pattern; ares is the template for tooling, workflows and policy files, and this repo was bootstrapped from
-deimos (the closest match: an NVIDIA GPU, a media library on a network share).
+The sibling repos `~/GitHub/homelab-ares`, `~/GitHub/homelab-atlas`, `~/GitHub/homelab-deimos` and
+`~/GitHub/homelab-hyperion` follow the same pattern; ares is the template for tooling, workflows and policy files
+(above). This repo was bootstrapped from deimos (the closest match: an NVIDIA GPU, a media library on a network
+share). What stays specific to helios: the `tools` profile (`tool_profiles`/`COMPOSE_PROFILES` in `lib.sh`, the
+never-started-tool skip in `backup.sh`, `--profile tools` in the workflows, Makefile and `.gitlab-ci.yml`),
+everything Kometa, the amd64 runners, `compose.gpu.yaml`, the NVIDIA apt hold, auto-merge of majors and the 01:00
+backup timer.
 
 ## This repo is public
 - No hostnames, IP addresses, internal or public domains, host paths, NFS exports, Portainer stack names, Plex
@@ -63,7 +69,10 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - **Nightly backups leave out what the services re-create** (owner 2026-10-09): paths inside a data mount listed in
   a service's `org.honeybeartech.helios.backup.exclude` label aren't archived, and `restore.sh` leaves them in
   place: Plex's `Metadata` and `Media` (artwork, preview thumbnails: 65 of its 82 GB on Helios) and Kometa's
-  `/config/assets`. `backup.sh` stops one service at a time, only while it copies that service's data, and
+  `/config/assets`. Each value must be a plain path strictly inside one of the service's data mounts (no `..`, no
+  `*?[\`): `check_excludes` in `lib.sh` fails the backup and the restore before anything stops otherwise. Each
+  backup also records `NETWORKS` (external networks' address ranges; none here) and `VERSION` (`git describe`).
+  `backup.sh` stops one service at a time, only while it copies that service's data, and
   compresses after starting it again (gzip of Plex's 12 GB of databases takes ~14 min on Helios, the copy ~2).
   `scripts/scheduled-backup.sh` + `deploy/systemd/` run it nightly at 01:00 (before Kometa's 02:00 run) and copy it
   off the host; the backup server's name lives only in the host's `~/.ssh/config` and `backup.env`, never here.
@@ -126,11 +135,14 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   workflows and `make check`/`config` pass `--profile tools`, the scripts get `COMPOSE_PROFILES` from `lib.sh`.
   Not in this repo: Homebox, InvenTree (and its Caddy), TitleCardMaker, Watchtower, Diun, the
   Argus agent and Argus' Loki, the Portainer agent.
-- Tooling (ported from homelab-deimos): `scripts/check_compose.py` (Python, standard library only:
+- Tooling (kept the same as homelab-ares'): `scripts/check_compose.py` (Python, standard library only:
   policy check + CycloneDX SBOM), `scripts/backup.sh`, `restore.sh`, `scheduled-backup.sh`, `smoke-test.sh`, `lib.sh` (bash,
   must run on macOS' bash 3.2; `scheduled-backup.sh` also with macOS' openrsync, so no `--chmod`); ruff (`select = ["ALL"]`), yamllint, shellcheck, pytest + coverage (90 % branch floor),
   pip-tools for the hash-pinned `requirements-dev.txt`. CI-only: actionlint, gitleaks, CodeQL, Scorecard,
-  dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch/minor).
+  dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch, minor, major). CI and the image scan
+  log in to Docker Hub with the read-only `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets when they are set
+  (anonymous pulls otherwise; fork PRs get no secrets); the smoke job pre-pulls every image and logs out before
+  any container starts (GOVERNANCE.md).
 - GitLab copy: the owner's self-hosted GitLab (CE, LAN only; host facts in Chronos) holds a mirror. GitHub stays
   the home (OpenSSF badges, Scorecard, Dependabot, releases); every change goes to GitHub as a PR, never to
   GitLab. `.gitlab-ci.yml` mirrors GitHub on a schedule (fast-forward only, `MIRROR_TOKEN` CI/CD variable) and

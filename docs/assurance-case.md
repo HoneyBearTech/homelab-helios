@@ -42,7 +42,9 @@ of the Plex account that owns the server.
 6. **Containers → host.** Only each service's data directories, the media library and the GPU; no
    host namespaces, and no Docker socket except socket-proxy's read-only, filtered one and the Dozzle agent's
    read-only one (for logs).
-7. **Pull requests → CI.** Fork pull requests get a read-only token and no secrets.
+7. **Pull requests → CI.** Fork pull requests get a read-only token and no secrets. The project's secrets
+   are a Docker Hub token that can only read public images, logged out before the smoke test starts any
+   container, and the Kometa upstream watch's optional alert address, used only by that scheduled job.
 
 ## Secure design principles
 
