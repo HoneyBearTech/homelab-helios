@@ -1,4 +1,6 @@
 # Asks Plex to refresh the metadata of movies released in the last 7 days. Builds no collection.
+# A week with nothing new is normal: ignore_blank_results logs it as a warning instead of failing the
+# collection, which sent an error notification for every such library each night.
 
 collections:
   Refresh Metadata:
@@ -7,4 +9,5 @@ collections:
         release: 7
     item_refresh: true
     build_collection: false
+    ignore_blank_results: true
     sync_mode: append

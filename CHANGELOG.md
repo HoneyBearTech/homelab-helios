@@ -12,6 +12,9 @@ All notable changes to homelab-helios are documented here. The format follows
   applied its `monitor` setting (`none` for Sonarr, `false` for Radarr, meant for items it adds) to every
   existing item its collections matched, so airing shows stopped being searched for. `monitor_existing` is now
   `false` for every Radarr and Sonarr connection, so Kometa leaves monitoring alone.
+- Kometa's Refresh Metadata collections no longer fail when nothing was released or aired in the last 7 days.
+  Each library with nothing new logged `Plex Error: No Items found in Plex`, was reported as a Kometa Failure
+  and sent an error notification, about six every night; with `ignore_blank_results` it's a warning.
 
 ## [0.2.1] - 2026-10-10
 
