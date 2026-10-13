@@ -1,7 +1,7 @@
 # homelab-helios
 
 The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24.04, amd64, a VM with an NVIDIA
-GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
+GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal and a Dozzle agent (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
 the server can be upgraded and rebuilt from this repository. The tooling (checker, backup scripts, smoke test,
 CI, release workflow) and `compose.yaml` (+ `compose.gpu.yaml`) are in place; the services still run from their
 old setup on the host until the cutover (plan in Chronos).
@@ -70,7 +70,10 @@ deimos (the closest match: an NVIDIA GPU, a media library on a network share).
 - **No privileged containers, added capabilities, host network/PID or Docker socket mounts** unless the
   service carries `org.honeybeartech.helios.allow.<rule>: "<reason>"` and the owner agreed (Plex runs on the
   stack's network, publishing only 32400: owner 2026-10-07; it ran in host mode before the cutover). `scripts/check_compose.py` enforces it in CI
-  and in the release workflow.
+  and in the release workflow. Policy exceptions in use (each agreed by the owner): `socket-proxy` (`docker-socket`:
+  filters the API down to list/inspect/restart/stop for autoheal, internal network, no port), `autoheal` (`latest`:
+  the image's only maintained tag), `dozzle-agent` (`docker-socket`, read-only mount; an agent for the homelab's
+  Dozzle hub on another host, port 7007, owner 2026-10-13). Don't add more without the owner agreeing.
 - **Every service has a health check** and the `autoheal: "true"` label. autoheal (`willfarrell/autoheal`)
   behind `lscr.io/linuxserver/socket-proxy` (read-only socket, internal `docker-proxy` network) is part of the
   first `compose.yaml`, exactly as on homelab-atlas/ares (owner 2026-10-07); its webhook URL goes in the
@@ -116,7 +119,8 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
 - Docker Compose v2 (`compose.yaml`; the GPU in `compose.gpu.yaml`, added on the host via `COMPOSE_FILE`), upstream images: `lscr.io/linuxserver/plex` (with
   `VERSION=docker`, so it never self-updates), `lscr.io/linuxserver/tautulli`, `ghcr.io/mediux-team/aura`,
   `kometateam/kometa` and `kometateam/imagemaid` (release tags, not `nightly`/`develop`), autoheal +
-  socket-proxy; `kometateam/quickstart` (release tags) as a **tool** in the `tools` profile: not started by
+  socket-proxy, a Dozzle agent (`amir20/dozzle`, `command: agent`, on the hub's version: owner 2026-10-13);
+  `kometateam/quickstart` (release tags) as a **tool** in the `tools` profile: not started by
   `docker compose up -d`, `restart: "no"`, port 7171 on the LAN, no login (owner 2026-10-08:
   config editor only, never its own Kometa/ImageMaid runs or self-updater). Tooling must see the tools: the
   workflows and `make check`/`config` pass `--profile tools`, the scripts get `COMPOSE_PROFILES` from `lib.sh`.

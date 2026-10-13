@@ -74,6 +74,7 @@ No other secret is a setting. If a service ever needs one in its environment, it
 | Kometa Quickstart | `kometateam/quickstart` (release tags) | 7171 → 7171 | Web UI, no login; only while started on demand (profile `tools`; LAN only, [quickstart.md](quickstart.md)) |
 | autoheal | `willfarrell/autoheal` | none | Restarts services whose health check fails |
 | socket-proxy | `lscr.io/linuxserver/socket-proxy` | none (internal network `docker-proxy`) | Filtered Docker API for autoheal |
+| Dozzle agent | `amir20/dozzle` (`command: agent`) | 7007 → 7007 | Agent for the homelab's Dozzle on another host, no web UI of its own (LAN only) |
 
 Plex runs on the stack's own network, not the host's, so only 32400 is published. Its local discovery ports (GDM
 on UDP 32410–32414, DLNA on UDP 1900 and TCP 32469) aren't: players find the server through plex.tv instead.
@@ -108,7 +109,7 @@ the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml` in `.env`.
 | `/plex` | `PLEX_CONFIG_PATH/Library/Application Support/Plex Media Server` | ImageMaid: Plex's data, to clean (backed up with Plex's data) |
 | `/plex/Cache` | `PLEX_CACHE_PATH` | ImageMaid: Plex's cache, for its PhotoTranscoder cleanup (not backed up) |
 | `/media` | `MEDIA_PATH` | AURA: saves artwork next to the media (read-write; never backed up) |
-| `/var/run/docker.sock` (read-only) | the Docker socket | socket-proxy only (an allowed exception, see below) |
+| `/var/run/docker.sock` (read-only) | the Docker socket | socket-proxy and the Dozzle agent only (allowed exceptions, see below; not backed up) |
 
 `socket-proxy` and `autoheal` share the internal network `docker-proxy`, which has no route out and nothing
 published; autoheal also joins the default network, to reach its webhook.
@@ -117,7 +118,7 @@ published; autoheal also joins the default network, to reach its webhook.
 
 | Label | Meaning |
 | --- | --- |
-| `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `healthcheck` ([security.md](security.md#policy)). In use: `socket-proxy` (`docker-socket`), and `autoheal` (`latest`, since its image publishes no current version tags), as on the sibling stacks. |
+| `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `healthcheck` ([security.md](security.md#policy)). In use: `socket-proxy` and `dozzle-agent` (`docker-socket`), and `autoheal` (`latest`, since its image publishes no current version tags), as on the sibling stacks. |
 | `org.honeybeartech.helios.backup.skip` | Container paths (comma-separated, exact) that `scripts/backup.sh` never archives and `scripts/restore.sh` refuses to write, even if a backup lists them. In use: `/media`, the cache and `/transcode` for Plex; `/media` and `/kometa` for AURA; `/auraassets` for Kometa; `/plex` and `/plex/Cache` for ImageMaid (each of those is either never backed up or already backed up with the service that owns it). |
 | `org.honeybeartech.helios.backup.exclude` | Paths inside a service's data mounts (comma-separated, exact container paths) that `scripts/backup.sh` leaves out of the mount's archive and `scripts/restore.sh` leaves in place: data the services re-create, too large to copy every night. In use: Plex's `Metadata` (artwork) and `Media` (preview thumbnails) under `/config/Library/Application Support/Plex Media Server`; `/config/assets` for Kometa. |
 | `autoheal` | `"true"` on every service autoheal may restart when its health check fails (every service, socket-proxy included). autoheal restarts only containers with this label, so other containers on the host are left alone. |

@@ -220,6 +220,27 @@ services:
         target: /plex
       - ${PLEX_CACHE_PATH:?set PLEX_CACHE_PATH in .env}:/plex/Cache
 
+  # A Dozzle agent: it serves this host's container logs to the homelab's Dozzle on another host, which shows the
+  # logs of every host in one web UI. It has no web UI of its own and no data to back up. Keep it on the hub's
+  # version.
+  dozzle-agent:
+    image: amir20/dozzle:v11.3.2@sha256:0d8cf9702f422d65a7e8ad238785dc6b05b2b9c43c945f6bbdf3358ad5da5f6c
+    container_name: dozzle-agent
+    restart: unless-stopped
+    command: agent
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "/dozzle", "healthcheck"]
+    labels:
+      <<: *labels
+      org.honeybeartech.helios.allow.docker-socket: >-
+        The Dozzle agent reads container logs through the Docker API for the Dozzle hub. The socket is mounted
+        read-only, which protects the socket file but not the API, so the agent's port must stay on the LAN.
+    ports:
+      - "7007:7007"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   # Restarts any container labelled autoheal: "true" that Docker reports unhealthy (Docker itself only restarts a
   # container whose process exits). It reaches Docker only through socket-proxy, which lets it list, inspect,
   # restart and stop containers and nothing else. Optional restart notices go to a webhook from autoheal.env.
@@ -256,10 +277,10 @@ services:
       - default
       - docker-proxy
 
-  # The only service with the Docker socket. It answers on an internal network with no published port, and passes
-  # on only what autoheal needs: listing and inspecting containers, and restarting or stopping them (CONTAINERS,
-  # ALLOW_RESTARTS). Creating, starting or deleting containers, exec, images, volumes and every other POST are
-  # refused.
+  # Holds the Docker socket on autoheal's behalf (the only other service with the socket is the Dozzle agent, which
+  # reads logs). It answers on an internal network with no published port, and passes on only what autoheal needs:
+  # listing and inspecting containers, and restarting or stopping them (CONTAINERS, ALLOW_RESTARTS). Creating,
+  # starting or deleting containers, exec, images, volumes and every other POST are refused.
   socket-proxy:
     image: lscr.io/linuxserver/socket-proxy:3.4.6-r0-ls101@sha256:362cadf55b3c7920189347d0f4d60b389e2f80e929581bf10793f2371aab41e5
     container_name: socket-proxy

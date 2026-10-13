@@ -72,6 +72,8 @@ Running `main` instead of a release is possible but unsupported for anything you
 - **Other web UIs on the LAN only.** Tautulli and AURA shouldn't be published beyond the LAN; Docker-published
   ports bypass host firewalls such as `ufw`, so restrict them at the router or with Docker's own `DOCKER-USER`
   rules, and use a reverse proxy's access lists for names you give them. Turn on Tautulli's login.
+- **The Dozzle agent can read every container's logs and, through the Docker socket, control Docker**, for any
+  Dozzle that connects to it. Keep its port (7007) on the LAN only.
 - **Kometa Quickstart only while you use it.** It has no login and holds the tokens entered in it: start it on
   demand, stop it after, never forward port 7171 ([quickstart.md](quickstart.md)).
 - **Protect the media library.** Plex and AURA mount it read-write: AURA writes artwork into it, and Plex

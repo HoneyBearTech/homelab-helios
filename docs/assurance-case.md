@@ -13,7 +13,8 @@ the secure design principles it follows, and how common weaknesses are countered
 | The media library | A backup or restore script touching it | `/media` is in Plex's and AURA's `org.honeybeartech.helios.backup.skip` labels: `backup.sh` never archives it, and `restore.sh` refuses to write it even if a backup lists it; the smoke test checks both |
 | The media | Someone watching without permission | Plex's own sign-in and sharing (operator's configuration); no "allowed without authentication" networks beyond the LAN |
 | The web UIs | Someone on the LAN using Tautulli or AURA without logging in | LAN only, behind a reverse proxy's access lists; logins on where offered ([installing.md](installing.md#running-it-securely)) |
-| The host | A compromised autoheal using the Docker API | autoheal never gets the socket; socket-proxy (the one `docker-socket` exception) passes on only list, inspect, restart and stop, on an internal network with nothing published |
+| The host | A compromised autoheal using the Docker API | autoheal never gets the socket; socket-proxy (a `docker-socket` exception) passes on only list, inspect, restart and stop, on an internal network with nothing published |
+| The containers' logs, the host | Someone on the LAN connecting their own Dozzle to the Dozzle agent, which reads the Docker API for it | The agent's port (7007) kept on the LAN ([installing.md](installing.md#running-it-securely)); the socket mounted read-only (which doesn't limit the API), as a reasoned `docker-socket` exception |
 | The host's devices | The GPU granted by running privileged | GPU only as a device reservation through the NVIDIA runtime; `privileged` refused by the policy check |
 | Plex tokens, logins, certificate keys | Committed to the public repository | Kept in the services' data, never in the repo; the claim token in a gitignored `plex.env`; `.gitignore`; GitHub push protection; gitleaks over the history in CI |
 | Plex tokens, logins, viewing history | Leaked through a backup | `scripts/backup.sh` writes backups readable only by the user who ran it; documented as secret, to be kept off the host |
@@ -39,7 +40,8 @@ of the Plex account that owns the server.
    reached through a reverse proxy with access lists.
 5. **Plex, AURA → media library.** Read-write by design; the boundary is the library's own snapshots.
 6. **Containers → host.** Only each service's data directories, the media library and the GPU; no
-   host namespaces, and no Docker socket except socket-proxy's read-only, filtered one.
+   host namespaces, and no Docker socket except socket-proxy's read-only, filtered one and the Dozzle agent's
+   read-only one (for logs).
 7. **Pull requests → CI.** Fork pull requests get a read-only token and no secrets.
 
 ## Secure design principles
@@ -61,7 +63,7 @@ of the Plex account that owns the server.
 | CWE-494 (code downloaded without integrity check) | Image pulls | Digest pins; signed release checksums |
 | CWE-798 / CWE-312 (hard-coded or cleartext credentials) | Compose `environment:`, `.env`, docs | No secrets in the repo; the claim token in a gitignored file; gitleaks; push protection |
 | CWE-250 (unnecessary privileges) | Container settings, GPU access, the media mount | Policy rules `privileged`, `cap-add`, `host-*`, `docker-socket`; GPU by reservation |
-| CWE-306 (missing authentication for critical function) | Web UIs without a login; Plex's unauthenticated networks | LAN only, behind access lists; logins on where offered; Plex's exemption kept to the LAN |
+| CWE-306 (missing authentication for critical function) | Web UIs without a login; Plex's unauthenticated networks; the Dozzle agent's port | LAN only, behind access lists; logins on where offered; Plex's exemption kept to the LAN |
 | CWE-22 (path traversal) | Restoring a backup | `restore.sh` validates archive names and mount paths from the checksummed `MANIFEST` |
 | CWE-1104 (unmaintained third-party components) | Images, tools, Actions | Dependabot weekly; image scan; triage SLAs ([dependencies.md](dependencies.md)) |
 | CWE-77/78 (injection) | Workflows, scripts | Untrusted values only via `env:`; actionlint and shellcheck; CodeQL for Actions |
