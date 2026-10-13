@@ -6,9 +6,17 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
-The backup scripts, smoke test and CI are aligned with homelab-ares, the template for the homelab stacks. Nothing
-changes on the host: the services, their labels and the backup's systemd units stay as they are (the units got the
-best-effort I/O class in 0.2.1, so they don't need re-installing).
+The backup scripts, smoke test and CI are aligned with homelab-ares, the template for the homelab stacks, and every
+service is hardened as there. The backup's systemd units stay as they are (they got the best-effort I/O class in
+0.2.1, so they don't need re-installing).
+
+### Upgrading
+
+- Every service now runs without Linux capabilities and with `no-new-privileges`; Plex and Tautulli add back only
+  the few their init needs, from Docker's default set (docs/security.md#hardening). Their data must be owned by
+  `PUID:PGID`, and the other services' data by the user they run as: a service that fails with "permission
+  denied" (`EACCES`) after the upgrade usually has data with an unexpected owner. Plex's GPU is unchanged (a
+  device reservation, in `compose.gpu.yaml`); check hardware transcoding after the upgrade, since CI has no GPU.
 
 ### Added
 
@@ -33,6 +41,15 @@ best-effort I/O class in 0.2.1, so they don't need re-installing).
   than at a deploy. It also checks that every backup has a `NETWORKS` file.
 - `docs/quickstart.md` (Kometa Quickstart, the on-demand tool) is now `docs/kometa-quickstart.md`, so it isn't
   mistaken for the stack's quick start (`docs/quick-start.md`).
+
+### Security
+
+- Every service drops every Linux capability (`cap_drop: [ALL]`) and runs with `no-new-privileges:true`. Plex adds
+  back `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID` and `KILL`, Tautulli `CHOWN`, `SETUID`, `SETGID` and `KILL`;
+  the others none.
+- The policy check enforces it, as in homelab-ares: new rules `no-new-privileges` and `cap-drop`; `cap-add` now
+  fails only on a capability outside Docker's default set; new rule `devices` (no host device mapped into a
+  container; a GPU reservation under `deploy.resources` is allowed).
 
 ## [0.2.2] - 2026-10-13
 

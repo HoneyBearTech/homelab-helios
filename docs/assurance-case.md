@@ -7,7 +7,7 @@ the secure design principles it follows, and how common weaknesses are countered
 
 | Asset | Threat | Countered by |
 | --- | --- | --- |
-| The host | A compromised or malicious image | Digest pins; versions change only by reviewed pull request; no privileged, capability, host-namespace or socket access without a reasoned label (enforced by the policy check in CI and before every release) |
+| The host | A compromised or malicious image | Digest pins; versions change only by reviewed pull request; every capability dropped and no new privileges; no privileged, extra capability, device, host-namespace or socket access without a reasoned label (enforced by the policy check in CI and before every release) |
 | The host | An internet attacker exploiting Plex, if remote access is on | Plex updates arrive as weekly Dependabot pull requests; no privileges or host namespaces; the operator decides whether remote access is on ([installing.md](installing.md#running-it-securely)) |
 | The media library | A faulty or compromised Plex or AURA changing or deleting files | Only Plex and AURA mount it; Plex's media deletion off unless needed; reviewed upgrades; snapshots on the library's storage (operator) |
 | The media library | A backup or restore script touching it | `/media` is in Plex's and AURA's `org.honeybeartech.helios.backup.skip` labels: `backup.sh` never archives it, and `restore.sh` refuses to write it even if a backup lists it; the smoke test checks both |
@@ -48,8 +48,9 @@ of the Plex account that owns the server.
 
 ## Secure design principles
 
-- **Least privilege**: no added capabilities, no host namespaces, no socket; the media only where needed; the GPU as a
-  device reservation; read-only CI tokens raised per job.
+- **Least privilege**: every capability dropped and only the needed ones added back, no new privileges, no host
+  namespaces, no socket (but the two reviewed exceptions); the media only where needed; the GPU as a device
+  reservation; read-only CI tokens raised per job.
 - **Fail-safe defaults**: the policy check fails on anything it doesn't recognise as allowed; an exception
   needs a reason, in the file, in review. `restore.sh` refuses anything in a backup it can't account for.
 - **Complete mediation**: every change to what runs passes through a pull request and the same checks;
@@ -64,7 +65,7 @@ of the Plex account that owns the server.
 | --- | --- | --- |
 | CWE-494 (code downloaded without integrity check) | Image pulls | Digest pins; signed release checksums |
 | CWE-798 / CWE-312 (hard-coded or cleartext credentials) | Compose `environment:`, `.env`, docs | No secrets in the repo; the claim token in a gitignored file; gitleaks; push protection |
-| CWE-250 (unnecessary privileges) | Container settings, GPU access, the media mount | Policy rules `privileged`, `cap-add`, `host-*`, `docker-socket`; GPU by reservation |
+| CWE-250 (unnecessary privileges) | Container settings, GPU access, the media mount | Policy rules `privileged`, `no-new-privileges`, `cap-drop`, `cap-add`, `host-*`, `docker-socket`, `devices`; GPU by reservation |
 | CWE-306 (missing authentication for critical function) | Web UIs without a login; Plex's unauthenticated networks; the Dozzle agent's port | LAN only, behind access lists; logins on where offered; Plex's exemption kept to the LAN |
 | CWE-22 (path traversal) | Restoring a backup | `restore.sh` validates archive names and mount paths from the checksummed `MANIFEST` |
 | CWE-1104 (unmaintained third-party components) | Images, tools, Actions | Dependabot weekly; image scan; triage SLAs ([dependencies.md](dependencies.md)) |

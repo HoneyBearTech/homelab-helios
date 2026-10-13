@@ -49,14 +49,14 @@ services:
     image: lscr.io/linuxserver/plex:1.43.4.10903-e5521bd8c-ls327@sha256:06e07af2851e6a822e89062b148435495dd794d6d5aaf36247dee05fb3dcc4b8
     container_name: plex
     restart: unless-stopped
-    # Its init (s6-overlay) runs as root: it gives the abc user PUID/PGID, takes ownership of /config and starts
-    # Plex as abc, so it needs these of Docker's default capabilities.
+    # Its init (s6-overlay) runs as root and starts Plex as abc (PUID/PGID), so it needs these of Docker's default
+    # capabilities. Each is proven by the smoke test or by starting the image without it.
     cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETUID
+      - CHOWN # takes ownership of /config (a new server: Plex can't start without it)
+      - DAC_OVERRIDE # reads Preferences.xml (mode 600, abc's) and removes a stale pid file after an unclean stop
+      - SETUID # starts Plex as abc
       - SETGID
+      - KILL # signals Plex (abc) to stop; without it every stop waits for Docker's timeout and kills Plex
     labels:
       <<: *labels
       # The library is too large to back up here (the storage that holds it keeps snapshots); the cache and
@@ -94,14 +94,13 @@ services:
     image: lscr.io/linuxserver/tautulli:v2.18.2-ls246@sha256:bfcd2f3f6f89d2171d161ac1780723d1633f8de3c4c993d0dc52aa9edb729e16
     container_name: tautulli
     restart: unless-stopped
-    # Its init (s6-overlay) runs as root: it gives the abc user PUID/PGID, takes ownership of /config and starts
-    # Tautulli as abc, so it needs these of Docker's default capabilities.
+    # Its init (s6-overlay) runs as root and starts Tautulli as abc (PUID/PGID), so it needs these of Docker's
+    # default capabilities. Each is proven by the smoke test or by starting the image without it.
     cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETUID
+      - CHOWN # takes ownership of /config (new data: Tautulli can't start without it)
+      - SETUID # starts Tautulli as abc
       - SETGID
+      - KILL # signals Tautulli (abc) to stop; without it every stop waits for Docker's timeout and kills it
     labels: *labels
     healthcheck:
       <<: *healthcheck

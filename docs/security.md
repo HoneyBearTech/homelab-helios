@@ -8,8 +8,10 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
 1. **Only reviewed versions run.** Every image is pinned as `name:tag@sha256:<digest>`. A registry tag
    that is moved or hijacked doesn't change what `docker compose pull` fetches; a new version arrives only
    as a pull request that changes the digest.
-2. **No container gets more of the host than it needs.** No service runs privileged, adds Linux
-   capabilities, shares the host's network or PID namespace, or mounts the Docker socket (which is root on
+2. **No container gets more of the host than it needs.** Every service drops every Linux capability and runs
+   with `no-new-privileges`, adding back only the few of Docker's default capabilities its image needs
+   ([Hardening](#hardening)). No service runs privileged, adds a capability outside Docker's default set, maps a
+   host device, shares the host's network or PID namespace, or mounts the Docker socket (which is root on
    the host), unless the exception is written into the service as a reasoned label and reviewed: the two
    exceptions are socket-proxy, which holds the socket read-only on autoheal's behalf, and the Dozzle agent,
    which holds it read-only to read the containers' logs for the homelab's Dozzle. The GPU is granted as a
@@ -39,10 +41,34 @@ a non-empty reason:
 | `latest` | uses the `latest` tag |
 | `build` | builds an image instead of pulling a pinned one |
 | `privileged` | sets `privileged: true` |
-| `cap-add` | adds Linux capabilities |
+| `no-new-privileges` | doesn't set `security_opt: [no-new-privileges:true]` |
+| `cap-drop` | doesn't drop every capability (`cap_drop: [ALL]`) |
+| `cap-add` | adds a capability outside Docker's default set (adding back one of those only narrows the default) |
 | `host-network` / `host-pid` | uses the host's network or PID namespace |
 | `docker-socket` | mounts the Docker socket |
+| `devices` | maps a host device into the container (a GPU reservation under `deploy.resources` is allowed: Plex's) |
 | `healthcheck` | has no health check, or disables it (one defined only in the image isn't visible to the check) |
+
+## Hardening
+
+What each service runs with, beyond the policy. Every service has `cap_drop: [ALL]` and
+`no-new-privileges:true` (the `x-hardened` anchor in `compose.yaml`); the smoke test proves each one still starts
+healthy and survives a backup and restore with these settings. Each capability added back was proven by starting
+the image without it.
+
+| Service | Capabilities added back | Why |
+| --- | --- | --- |
+| plex | `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID`, `KILL` | Its init (s6-overlay) runs as root: it takes ownership of `/config`, reads Plex's `Preferences.xml` (readable only by Plex's user) and removes a stale pid file after an unclean stop, starts Plex as its own user, and signals it to stop (without `KILL`, every stop waits for Docker's timeout and kills Plex) |
+| tautulli | `CHOWN`, `SETUID`, `SETGID`, `KILL` | The same init: ownership of `/config`, Tautulli as its own user, a clean stop |
+| aura, kometa, quickstart, imagemaid | none | They run as `PUID:PGID` and write only their data directories |
+| dozzle-agent | none | Reads the Docker socket, which belongs to root |
+| autoheal | none | Only talks to socket-proxy |
+| socket-proxy | none | Only reads the socket (read-only root filesystem, `/run` and `/tmp` in memory) |
+
+Plex's GPU is a device reservation handled by the NVIDIA runtime outside the container, so it needs no
+capability; CI has no GPU, so only the host proves it. The Dozzle agent, autoheal and socket-proxy still run as
+root inside their containers, since their images offer nothing else; without capabilities that root can only
+reach what it owns.
 
 ## What it doesn't protect
 

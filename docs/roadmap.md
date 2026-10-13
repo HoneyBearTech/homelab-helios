@@ -34,8 +34,8 @@ file changes with them, in the same pull request.
 
 ## Later
 
-- Tighter container settings where the images allow it (read-only root filesystems, dropped capabilities,
-  non-root users).
+- Tighter container settings where the images allow it (read-only root filesystems, non-root users). Dropped
+  capabilities and `no-new-privileges` are in place on every service ([security.md](security.md#hardening)).
 - Optional services as Compose profiles, so a smaller installation can leave them out.
 
 ## Security and project health
