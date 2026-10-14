@@ -51,13 +51,13 @@ backup timer.
 
 ## Rules for the stack
 - **Every image is pinned as `name:tag@sha256:<digest>`.** Never `latest`, never tag-only. Dependabot
-  (`docker-compose` ecosystem) updates tag and digest together. linuxserver.io images use their
-  `version-<app version>` tag (socket-proxy its bare version), never the `-lsNNN` build tag: Dependabot can't
-  follow those. Plex is the exception: no Plex tag is one Dependabot can read (its version carries a commit
-  hash), so it keeps its build tag and is updated by hand. Patch, minor and major updates auto-merge once
-  the required checks pass (Plex included: it can't touch the media; majors too, owner 2026-10-08). A merge
-  never deploys: Helios changes only on a deliberate pull, and a major's release notes are read before it
-  (it can migrate a service's data one way).
+  (`docker-compose` ecosystem) updates tag and digest together. linuxserver.io images use their `version-<app
+  version>` tag (socket-proxy its bare version), never the `-lsNNN` build tag: Dependabot can't follow those. Plex
+  is the exception: no Plex tag is one Dependabot can read (its version carries a commit hash), so it keeps its
+  build tag and is updated by hand. Patch, minor and major updates, and image rebuilds (same tag, new digest; owner
+  2026-10-14), auto-merge once the required checks pass (Plex included: it can't touch the media; majors too, owner
+  2026-10-08). A merge never deploys: Helios changes only on a deliberate pull, and a major's release notes are read
+  before it (it can migrate a service's data one way).
 - **Amd64.** Every image must publish `linux/amd64`. The smoke test runs on `ubuntu-latest` and the image scan
   scans `linux/amd64`.
 - **The GPU is optional to CI.** GitHub's runners have no GPU, so the NVIDIA device reservation must not stop
@@ -148,7 +148,7 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   policy check + CycloneDX SBOM), `scripts/backup.sh`, `restore.sh`, `scheduled-backup.sh`, `smoke-test.sh`, `lib.sh` (bash,
   must run on macOS' bash 3.2; `scheduled-backup.sh` also with macOS' openrsync, so no `--chmod`); ruff (`select = ["ALL"]`), yamllint, shellcheck, pytest + coverage (90 % branch floor),
   pip-tools for the hash-pinned `requirements-dev.txt`. CI-only: actionlint, gitleaks, CodeQL, Scorecard,
-  dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch, minor, major). CI and the image scan
+  dependency review, DCO, Trivy image scan, Dependabot auto-merge (patch, minor, major, rebuilds). CI and the image scan
   log in to Docker Hub with the read-only `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets when they are set
   (anonymous pulls otherwise; fork PRs get no secrets); the smoke job pre-pulls every image and logs out before
   any container starts (GOVERNANCE.md).

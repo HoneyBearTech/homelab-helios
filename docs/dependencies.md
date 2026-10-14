@@ -47,6 +47,8 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   policy check, the smoke test and the validation of Kometa's configuration against the new Kometa, CodeQL,
   dependency review). That includes Plex, which releases often: it
   can't touch the media library, and its updates often fix security issues.
+- **Image rebuilds merge automatically too**: a pull request that only moves an image to a new digest under the
+  same tag (a rebuild of the same app version, with newer base packages) and changes nothing else in `compose.yaml`.
 - **Major updates are read about before they're deployed**, not before they merge: a new major version can
   migrate its data one way, so the service's release notes are read, and a backup taken, before the redeploy
   that brings it to the server ([upgrading.md](upgrading.md#before-you-upgrade)). An update Dependabot can't
