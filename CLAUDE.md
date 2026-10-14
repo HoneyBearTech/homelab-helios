@@ -98,7 +98,7 @@ backup timer.
   behind `lscr.io/linuxserver/socket-proxy` (read-only socket, internal `docker-proxy` network) is part of the
   first `compose.yaml`, exactly as on homelab-atlas/ares (owner 2026-10-07); its webhook URL goes in the
   gitignored `autoheal.env`. The smoke test checks autoheal restarts a service that turns unhealthy.
-- **Never change the live server** (Helios) without the owner asking: no merge (a merge deploys), no
+- **Never change the live server** (Helios) without the owner asking: merges only as **Merging** says, no
   `docker compose up`, no edits to service data, Plex libraries or settings, or Portainer stacks. Read-only inspection
   (`docker ps`, `docker inspect`) only when asked (host quirks for doing so are in the Chronos Architecture note).
 - Every setting goes through `.env` (`${VAR:?…}` in compose when required) and is listed in `.env.example`
@@ -184,8 +184,11 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
 - Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, `CI / Kometa config`, DCO sign-off,
   Dependency review, CodeQL's Analyze (python) / Analyze (actions). Don't rename those jobs.
 - **Merging (owner's decision 2026-10-14):** Claude opens a PR for every change. A merge deploys (see Deploys),
-  so Claude never merges and never turns on auto-merge (`gh pr merge --auto`) for a PR without the owner's OK for
-  that PR, and says in the question that merging deploys to Helios. Never bypass a check or the ruleset.
+  so Claude merges once every required check is green (the owner's standing permission, 2026-10-14) and
+  then says that it merged and that it's deploying to Helios. It asks first when the deploy needs something on
+  the server (a new `.env` setting, a data migration without a recent good backup, an update this file says
+  waits for the owner) or the server isn't healthy, and never turns on auto-merge (`gh pr merge --auto`)
+  without the owner's OK. Never bypass a check or the ruleset.
   Dependabot's patch, minor and major updates and image rebuilds still auto-merge through
   `dependabot-auto-merge.yml` once every required check passes, so they now deploy unattended, majors included;
   Plex is pinned by hand. Keeping that auto-merge (above all for majors) is the owner's call: don't change
