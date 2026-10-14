@@ -51,6 +51,13 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   migrate its data one way, so the service's release notes are read, and a backup taken, before the redeploy
   that brings it to the server ([upgrading.md](upgrading.md#before-you-upgrade)). An update Dependabot can't
   classify waits for the maintainer.
+- **linuxserver.io images are pinned by their `version-<app version>` tag** (`tautulli:version-v2.18.2@sha256:…`),
+  which always points at the newest build of that app version. Dependabot can't follow the build tags
+  (`v2.18.2-ls246`): it reads `-ls246` as a suffix that must match exactly, so it never proposes another build. With
+  the `version-` tag it proposes both new app versions and rebuilds (a new digest under the same tag). socket-proxy
+  uses its bare version tag (`3.4.6`) for the same reason. **Plex is updated by hand:** its version carries a commit
+  hash (`1.43.4.10903-e5521bd8c`), which no tag form Dependabot can read, so it keeps its build tag and a new Plex
+  release is pinned in its own pull request.
 - **A merge doesn't deploy.** The server runs what it last pulled; updates reach it when the operator pulls
   and redeploys, with a backup first ([upgrading.md](upgrading.md)).
 - **Dependency review** blocks a pull request that adds or changes a Python or Actions dependency with a known
