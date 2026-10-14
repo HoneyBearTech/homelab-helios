@@ -51,6 +51,24 @@ data_mounts() {
     done
 }
 
+# Fails unless every path container $1's exclude_label lists is an absolute path strictly inside one of its data
+# mounts, with no pattern characters or `..` (tar and find read them as patterns), so a typo can't quietly change
+# what is backed up.
+check_excludes() {
+  local path mount mounts inside
+  mounts=$(data_mounts "$1" | cut -f1)
+  while IFS= read -r path; do
+    inside=false
+    while IFS= read -r mount; do
+      if [ -n "$mount" ] && [[ "$path" == "$mount"/?* ]]; then inside=true; fi
+    done <<<"$mounts"
+    if ! $inside || [[ "$path" == *..* || "$path" == *[\*\?\[\\]* ]]; then
+      echo "error: $exclude_label: $path isn't a plain path inside one of the service's data mounts" >&2
+      return 1
+    fi
+  done < <(label_paths "$1" "$exclude_label")
+}
+
 # The mounts of container $1 that lie inside its mount at $2 (any other mount at a path below it), one container
 # path per line. Each is backed up on its own, or skipped; a backup of $2 leaves them out, and a restore of $2
 # leaves them and the directories leading to them in place.

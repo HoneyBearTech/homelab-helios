@@ -9,9 +9,8 @@
 # asks for confirmation (unless --yes) after listing what it will overwrite. It only writes to a container path
 # the service still mounts read-write, never to the Docker socket or a path the service excludes from backups, and
 # leaves the paths a service's exclude label lists inside a mount as they are. On a new host, restore .env from
-# DIR/env first;
-# the volumes and containers are created as needed. Uses `docker compose` from the checkout, so the standard
-# Compose variables select another project, as in scripts/backup.sh.
+# DIR/env first; the volumes and containers are created as needed. Uses `docker compose` from the checkout, so the
+# standard Compose variables select another project, as in scripts/backup.sh.
 set -euo pipefail
 
 usage() {
@@ -76,9 +75,11 @@ for entry in "${entries[@]}"; do
   if skipped_mounts "$id" | grep -qxF -- "$mount"; then
     fail "$service excludes $mount from backups ($skip_label); refusing to write it"
   fi
+  check_excludes "$id" || exit 1
   source=$(data_mounts "$id" | awk -F '\t' -v m="$mount" '$1 == m { print $2 }')
   [ -n "$source" ] || fail "$service has no read-write mount at $mount any more (compose.yaml changed since the backup)"
-  echo "  $service $mount: $source"
+  keep=$(left_out "$id" "$mount" | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g')
+  echo "  $service $mount: $source${keep:+ (except $keep)}"
 done
 if ! $yes; then
   read -r -p "Type 'yes' to continue: " answer

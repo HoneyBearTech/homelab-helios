@@ -9,10 +9,12 @@
 #   scripts/backup.sh [DIR]      DIR defaults to backups/<date>-<time> in the checkout (gitignored)
 #
 # DIR gets one <service>--<path>.tar.gz per mount, the settings (.env and any <service>.env) under env/, a MANIFEST
-# naming each archive's service, container path, source and image, and SHA256SUMS, all readable only by the user
-# who ran it: the archives hold logins, tokens and private keys. Copy it off the host (scripts/scheduled-backup.sh
-# does). Restore with scripts/restore.sh. It runs `docker compose` from the checkout, so the standard Compose
-# variables (COMPOSE_PROJECT_NAME, COMPOSE_FILE, COMPOSE_ENV_FILES) select another project, as the smoke test does.
+# naming each archive's service, container path, source and image, NETWORKS with the address range of each network
+# the stack uses but doesn't create (so a rebuilt host can recreate it the same), VERSION (the checkout's
+# `git describe`), and SHA256SUMS, all readable only by the user who ran it: the archives hold logins, tokens and
+# private keys. Copy it off the host (scripts/scheduled-backup.sh does). Restore with scripts/restore.sh. It runs
+# `docker compose` from the checkout, so the standard Compose variables (COMPOSE_PROJECT_NAME, COMPOSE_FILE,
+# COMPOSE_ENV_FILES) select another project, as the smoke test does.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -44,6 +46,8 @@ for service in $(docker compose config --services); do
     echo "error: $service has no container; run 'docker compose create' or 'docker compose up -d' first" >&2
     exit 1
   fi
+  # Checked before anything stops, so a wrong label fails the backup with every service still running.
+  check_excludes "$(docker compose ps --all --quiet "$service")"
   services+=("$service")
 done
 
@@ -111,6 +115,24 @@ for service in "${services[@]}"; do
     rm "$dest/${archive%.gz}"
   done
 done
+
+# The networks the stack joins but doesn't create (external ones, such as the proxy's, even if another Compose
+# project once created it): their address range, which access lists may depend on, is lost with the host unless
+# it's written down.
+project_label='{{index .Labels "com.docker.compose.project"}}'
+ranges='{{range .IPAM.Config}}{{$.Name}}{{"\t"}}{{.Subnet}}{{"\t"}}{{.Gateway}}{{"\n"}}{{end}}'
+project=$(docker inspect --format "{{index .Config.Labels \"com.docker.compose.project\"}}" \
+  "$(docker compose ps --all --quiet "${services[0]}")")
+networks=$(for service in "${services[@]}"; do
+  docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{"\n"}}{{end}}' \
+    "$(docker compose ps --all --quiet "$service")"
+done | sort -u)
+printf '# network\tsubnet\tgateway\n' >"$dest/NETWORKS"
+for network in $networks; do
+  if [ "$(docker network inspect --format "$project_label" "$network")" = "$project" ]; then continue; fi
+  docker network inspect --format "$ranges" "$network" | grep . >>"$dest/NETWORKS" || true
+done
+git -C "$root" describe --tags --always --dirty >"$dest/VERSION" 2>/dev/null || echo unknown >"$dest/VERSION"
 
 # The settings: .env and any service's env file, or only the files in COMPOSE_ENV_FILES when that's set (the smoke
 # test, which must never copy the real ones).

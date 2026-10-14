@@ -39,7 +39,8 @@ mirror:
   variables:
     GIT_STRATEGY: none
     MIRROR_SOURCE: https://github.com/HoneyBearTech/homelab-helios.git
-  # The token reaches git through a credential helper for this GitLab only, never a URL or an argument.
+  # The token reaches git through a credential helper for this GitLab only, never a URL or an argument. The repo
+  # is bare: git refuses to fetch into a checked-out branch, which main would be wherever init.defaultBranch=main.
   script:
     - git init -q --bare mirror && cd mirror
     - git config "credential.$CI_SERVER_URL.helper" '!f() { echo username=oauth2; echo "password=$MIRROR_TOKEN"; }; f'

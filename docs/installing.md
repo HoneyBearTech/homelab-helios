@@ -75,7 +75,7 @@ Running `main` instead of a release is possible but unsupported for anything you
 - **The Dozzle agent can read every container's logs and, through the Docker socket, control Docker**, for any
   Dozzle that connects to it. Keep its port (7007) on the LAN only.
 - **Kometa Quickstart only while you use it.** It has no login and holds the tokens entered in it: start it on
-  demand, stop it after, never forward port 7171 ([quickstart.md](quickstart.md)).
+  demand, stop it after, never forward port 7171 ([quickstart.md](kometa-quickstart.md)).
 - **Protect the media library.** Plex and AURA mount it read-write: AURA writes artwork into it, and Plex
   deletes files when its "allow media deletion" option is on and someone deletes from a Plex app. Leave that
   option off unless you need it, and keep snapshots on the storage that holds the library.

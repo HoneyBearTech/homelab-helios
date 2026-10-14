@@ -6,6 +6,34 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+The backup scripts, smoke test and CI are aligned with homelab-ares, the template for the homelab stacks. Nothing
+changes on the host: the services, their labels and the backup's systemd units stay as they are (the units got the
+best-effort I/O class in 0.2.1, so they don't need re-installing).
+
+### Added
+
+- Each backup also holds `NETWORKS`, the address range and gateway of every network the stack uses but doesn't
+  create (none today: Compose creates both of the stack's networks, so it holds only its header), and `VERSION`,
+  the checkout's `git describe`, so a backup says which release it was taken with. The smoke test checks
+  `VERSION`, and `NETWORKS` for any network the stack doesn't create.
+- CI and the weekly image scan log in to Docker Hub with a read-only token when the repository has one
+  (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`), so their pulls don't hit the runners' shared anonymous limit; without
+  it they pull anonymously, as before. The smoke test pulls every image first and logs out before any container
+  starts (GOVERNANCE.md).
+
+### Changed
+
+- `scripts/backup.sh` and `scripts/restore.sh` check every `org.honeybeartech.helios.backup.exclude` label before
+  anything stops: each path must be a plain path strictly inside one of the service's data mounts, without `..`
+  or a pattern character (`*?[\`); otherwise both fail with every service still running. Plex's and Kometa's
+  labels pass unchanged, and back up exactly the same data as before. `restore.sh` also lists, for each mount,
+  the paths it leaves in place.
+- The smoke test owns each throwaway data directory by `PUID:PGID` with mode 0755, as the directories are on a
+  host, instead of making them writable by everyone, so a service that needs more than that fails in CI rather
+  than at a deploy. It also checks that every backup has a `NETWORKS` file.
+- `docs/quickstart.md` (Kometa Quickstart, the on-demand tool) is now `docs/kometa-quickstart.md`, so it isn't
+  mistaken for the stack's quick start (`docs/quick-start.md`).
+
 ## [0.2.2] - 2026-10-13
 
 A pinned Dozzle agent joins the stack, Kometa runs about two hours shorter on most nights and checks TLS

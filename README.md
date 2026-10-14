@@ -42,7 +42,7 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
   configuration is in `kometa/`, secrets as placeholders, checked in CI and watched upstream ([docs/kometa.md](docs/kometa.md))
 - **ImageMaid**: cleans out images Plex no longer uses from Plex's data directory
 - **Kometa Quickstart**: a web UI for building Kometa configurations; a tool started on demand, without a login
-  ([docs/quickstart.md](docs/quickstart.md))
+  ([docs/kometa-quickstart.md](docs/kometa-quickstart.md))
 - **autoheal**: restarts any service whose health check fails (Docker on its own only restarts a container that
   exits), reaching Docker only through **socket-proxy**, which lets it list, inspect, restart and stop containers
 - **Dozzle agent**: serves the containers' logs to the homelab's Dozzle on another host, which shows every host's

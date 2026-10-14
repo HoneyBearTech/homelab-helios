@@ -27,7 +27,7 @@ reserved name, when `kometa.env.example` doesn't list exactly the placeholders i
 isn't both linked from `config.yml` and mounted in `compose.yaml`. To add a collection file: put it in `kometa/`,
 link it as `file: config/<name>.yml`, and add its read-only mount to the `kometa` service.
 
-[Kometa Quickstart](quickstart.md) can help build a configuration, but what it exports holds the real values: bring
+[Kometa Quickstart](kometa-quickstart.md) can help build a configuration, but what it exports holds the real values: bring
 the parts you want into `kometa/` by hand, as placeholders.
 
 ## How CI checks it

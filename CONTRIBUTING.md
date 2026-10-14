@@ -27,28 +27,31 @@ make lint     # ruff, ruff format, yamllint, shellcheck
 cp .env.example .env && make check   # the policy check over the resolved Compose file
 make smoke    # starts the whole stack with throwaway settings, waits until every service is healthy,
               # then backs it up, changes it and restores it, runs the scheduled backup against a stand-in
-              # backup server (and, once the stack has autoheal, checks that it restarts an unhealthy container)
+              # backup server, and checks that autoheal restarts an unhealthy container
 ```
 
 How the stack fits together is in [docs/architecture.md](docs/architecture.md).
 
 ## When and how tests run
 
-Every push and pull request runs three CI jobs ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), both
-all required checks on `main`. "Checks + tests" runs the linters below, a gitleaks scan of the whole history,
+Every push and pull request runs three CI jobs ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), all
+required checks on `main`. "Checks + tests" runs the linters below, a gitleaks scan of the whole history,
 the checker's unit tests with a coverage floor, `docker compose config` and the policy check
-([`scripts/check_compose.py`](scripts/check_compose.py)). "Stack smoke test"
-([`scripts/smoke-test.sh`](scripts/smoke-test.sh)), on an amd64 runner like the server (without a GPU), starts
-every service with throwaway directories and volumes, fails unless each one reports healthy within five
-minutes, runs a backup and restore round trip over every data mount, checks that mounts excluded from backups
-(the media library) and paths left out of them (Plex's artwork) are neither archived nor overwritten, runs the
-scheduled backup against a stand-in backup server and checks the copy and the pruning, and, once the stack has autoheal, checks that it
-restarts a container that turns unhealthy. Until `compose.yaml` exists, the stack steps pass with a notice.
-"Kometa config" ([`scripts/kometa-validate.sh`](scripts/kometa-validate.sh), also `make kometa`) validates
-`kometa/` with the Kometa image pinned in `compose.yaml` and the JSON schemas from the same release, with dummy
-values for the placeholders (no secrets), and fails on a schema error, on no result and on keys the schema
-doesn't know; two broken fixtures in `tests/fixtures/kometa-invalid/` prove it fails. CodeQL, dependency review, a DCO check and OpenSSF
-Scorecard also run on the repository.
+([`scripts/check_compose.py`](scripts/check_compose.py)), the tools (`--profile tools`) included. "Stack smoke
+test" ([`scripts/smoke-test.sh`](scripts/smoke-test.sh)), on an amd64 runner like the server (without a GPU),
+pulls every image first, then starts every service with throwaway directories and volumes, fails unless each
+one reports healthy within five minutes, runs a backup and restore round trip over every data mount (checking
+the backup's `NETWORKS` and `VERSION`, and that mounts excluded from backups, such as the media library, and
+paths left out of them, such as Plex's artwork, are neither archived nor overwritten), runs the scheduled
+backup against a stand-in backup server and checks the copy and the pruning, and checks that autoheal restarts
+a container that turns unhealthy. "Kometa config" ([`scripts/kometa-validate.sh`](scripts/kometa-validate.sh),
+also `make kometa`) validates `kometa/` with the Kometa image pinned in `compose.yaml` and the JSON schemas from
+the same release, with dummy values for the placeholders (no secrets), and fails on a schema error, on no result
+and on keys the schema doesn't know; two broken fixtures in `tests/fixtures/kometa-invalid/` prove it fails.
+Images from Docker Hub are pulled with the project's read-only Docker Hub token when it is set
+([GOVERNANCE.md](GOVERNANCE.md#the-projects-own-secrets)), and anonymously otherwise (fork pull requests);
+the smoke test logs out before any container starts. Until `compose.yaml` exists, the stack steps pass with a
+notice. CodeQL, dependency review, a DCO check and OpenSSF Scorecard also run on the repository.
 
 The maintainer also keeps a copy on a self-hosted GitLab, mirrored from GitHub by a scheduled job in
 [`.gitlab-ci.yml`](.gitlab-ci.yml), which re-runs the "Checks + tests" steps that need no Docker daemon on
