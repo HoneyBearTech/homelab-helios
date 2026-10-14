@@ -64,8 +64,9 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   [`scripts/plex_watch.py`](../scripts/plex_watch.py)) stands in for Dependabot: while linuxserver.io has a newer
   Plex build (a new version or a rebuild), it keeps one issue, **Plex update available**, up to date with the newer
   builds and the latest one's tag and digest, adds one comment per new finding (no repeats), sends the optional
-  alert (`NTFY_URL`, `DISCORD_WEBHOOK`, as the Kometa watch), and closes it once the pin is the newest build. Run it
-  by hand from the Actions tab or locally without changing anything: `python3 scripts/plex_watch.py --dry-run`.
+  alert (its own `PLEX_NTFY_URL` or `PLEX_DISCORD_WEBHOOK` repository secret when set, else the Kometa watch's
+  `NTFY_URL` or `DISCORD_WEBHOOK`), and closes it once the pin is the newest build. Run it by hand from the Actions
+  tab or locally without changing anything: `python3 scripts/plex_watch.py --dry-run`.
 - **A merge doesn't deploy.** The server runs what it last pulled; updates reach it when the operator pulls
   and redeploys, with a backup first ([upgrading.md](upgrading.md)).
 - **Dependency review** blocks a pull request that adds or changes a Python or Actions dependency with a known
