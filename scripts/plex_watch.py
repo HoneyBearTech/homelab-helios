@@ -12,9 +12,11 @@ run whose state matches the open issue's changes nothing: no edit, no comment, n
 body, adds one comment and sends the optional alert (NTFY_URL, DISCORD_WEBHOOK). Once the pin is the latest build,
 the issue is closed; when they diverge again it is reopened, never duplicated.
 
-Usage: scripts/plex_watch.py [--dry-run] [--pinned IMAGE] [--repo OWNER/NAME]
+Usage: scripts/plex_watch.py [--dry-run] [--pinned IMAGE] [--repo OWNER/NAME] | --test-alert
 Environment: GITHUB_REPOSITORY, GH_TOKEN or GITHUB_TOKEN, NTFY_URL, DISCORD_WEBHOOK (all optional for --dry-run).
-Exit codes: 0 = done (whatever the findings), 1 = it couldn't check (GitHub, Docker or compose.yaml failed).
+--test-alert sends one test message to the configured alert targets and checks nothing else.
+Exit codes: 0 = done (whatever the findings), 1 = it couldn't check (GitHub, Docker or compose.yaml failed), or
+--test-alert reached no target.
 """
 
 from __future__ import annotations
@@ -271,7 +273,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="print the action and the issue body; change nothing")
     parser.add_argument("--pinned", help="pretend this image is pinned (lscr.io/linuxserver/plex:<tag>@sha256:...)")
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY") or DEFAULT_REPO, help="OWNER/NAME")
+    parser.add_argument(
+        "--test-alert", action="store_true", help="send a test message to the alert targets; nothing else"
+    )
     args = parser.parse_args(argv)
+    if args.test_alert:
+        sent = notify(
+            "Plex update watch: test alert (no Plex update; this only checks the alert works).", dict(os.environ)
+        )
+        print(f"Test alert sent: {', '.join(sent) or 'none (no alert target is set, or every one failed)'}")
+        return 0 if sent else 1
     github = GitHub(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
     try:
         findings = gather(github, args.pinned or pinned_image())

@@ -13,7 +13,7 @@ All notable changes to homelab-helios are documented here. The format follows
   new Plex version or a rebuild), it keeps one issue, "Plex update available", with the newer builds and the latest
   one's tag and digest, ready to pin. It never repeats itself, sends an optional alert to its own Discord webhook or
   ntfy topic (`PLEX_DISCORD_WEBHOOK`, `PLEX_NTFY_URL`; the Kometa watch's while those aren't set), and closes the
-  issue once the pin is the newest build.
+  issue once the pin is the newest build. A manual run can instead send just a test alert.
 
 ### Changed
 

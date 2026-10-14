@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "43 5 * * 1" # Mondays, 05:43 UTC
   workflow_dispatch:
+    inputs:
+      test_alert:
+        description: "Only send a test message to the alert webhook or topic (checks nothing else)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -44,4 +49,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NTFY_URL: ${{ secrets.PLEX_NTFY_URL || secrets.NTFY_URL }}
           DISCORD_WEBHOOK: ${{ secrets.PLEX_DISCORD_WEBHOOK || secrets.DISCORD_WEBHOOK }}
-        run: python scripts/plex_watch.py
+          # "true" only on a manual run with the box ticked; a scheduled run has no inputs.
+          TEST_ALERT: ${{ inputs.test_alert }}
+        run: |
+          if [ "$TEST_ALERT" = "true" ]; then
+            python scripts/plex_watch.py --test-alert
+          else
+            python scripts/plex_watch.py
+          fi
