@@ -84,9 +84,11 @@ handled:
   Docker Hub access token with the "public repositories, read-only" scope, stored as the repository secret
   `DOCKERHUB_TOKEN` (with `DOCKERHUB_USERNAME`) for Actions and for Dependabot, so that CI's image pulls count
   against an account instead of the runners' shared anonymous limit. It can't push, delete or read anything private;
-  and, optionally, the alert address of the Kometa upstream watch and the Plex update watch (`NTFY_URL`, an ntfy
-  topic URL, or `DISCORD_WEBHOOK`, a Discord webhook URL; [docs/kometa.md](docs/kometa.md)), which can only post to
-  that topic or channel. Release files are signed keylessly (Sigstore), so there is no long-lived signing key.
+  and, optionally, the alert addresses of the Kometa upstream watch (`NTFY_URL`, an ntfy topic URL, or
+  `DISCORD_WEBHOOK`, a Discord webhook URL; [docs/kometa.md](docs/kometa.md)) and of the Plex update watch
+  (`PLEX_NTFY_URL`, `PLEX_DISCORD_WEBHOOK`, falling back to the Kometa watch's;
+  [docs/dependencies.md](docs/dependencies.md)), each of which can only post to its topic or channel. Release files
+  are signed keylessly (Sigstore), so there is no long-lived signing key.
 - **Storage**: in the maintainer's password manager, never in the repository, CI logs, issues or pull
   requests. The deploy key's private half exists only on that server. Only the steps that log in to Docker
   Hub reference the token, and only the watches' steps the alert address; the smoke test logs out again before

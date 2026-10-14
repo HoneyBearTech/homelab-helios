@@ -36,11 +36,12 @@ jobs:
         with:
           python-version: "3.14"
 
-      # The alert secrets are optional: when one isn't set, its variable is empty and no alert goes there. Release
-      # data (untrusted text) reaches only the issue, through the script, never a shell.
+      # The alert secrets are optional: Plex's own (PLEX_NTFY_URL, PLEX_DISCORD_WEBHOOK) when set, else the ones the
+      # Kometa watch uses; when neither is set, the variable is empty and no alert goes there. Release data
+      # (untrusted text) reaches only the issue, through the script, never a shell.
       - name: Compare with linuxserver.io's newest Plex build and update the issue
         env:
           GH_TOKEN: ${{ github.token }}
-          NTFY_URL: ${{ secrets.NTFY_URL }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          NTFY_URL: ${{ secrets.PLEX_NTFY_URL || secrets.NTFY_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.PLEX_DISCORD_WEBHOOK || secrets.DISCORD_WEBHOOK }}
         run: python scripts/plex_watch.py
