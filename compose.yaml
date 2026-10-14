@@ -2,7 +2,7 @@
 # secrets a service can only take from its environment from plex.env (Plex's one-time claim token) and
 # autoheal.env (autoheal's optional webhook), both optional and gitignored.
 # Every image is pinned as name:tag@sha256:<digest>; Dependabot proposes updates (patch, minor and major ones
-# merge automatically once CI passes; a merge never deploys). scripts/check_compose.py enforces the policy
+# merge automatically once CI passes; a merge deploys). scripts/check_compose.py enforces the policy
 # (docs/security.md#policy).
 # The NVIDIA GPU for Plex is in compose.gpu.yaml, so the stack also starts without one (CI has none); the host
 # adds it with COMPOSE_FILE in .env.
@@ -153,7 +153,8 @@ services:
   # its daily schedule. Its config.yml and collection files come from kometa/ in this checkout, mounted read-only
   # over the copies in its data directory; their placeholders are filled from the .env Kometa reads in its data
   # directory (kometa.env.example). Logs, cache, assets and overlays stay in the data directory. A single-file
-  # mount keeps the old file after a git pull until the container is recreated (docs/upgrading.md).
+  # mount keeps the old file after a git pull until the container is recreated, which the pull agent's up -d
+  # doesn't do for a change to kometa/ only (docs/upgrading.md).
   kometa:
     <<: *hardened
     image: kometateam/kometa:v2.5.2@sha256:06e498cded70c9815522c6b2d8708b31759c1e37714746d1eeb56f1e40a8fd95

@@ -3,7 +3,8 @@
 The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24.04, amd64, a VM with an NVIDIA
 GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal and a Dozzle agent (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
 the server can be upgraded and rebuilt from this repository. Helios runs the stack (`compose.yaml` +
-`compose.gpu.yaml`) from a checkout of a release tag (cut over 2026-10-09); its nightly backups go off the host.
+`compose.gpu.yaml`) from a checkout of `main` that a pull agent deploys (see Deploys below); its nightly backups go
+off the host.
 homelab-ares is the template for the homelab stacks: tooling that isn't specific to this host's services (checker,
 backup scripts, smoke test, workflows) is kept the same as ares'; a change here that isn't about this host's
 services goes to ares too (owner 2026-10-13).
@@ -57,8 +58,8 @@ backup timer.
   build tag and is updated by hand; a weekly watch (`scripts/plex_watch.py`, one issue, owner 2026-10-14) stands in
   for Dependabot. Patch, minor and major updates, and image rebuilds (same tag, new digest; owner 2026-10-14),
   auto-merge once the required checks pass (Plex included: it can't touch the media; majors too, owner 2026-10-08).
-  A merge never deploys: Helios changes only on a deliberate pull, and a major's release notes are read before it
-  (it can migrate a service's data one way).
+  Every merge deploys, the automatic ones included, majors too (see Deploys): a major can migrate a service's data
+  one way and now reaches Helios unattended, with only the nightly backup behind it.
 - **Amd64.** Every image must publish `linux/amd64`. The smoke test runs on `ubuntu-latest` and the image scan
   scans `linux/amd64`.
 - **The GPU is optional to CI.** GitHub's runners have no GPU, so the NVIDIA device reservation must not stop
@@ -97,9 +98,9 @@ backup timer.
   behind `lscr.io/linuxserver/socket-proxy` (read-only socket, internal `docker-proxy` network) is part of the
   first `compose.yaml`, exactly as on homelab-atlas/ares (owner 2026-10-07); its webhook URL goes in the
   gitignored `autoheal.env`. The smoke test checks autoheal restarts a service that turns unhealthy.
-- **Never change the live server** (Helios) without the owner asking: no `docker compose up`, no edits to
-  service data, Plex libraries or settings, or Portainer stacks. Read-only inspection (`docker ps`,
-  `docker inspect`) only when asked (host quirks for doing so are in the Chronos Architecture note).
+- **Never change the live server** (Helios) without the owner asking: merges only as **Merging** says, no
+  `docker compose up`, no edits to service data, Plex libraries or settings, or Portainer stacks. Read-only inspection
+  (`docker ps`, `docker inspect`) only when asked (host quirks for doing so are in the Chronos Architecture note).
 - Every setting goes through `.env` (`${VAR:?…}` in compose when required) and is listed in `.env.example`
   and `docs/interfaces.md`.
 - **Container paths, image family and ports are load-bearing**: Plex stores library paths (`/media/...`) in its
@@ -133,6 +134,20 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   validation runs as an always-running job (never path-filtered: a skipped required check blocks the PR).
 - Reviews of Kometa's configuration (optimization findings) are private planning: they go in Chronos, not
   `docs/`.
+
+## Deploys (owner's decision 2026-10-14)
+- **A merge to `main` deploys.** A pull agent on Helios (systemd user timer `homelab-pull@helios`, from the owner's
+  private homelab-ops repo; rolled out host by host, see Chronos) fetches `main` about every 90 s. When it moved,
+  the agent fast-forwards the checkout and runs `docker compose config --quiet`, `docker compose pull` and
+  `docker compose up -d --remove-orphans --wait`: a merge is live within about two minutes. It refuses local
+  changes and non-fast-forward history, and moves the checkout back if config or pull fails.
+- **Rollback is a revert PR**, deployed the same way. A revert doesn't undo a data migration: then the backup and
+  `scripts/restore.sh` are the way back, with the owner.
+- **Pinning by hand**: the owner checks out another commit or tag on the host; the agent pauses until the checkout
+  is on `main` again. Release tags stay as signed, verified snapshots; they no longer drive deploys.
+- **Kometa**: the agent's `up -d` doesn't recreate Kometa when only `kometa/` changed (single-file mounts keep the
+  old file), and it doesn't run `--validate --validate-level full` with the real values. After a merge that changes
+  `kometa/` or Kometa's image, the owner runs both on the host (docs/upgrading.md#following-main).
 
 ## Stack
 - Docker Compose v2 (`compose.yaml`; the GPU in `compose.gpu.yaml`, added on the host via `COMPOSE_FILE`), upstream images: `lscr.io/linuxserver/plex` (with
@@ -168,8 +183,16 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   full SHA with a version comment; untrusted `${{ github.event.* }}` only through `env:`.
 - Required checks in the `main` ruleset: `CI / Checks + tests`, `CI / Stack smoke test`, `CI / Kometa config`, DCO sign-off,
   Dependency review, CodeQL's Analyze (python) / Analyze (actions). Don't rename those jobs.
-- Claude opens a PR for every change and turns on auto-merge for it (`gh pr merge --auto --squash`; owner
-  2026-10-08), as on the sibling repos. Never bypass a check or the ruleset.
+- **Merging (owner's decision 2026-10-14):** Claude opens a PR for every change. A merge deploys (see Deploys),
+  so Claude merges once every required check is green (the owner's standing permission, 2026-10-14) and
+  then says that it merged and that it's deploying to Helios. It asks first when the deploy needs something on
+  the server (a new `.env` setting, a data migration without a recent good backup, an update this file says
+  waits for the owner) or the server isn't healthy, and never turns on auto-merge (`gh pr merge --auto`)
+  without the owner's OK. Never bypass a check or the ruleset.
+  Dependabot's patch, minor and major updates and image rebuilds still auto-merge through
+  `dependabot-auto-merge.yml` once every required check passes, so they now deploy unattended, majors included;
+  Plex is pinned by hand. Keeping that auto-merge (above all for majors) is the owner's call: don't change
+  `dependabot-auto-merge.yml` without it.
 
 ## Commands
 ```sh

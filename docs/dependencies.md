@@ -49,9 +49,9 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   can't touch the media library, and its updates often fix security issues.
 - **Image rebuilds merge automatically too**: a pull request that only moves an image to a new digest under the
   same tag (a rebuild of the same app version, with newer base packages) and changes nothing else in `compose.yaml`.
-- **Major updates are read about before they're deployed**, not before they merge: a new major version can
-  migrate its data one way, so the service's release notes are read, and a backup taken, before the redeploy
-  that brings it to the server ([upgrading.md](upgrading.md#before-you-upgrade)). An update Dependabot can't
+- **Major updates merge automatically too, and so reach the server unattended**: a merge deploys
+  ([upgrading.md](upgrading.md#following-main)). A new major version can migrate its data one way; the nightly
+  backup and a revert are the way back ([upgrading.md](upgrading.md#rolling-back)). An update Dependabot can't
   classify waits for the maintainer.
 - **linuxserver.io images are pinned by their `version-<app version>` tag** (`tautulli:version-v2.18.2@sha256:…`),
   which always points at the newest build of that app version. Dependabot can't follow the build tags
@@ -69,12 +69,12 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   tab or locally without changing anything: `python3 scripts/plex_watch.py --dry-run`. To check the alert reaches
   its channel, run it from the Actions tab with **Only send a test message** ticked: it sends one test message and
   checks nothing else.
-- **A merge doesn't deploy.** The server runs what it last pulled; updates reach it when the operator pulls
-  and redeploys, with a backup first ([upgrading.md](upgrading.md)).
+- **A merge deploys.** The maintainer's server follows `main` with a pull agent, so every merge, the automatic
+  ones included, reaches it within about two minutes ([upgrading.md](upgrading.md#following-main)).
 - **Dependency review** blocks a pull request that adds or changes a Python or Actions dependency with a known
   vulnerability of moderate severity or higher, or a license outside the allowlist.
-- **Nothing updates itself on the host.** Auto-updaters such as Watchtower are not used: they would run
-  versions nobody reviewed.
+- **Nothing on the host updates from a registry.** Auto-updaters such as Watchtower are not used: they would run
+  versions nobody reviewed. The pull agent only applies commits merged into `main`.
 
 ## Policy for vulnerabilities in dependencies
 

@@ -29,9 +29,10 @@ come from their own projects; this stack doesn't include or manage them.
 
 | Actor | Does |
 | --- | --- |
-| Maintainer | Merges pull requests, tags releases, runs `git pull` / `docker compose up -d` on the host, configures each service in its web UI |
+| Maintainer | Merges pull requests (a merge deploys), tags releases, configures each service in its web UI |
 | Dependabot | Opens a pull request when an image (tag and digest), a check tool or an Action has a new version; patch, minor and major updates are auto-merged once the checks pass |
 | CI | Lints, scans for secrets, tests the checker, resolves the Compose file, enforces the policy and smoke-tests the stack on amd64 (without a GPU) on every pull request |
+| Pull agent | On the maintainer's server, about every 90 seconds: fetches `main` and, when it moved, fast-forwards the checkout and runs `docker compose pull` and `docker compose up -d` (it lives in the maintainer's private orchestration repository) |
 | Release workflow | On a version tag: checks the policy, writes the SBOM, signs the checksums, publishes the GitHub Release |
 | Household viewers | Play media through Plex apps on the LAN, and from outside it if Plex's remote access is on |
 | plex.tv | Signs viewers in, and relays or brokers connections from outside the LAN |
@@ -65,13 +66,15 @@ library, Plex's cache and the transcode directory are never archived.
 
 1. Dependabot (or the maintainer) opens a pull request that changes an image's tag and digest.
 2. CI resolves the Compose file, runs the policy check and the smoke test.
-3. The pull request is squash-merged (automatically for Dependabot's version updates and the maintainer's own
-   pull requests, once every check passes); a version tag makes a signed release.
-4. Before deploying, the maintainer reads the release notes, above all for a major version.
-5. On the host: back up, `git checkout <tag>`, `docker compose pull && docker compose up -d`
-   ([upgrading.md](upgrading.md)).
+3. The pull request is squash-merged (automatically for Dependabot's version updates, majors included, and its
+   image rebuilds, once every check passes).
+4. Within about 90 seconds the pull agent on the host sees `main` move, fast-forwards its checkout and runs
+   `docker compose pull && docker compose up -d --remove-orphans --wait`
+   ([upgrading.md](upgrading.md#following-main)). A rollback is a revert pull request, deployed the same way.
+5. A version tag makes a signed release: a named, verifiable snapshot of `main`.
 
-Nothing on the host updates itself: a version that runs is always a version that's in git. Plex's own in-app
+Nothing updates from a registry by itself: a version that runs is always a version that's in `main`. The host
+only pulls; nothing connects in to it to deploy. Plex's own in-app
 updater doesn't apply to its container; a new Plex version arrives as a new image.
 
 ## Repository layout

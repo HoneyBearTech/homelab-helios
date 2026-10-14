@@ -18,7 +18,8 @@ the secure design principles it follows, and how common weaknesses are countered
 | The host's devices | The GPU granted by running privileged | GPU only as a device reservation through the NVIDIA runtime; `privileged` refused by the policy check |
 | Plex tokens, logins, certificate keys | Committed to the public repository | Kept in the services' data, never in the repo; the claim token in a gitignored `plex.env`; `.gitignore`; GitHub push protection; gitleaks over the history in CI |
 | Plex tokens, logins, viewing history | Leaked through a backup | `scripts/backup.sh` writes backups readable only by the user who ran it; documented as secret, to be kept off the host |
-| The services' data | An upgrade that migrates and breaks it | Backup before every upgrade; rollback = old tag + `scripts/restore.sh`, exercised against the real stack by the CI smoke test on every change |
+| The services' data | An upgrade that migrates and breaks it | Backup before every update merged by hand, nightly otherwise; rollback = a revert (or the old tag) + `scripts/restore.sh`, exercised against the real stack by the CI smoke test on every change |
+| The host | A bad change merged to `main` deploying by itself | The required checks (policy check, smoke test, Kometa validation) pass before any merge; Plex is updated by hand; the pull agent only fast-forwards and backs out a change that doesn't resolve or pull; rollback is a revert pull request |
 | The services' data | A crafted backup writing outside the services' data | `restore.sh` verifies `SHA256SUMS` (which covers the `MANIFEST`), accepts only plain archive names and absolute container paths without `..`, and writes only a mount the service has read-write and doesn't exclude from backups |
 | The release | Tampered release files | Keyless-signed `SHA256SUMS`, SLSA provenance, signed tags |
 | The CI pipeline | Untrusted pull request input running with credentials | `pull_request` only, read-only token by default, untrusted values only via `env:`, actions pinned by SHA |
@@ -33,8 +34,9 @@ of the Plex account that owns the server.
 ## Trust boundaries
 
 1. **Registries → host.** Images are trusted only at the digest a reviewed commit names.
-2. **Repository → host.** The host runs a tagged, signed release or a reviewed `main`; it never pulls code
-   that wasn't merged.
+2. **Repository → host.** The maintainer's host runs `main`: a pull agent fetches it and only fast-forwards,
+   refusing rewritten history and local changes, so the host never runs code that wasn't merged.
+   Nothing connects in to the host to deploy. (Others can run a tagged, signed release instead.)
 3. **Internet → Plex.** Only if remote access is on; Plex authenticates every remote viewer through plex.tv.
 4. **LAN → web UIs.** Plex through its own sign-in; Tautulli and AURA not published beyond the LAN,
    reached through a reverse proxy with access lists.
@@ -54,7 +56,7 @@ of the Plex account that owns the server.
 - **Fail-safe defaults**: the policy check fails on anything it doesn't recognise as allowed; an exception
   needs a reason, in the file, in review. `restore.sh` refuses anything in a backup it can't account for.
 - **Complete mediation**: every change to what runs passes through a pull request and the same checks;
-  nothing on the host updates itself.
+  the host only fast-forwards to merged commits.
 - **Economy of mechanism**: one Compose file, one standard-library checker, upstream images unchanged.
 - **Separation of privilege**: secrets live with the services, settings in `.env`, configuration in git.
 - **Open design**: the whole configuration, policy and release process are public.
