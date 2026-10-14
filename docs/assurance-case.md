@@ -44,7 +44,7 @@ of the Plex account that owns the server.
    read-only one (for logs).
 7. **Pull requests → CI.** Fork pull requests get a read-only token and no secrets. The project's secrets
    are a Docker Hub token that can only read public images, logged out before the smoke test starts any
-   container, and the Kometa upstream watch's optional alert address, used only by that scheduled job.
+   container, and the optional alert address of the Kometa and Plex watches, used only by those scheduled jobs.
 
 ## Secure design principles
 

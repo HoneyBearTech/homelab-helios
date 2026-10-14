@@ -54,10 +54,11 @@ backup timer.
   (`docker-compose` ecosystem) updates tag and digest together. linuxserver.io images use their `version-<app
   version>` tag (socket-proxy its bare version), never the `-lsNNN` build tag: Dependabot can't follow those. Plex
   is the exception: no Plex tag is one Dependabot can read (its version carries a commit hash), so it keeps its
-  build tag and is updated by hand. Patch, minor and major updates, and image rebuilds (same tag, new digest; owner
-  2026-10-14), auto-merge once the required checks pass (Plex included: it can't touch the media; majors too, owner
-  2026-10-08). A merge never deploys: Helios changes only on a deliberate pull, and a major's release notes are read
-  before it (it can migrate a service's data one way).
+  build tag and is updated by hand; a weekly watch (`scripts/plex_watch.py`, one issue, owner 2026-10-14) stands in
+  for Dependabot. Patch, minor and major updates, and image rebuilds (same tag, new digest; owner 2026-10-14),
+  auto-merge once the required checks pass (Plex included: it can't touch the media; majors too, owner 2026-10-08).
+  A merge never deploys: Helios changes only on a deliberate pull, and a major's release notes are read before it
+  (it can migrate a service's data one way).
 - **Amd64.** Every image must publish `linux/amd64`. The smoke test runs on `ubuntu-latest` and the image scan
   scans `linux/amd64`.
 - **The GPU is optional to CI.** GitHub's runners have no GPU, so the NVIDIA device reservation must not stop
