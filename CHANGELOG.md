@@ -6,6 +6,8 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-14
+
 The backup scripts, smoke test and CI are aligned with homelab-ares, the template for the homelab stacks, and every
 service is hardened as there. The backup's systemd units stay as they are (they got the best-effort I/O class in
 0.2.1, so they don't need re-installing).
@@ -219,7 +221,8 @@ Quickstart as an on-demand tool) as a Compose file, every image pinned by versio
   reachable, because AURA doesn't use `next/og`. Most of ImageMaid's 525 findings are in packages it never
   uses; Pillow is reachable only in its `OVERLAYS_ONLY` mode, which is off by default.
 
-[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/HoneyBearTech/homelab-helios/compare/v0.1.0...v0.2.0
