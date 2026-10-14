@@ -3,8 +3,8 @@ name: Dependabot auto-merge
 # Turns on GitHub's auto-merge for Dependabot's version update PRs (patch, minor and major) and for image rebuilds
 # (same tag, new digest), so they're squash-merged once every required check passes (the main ruleset still decides:
 # CI with the Compose policy check, CodeQL, dependency review, signed commits). Nothing is checked out or run from
-# the PR; the job only reads Dependabot's metadata and the PR's diff and calls `gh`. A merge changes main only: a
-# server picks it up when its operator pulls and redeploys (docs/upgrading.md), never by itself.
+# the PR; the job only reads Dependabot's metadata and the PR's diff and calls `gh`. A merge deploys:
+# the server's pull agent applies main within minutes (docs/upgrading.md).
 on: pull_request
 
 permissions:
@@ -27,10 +27,10 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Images, Python tools and Actions: patch, minor and major updates (maintainer 2026-10-08). A merge never
-      # deploys: a new major app version, which can migrate its database one way, is read about before the
-      # deliberate redeploy (docs/upgrading.md). An update Dependabot can't classify (a tag scheme it doesn't
-      # read as a version) still waits for the maintainer.
+      # Images, Python tools and Actions: patch, minor and major updates (maintainer 2026-10-08, kept 2026-10-14).
+      # A merge deploys, so a new major app version, which can migrate its database one way, reaches the server
+      # unattended with the nightly backup behind it (docs/upgrading.md). An update Dependabot can't classify (a tag
+      # scheme it doesn't read as a version) still waits for the maintainer.
       - name: Enable auto-merge for version updates
         if: >-
           (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
