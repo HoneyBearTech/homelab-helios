@@ -70,7 +70,7 @@ Dependabot proposes the update itself; the watch is the early warning, with the 
    check passes, **Kometa config** included: a release that rejects `kometa/` doesn't merge.
 2. A merge deploys: on a server that follows `main`, the pull agent pulls the new image and recreates Kometa
    within minutes ([upgrading.md](upgrading.md#following-main)), without the check with the real values; run it
-   there right after the merge (the last two commands below). On a server upgraded by hand, follow
+   there right after the merge (the `--validate` command below). On a server upgraded by hand, follow
    [upgrading.md](upgrading.md): back up (`scripts/backup.sh`), check out the new version, then check Kometa's
    configuration with the real values before starting it:
 
@@ -81,9 +81,7 @@ Dependabot proposes the update itself; the watch is the early warning, with the 
    ```
 
    `--validate-level full` must end with `Result: PASSED`. `--force-recreate` matters when only `kometa/` changed:
-   a single-file mount keeps the old file until the container is recreated, and the pull agent's `up -d` doesn't
-   recreate it for that.
+   a single-file mount keeps the old file until the container is recreated (the pull agent recreates it by itself
+   when a mounted file changed).
 3. If the next run goes wrong, go back to the previous version and restore Kometa's data
    (`scripts/restore.sh <backup> kometa`): a new Kometa may migrate its cache.
-
-This applies once the server runs the stack from this repository; until then Kometa runs from its old setup there.

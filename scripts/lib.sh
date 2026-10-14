@@ -14,6 +14,36 @@ export COMPOSE_PROFILES=$tool_profiles
 
 sha256() { if command -v sha256sum >/dev/null; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
 
+# The stack's id for homelab-pull, the pull agent that deploys `main` on the server (homelab-ops). The only line that
+# differs between the homelab stacks' copies of deploy_lock below.
+pull_stack=helios
+# How long (seconds) deploy_lock waits for a deploy in progress to finish.
+deploy_lock_timeout=1800
+
+# Keeps the pull agent from deploying while the stack's data is backed up or restored: a deploy runs
+# `docker compose up -d`, which would start a service stopped for its backup (or its restore) in the middle of the
+# copy. Takes the lock the agent holds for each run (`flock` on <state dir>/<stack>/lock; the agent skips its run
+# while the lock is busy and tries again at its next tick), waiting up to deploy_lock_timeout for a deploy in progress,
+# and keeps it on file descriptor 9 until the script exits. Does nothing where the agent has never run (no state
+# directory: CI, a development machine, a host without the agent).
+deploy_lock() {
+  local dir=${HOMELAB_PULL_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/homelab-pull}/$pull_stack
+  if [ ! -d "$dir" ]; then return 0; fi
+  if ! command -v flock >/dev/null; then
+    echo "error: $dir exists (the pull agent deploys here) but flock isn't installed to lock it" >&2
+    return 1
+  fi
+  exec 9>>"$dir/lock"
+  if ! flock --nonblock 9; then
+    echo "Waiting for a deploy by the pull agent to finish (up to $deploy_lock_timeout s)"
+    if ! flock --timeout "$deploy_lock_timeout" 9; then
+      echo "error: the pull agent's deploy of $pull_stack still holds $dir/lock after $deploy_lock_timeout s;" \
+        "nothing was stopped (check: journalctl --user -u homelab-pull@$pull_stack)" >&2
+      return 1
+    fi
+  fi
+}
+
 # A service label listing container paths (comma-separated, exact) that a backup never archives and a restore never
 # writes: data far too large to back up here, such as the media library, or disposable, such as a cache or logs.
 # shellcheck disable=SC2034 # used by the scripts that source this file

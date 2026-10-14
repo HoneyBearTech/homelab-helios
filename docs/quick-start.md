@@ -10,8 +10,9 @@ Toolkit and a Plex Pass ([installing.md](installing.md#requirements)).
    git clone https://github.com/HoneyBearTech/homelab-helios.git && cd homelab-helios
    ```
 
-   Once releases exist, check out the latest one (`git checkout vX.Y.Z`) and verify it first
-   ([verifying-releases.md](verifying-releases.md)).
+   To run a release, check out the latest one (`git checkout vX.Y.Z`) and verify it first
+   ([verifying-releases.md](verifying-releases.md)); or stay on `main`, which the maintainer's own server follows
+   ([upgrading.md](upgrading.md#following-main)).
 
 2. **Configure it.**
 

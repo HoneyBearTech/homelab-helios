@@ -72,16 +72,20 @@ itself ([dependencies.md](dependencies.md#tracking-dependencies)).
 
 - The agent only fast-forwards: it refuses a checkout with local changes or a `main` whose history was rewritten.
   If the configuration doesn't resolve or an image can't be pulled, it moves the checkout back, so the server keeps
-  running what it ran.
+  running what it ran. It also recreates a running service when a file it mounts from the checkout changed (as
+  Kometa's `kometa/` files are), and after a deploy that succeeded it removes the images no container uses.
+- **Backups and deploys don't overlap.** The agent holds a lock while it deploys; `scripts/backup.sh` and
+  `scripts/restore.sh` take the same lock before they stop anything (waiting for a deploy in progress) and keep it
+  until they finish, and the agent skips its runs meanwhile ([installing.md](installing.md#scheduled-backups)).
 - **The merge is the upgrade.** Before merging an update that can migrate a service's data, read the release notes
   and take a backup on the server (`scripts/backup.sh`). The updates that merge by themselves (patch, minor and
   major ones, and image rebuilds) reach the server with only the nightly [scheduled
   backup](installing.md#scheduled-backups) behind them.
-- **Kometa is the exception.** The agent doesn't run Kometa's check with the real values, and its `up -d` doesn't
-  recreate Kometa when only `kometa/` changed: a single-file mount keeps the old file. After a merge that changes
-  `kometa/` or Kometa's image, run on the server `docker compose run --rm kometa --validate --validate-level full`
-  (it must end with `Result: PASSED`), then `docker compose up -d --force-recreate kometa`
-  ([kometa.md](kometa.md#upgrading-kometa-safely)).
+- **Kometa is the exception.** The agent doesn't run Kometa's check with the real values. After a merge that
+  changes `kometa/` or Kometa's image, run on the server
+  `docker compose run --rm kometa --validate --validate-level full` (it must end with `Result: PASSED`)
+  ([kometa.md](kometa.md#upgrading-kometa-safely)). The agent has already recreated Kometa with the new files or
+  image; if the check fails, revert the merge.
 - **Rolling back** is a revert pull request, deployed the same way. If the service already migrated its data,
   restore that too ([Rolling back](#rolling-back)).
 - **Holding the server on a version**: check out that commit or release on the server (`git checkout vX.Y.Z`).
