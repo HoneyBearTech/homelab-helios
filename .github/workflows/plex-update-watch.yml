@@ -1,0 +1,46 @@
+name: Plex update watch
+
+# Weekly: is there a linuxserver.io Plex build newer than the one pinned in compose.yaml (a new Plex version, or a
+# rebuild of the same one with newer base packages)? Dependabot can't follow Plex's tags (docs/dependencies.md), so
+# this keeps one issue, "Plex update available", up to date with the newer builds and the latest one's digest
+# (scripts/plex_watch.py): unchanged findings edit nothing, new ones update it with one comment and the optional
+# alert, and it's closed once the pin is the newest build again. Changes nothing in the repository.
+on:
+  schedule:
+    - cron: "43 5 * * 1" # Mondays, 05:43 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two runs at once could both create the issue.
+concurrency:
+  group: plex-update-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Watch Plex builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Only this job writes, and only issues: it opens, edits, comments on and closes its own.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      # The alert secrets are optional: when one isn't set, its variable is empty and no alert goes there. Release
+      # data (untrusted text) reaches only the issue, through the script, never a shell.
+      - name: Compare with linuxserver.io's newest Plex build and update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NTFY_URL: ${{ secrets.NTFY_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python scripts/plex_watch.py

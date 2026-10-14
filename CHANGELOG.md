@@ -6,6 +6,14 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A weekly Plex update watch (`.github/workflows/plex-update-watch.yml`, `scripts/plex_watch.py`), because
+  Dependabot can't read any of Plex's image tags: while linuxserver.io has a newer Plex build than the one pinned (a
+  new Plex version or a rebuild), it keeps one issue, "Plex update available", with the newer builds and the latest
+  one's tag and digest, ready to pin. It never repeats itself, sends the same optional alert as the Kometa watch,
+  and closes the issue once the pin is the newest build.
+
 ### Changed
 
 - Dependabot's image rebuilds (the same tag moving to a new digest: a rebuild of the same app version, with newer

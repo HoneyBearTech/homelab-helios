@@ -56,8 +56,8 @@ Who can change the code, releases and project settings, as of the date of this f
 
 There are no other collaborators. Workflows use the per-job `GITHUB_TOKEN`, read-only unless a job asks for
 more, and repository secrets are only available to the workflows that name them, never to pull requests
-from forks. The project stores two kinds of repository secret, the read-only Docker Hub token and the Kometa
-upstream watch's optional alert address (below).
+from forks. The project stores two kinds of repository secret, the read-only Docker Hub token and the optional
+alert address of the Kometa and Plex watches (below).
 
 ## Granting elevated access
 
@@ -79,18 +79,17 @@ The credentials the homelab-helios project holds (not those of a homelab-helios 
 services' logins, tokens and keys, which stay in that installation's data), and how they're
 handled:
 
-- **What exists**: the maintainer's GitHub account and its recovery codes; the SSH key that signs commits
-  and tags; and, once it's set up, the read-only deploy key the maintainer's own server uses to pull the
-  repository; and a Docker Hub access token with the "public repositories, read-only" scope, stored as the
-  repository secret `DOCKERHUB_TOKEN` (with `DOCKERHUB_USERNAME`) for Actions and for Dependabot, so that CI's
-  image pulls count against an account instead of the runners' shared anonymous limit. It can't push, delete
-  or read anything private; and, optionally, the Kometa upstream watch's alert address (`NTFY_URL`, an ntfy
-  topic URL, or `DISCORD_WEBHOOK`, a Discord webhook URL; [docs/kometa.md](docs/kometa.md)), which can only post
-  to that topic or channel. Release files are signed keylessly (Sigstore), so there is no long-lived signing
-  key.
+- **What exists**: the maintainer's GitHub account and its recovery codes; the SSH key that signs commits and tags;
+  and, once it's set up, the read-only deploy key the maintainer's own server uses to pull the repository; and a
+  Docker Hub access token with the "public repositories, read-only" scope, stored as the repository secret
+  `DOCKERHUB_TOKEN` (with `DOCKERHUB_USERNAME`) for Actions and for Dependabot, so that CI's image pulls count
+  against an account instead of the runners' shared anonymous limit. It can't push, delete or read anything private;
+  and, optionally, the alert address of the Kometa upstream watch and the Plex update watch (`NTFY_URL`, an ntfy
+  topic URL, or `DISCORD_WEBHOOK`, a Discord webhook URL; [docs/kometa.md](docs/kometa.md)), which can only post to
+  that topic or channel. Release files are signed keylessly (Sigstore), so there is no long-lived signing key.
 - **Storage**: in the maintainer's password manager, never in the repository, CI logs, issues or pull
   requests. The deploy key's private half exists only on that server. Only the steps that log in to Docker
-  Hub reference the token, and only the watch's step the alert address; the smoke test logs out again before
+  Hub reference the token, and only the watches' steps the alert address; the smoke test logs out again before
   any container starts (the socket proxy and the Dozzle agent get the Docker socket, and the images under test
   include Dependabot's updates), and fork pull requests get no secrets and pull anonymously. GitHub secret
   scanning with push protection and a gitleaks scan in CI block committed secrets, and `.gitignore` excludes
