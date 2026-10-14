@@ -85,7 +85,7 @@ updater doesn't apply to its container; a new Plex version arrives as a new imag
 | `compose.gpu.yaml` | The NVIDIA GPU for Plex, added on the host with `COMPOSE_FILE` |
 | `.env.example`, `plex.env.example`, `autoheal.env.example` | Templates for the settings, Plex's claim token and autoheal's optional webhook |
 | `scripts/check_compose.py` | The policy check and SBOM generator (standard-library Python) |
-| `scripts/backup.sh`, `scripts/restore.sh` | Backup and restore of every service's data, never the media library |
+| `scripts/backup.sh`, `scripts/restore.sh` | Backup and restore of every service's data, never the media library; they hold the pull agent's lock while they run, so no deploy overlaps them |
 | `scripts/scheduled-backup.sh`, `deploy/systemd/` | Nightly backup, copied off the host with rsync and pruned, reported to an Uptime Kuma push monitor |
 | `deploy/apt/` | Host setting: keeps the NVIDIA driver out of unattended upgrades ([rebuilding.md](rebuilding.md#2-the-gpu-driver)) |
 | `scripts/smoke-test.sh` | Starts the stack in isolation, waits for health, and round-trips a backup |

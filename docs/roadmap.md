@@ -21,16 +21,19 @@ file changes with them, in the same pull request.
   with what changed upstream ([kometa.md](kometa.md)).
 - Done: first release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
-- Done: Helios runs the stack from a checkout of a release tag, on the existing data, ports and library paths,
+- Done: Helios runs the stack from a checkout of this repository, on the existing data, ports and library paths,
   so nothing that reaches the server noticed: Plex kept its libraries, watch history and identity, and players
-  didn't need to find it again.
+  didn't need to find it again. It first ran a release tag; since October 2026 it follows `main`, which a pull
+  agent deploys within minutes of each merge ([upgrading.md](upgrading.md#following-main)).
 
 ## Next: safe upgrades and rebuilds
 
-- Rehearse the documented rebuild ([rebuilding.md](rebuilding.md)) on a scratch machine, including the GPU
-  driver and the NVIDIA Container Toolkit.
 - Done: scheduled backups copied off the host (`scripts/scheduled-backup.sh`, a systemd timer), reported to Uptime
   Kuma.
+- Done: deploys by a pull agent that follows `main`, which never overlap a backup or restore (both hold the agent's
+  lock while they run).
+- Parked: rehearse the documented rebuild ([rebuilding.md](rebuilding.md)) on a scratch machine, including the GPU
+  driver and the NVIDIA Container Toolkit (not planned for now).
 
 ## Later
 
@@ -44,8 +47,8 @@ file changes with them, in the same pull request.
 - Keep CI, CodeQL, Scorecard, dependency review and the DCO check green on every change.
 - Branch protection on `main` with required checks; private vulnerability reporting; secret scanning with
   push protection.
-- Reach the OpenSSF Best Practices **Passing** and **Silver** badges, and meet **OSPS Baseline** Levels 1
-  and 2.
+- Done: the OpenSSF Best Practices **Passing** and **Silver** badges, and **OSPS Baseline** Levels 1 and 2
+  (October 2026); keep them current as the project changes.
 - Signed releases with checksums, SBOM and SLSA provenance from the first release on.
 
 ## What homelab-helios will not do

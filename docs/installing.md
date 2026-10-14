@@ -154,6 +154,13 @@ restore leaves those paths alone, and on a new host Plex, Kometa and AURA re-cre
    01:00 leaves the backup time to finish before Kometa's run at 02:00 (`KOMETA_TIMES`); if you move either, keep
    them apart, since the backup stops Kometa while it copies Kometa's data.
 
+On a server that deploys with a pull agent ([upgrading.md](upgrading.md#following-main)), `scripts/backup.sh` and
+`scripts/restore.sh` take the agent's lock before they stop anything and keep it until they finish, so a merge
+can't be deployed in the middle of a backup or restore (a deploy's `docker compose up -d` would start the service
+being copied). If a deploy is running, they wait for it (up to 30 minutes, then fail without stopping anything);
+the agent skips its runs while they hold the lock and deploys the merge afterwards. Where the agent has never run,
+there is no lock and they don't wait.
+
 Restore a copy from the backup server as [rebuilding.md](rebuilding.md) describes; `scripts/restore.sh` verifies
 its `SHA256SUMS` first, and a copy that was cut off has none yet, so it is refused.
 

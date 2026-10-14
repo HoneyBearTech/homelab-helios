@@ -17,6 +17,16 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- `scripts/backup.sh` and `scripts/restore.sh` take the pull agent's deploy lock before they stop anything and hold
+  it until they finish, so a merge can't be deployed in the middle of a backup or a restore (the deploy's
+  `docker compose up -d` would start a service while its data is being copied, and the archive of a database could
+  be inconsistent). They wait up to 30 minutes for a deploy in progress, then fail without stopping anything; the
+  agent skips its runs while they hold the lock. Where the agent has never run (CI, a development machine) they
+  don't lock. `deploy_lock` in `scripts/lib.sh`, tested in `tests/test_deploy_lock.py`
+  ([docs/installing.md](docs/installing.md#scheduled-backups)).
+- Docs: the pull agent recreates Kometa by itself when a `kometa/` file changes (only the check with the real values
+  is still run by hand) and removes unused images after each deploy; the roadmap records the move to `main`, the
+  Passing and Silver badges and the parked rebuild rehearsal; the quick start no longer waits for a first release.
 - Docs: the maintainer's server now follows `main` with a pull agent instead of running a release tag, so a merge
   deploys within about two minutes, Dependabot's automatic merges included. Rollback is a revert pull request; a
   server is held on a version by checking out that commit, which pauses the agent. Release tags stay as signed,

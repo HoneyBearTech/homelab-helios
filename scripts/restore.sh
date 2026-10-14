@@ -36,6 +36,8 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 # shellcheck source=scripts/lib.sh
 . "$root/scripts/lib.sh"
 cd "$root"
+# No deploy by the pull agent while services are stopped and their data replaced (held until this script exits).
+deploy_lock
 
 [ -f "$backup/MANIFEST" ] && [ -f "$backup/SHA256SUMS" ] || fail "$backup has no MANIFEST or SHA256SUMS"
 echo "Verifying $backup/SHA256SUMS"
