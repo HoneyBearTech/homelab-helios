@@ -47,6 +47,9 @@ service is hardened as there. The backup's systemd units stay as they are (they 
 - Every service drops every Linux capability (`cap_drop: [ALL]`) and runs with `no-new-privileges:true`. Plex adds
   back `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID` and `KILL`, Tautulli `CHOWN`, `SETUID`, `SETGID` and `KILL`;
   the others none.
+- AURA, Kometa, Kometa Quickstart, ImageMaid, the Dozzle agent and autoheal run with a read-only root filesystem
+  (`/tmp` in memory where the image writes temporary files), as socket-proxy already did. Plex and Tautulli keep a
+  writable one: LinuxServer.io's init would ignore `PUID`/`PGID` on a read-only root.
 - The policy check enforces it, as in homelab-ares: new rules `no-new-privileges` and `cap-drop`; `cap-add` now
   fails only on a capability outside Docker's default set; new rule `devices` (no host device mapped into a
   container; a GPU reservation under `deploy.resources` is allowed).

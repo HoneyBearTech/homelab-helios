@@ -80,6 +80,8 @@ backup timer.
   the capabilities from Docker's default set its image needs, each with a comment saying why (Plex: `CHOWN
   DAC_OVERRIDE SETUID SETGID KILL`; Tautulli: `CHOWN SETUID SETGID KILL`; the rest none; docs/security.md#hardening).
   Prove a new one by starting the image without it (LinuxServer.io's s6 init needs `KILL` to stop its app cleanly).
+  Every service but Plex and Tautulli has a read-only root (`read_only: true`, `tmpfs` for what the image writes);
+  LinuxServer.io's init ignores `PUID`/`PGID` on a read-only root, so those two stay writable.
 - **No privileged containers, capabilities beyond Docker's defaults, host network/PID, device mappings or Docker
   socket mounts** unless the service carries `org.honeybeartech.helios.allow.<rule>: "<reason>"` and the owner agreed (Plex runs on the
   stack's network, publishing only 32400: owner 2026-10-07; it ran in host mode before the cutover). `scripts/check_compose.py` enforces it in CI

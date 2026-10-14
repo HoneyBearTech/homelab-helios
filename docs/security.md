@@ -53,17 +53,17 @@ a non-empty reason:
 
 What each service runs with, beyond the policy. Every service has `cap_drop: [ALL]` and
 `no-new-privileges:true` (the `x-hardened` anchor in `compose.yaml`); the smoke test proves each one still starts
-healthy and survives a backup and restore with these settings. Each capability added back was proven by starting
-the image without it.
+healthy and survives a backup and restore with these settings, with its data directories owned by `PUID:PGID` as
+on a host. Each capability added back was proven by starting the image without it.
 
-| Service | Capabilities added back | Why |
-| --- | --- | --- |
-| plex | `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID`, `KILL` | Its init (s6-overlay) runs as root: it takes ownership of `/config`, reads Plex's `Preferences.xml` (readable only by Plex's user) and removes a stale pid file after an unclean stop, starts Plex as its own user, and signals it to stop (without `KILL`, every stop waits for Docker's timeout and kills Plex) |
-| tautulli | `CHOWN`, `SETUID`, `SETGID`, `KILL` | The same init: ownership of `/config`, Tautulli as its own user, a clean stop |
-| aura, kometa, quickstart, imagemaid | none | They run as `PUID:PGID` and write only their data directories |
-| dozzle-agent | none | Reads the Docker socket, which belongs to root |
-| autoheal | none | Only talks to socket-proxy |
-| socket-proxy | none | Only reads the socket (read-only root filesystem, `/run` and `/tmp` in memory) |
+| Service | Capabilities added back | Read-only root filesystem | Why |
+| --- | --- | --- | --- |
+| plex | `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID`, `KILL` | no | Its init (s6-overlay) runs as root: it takes ownership of `/config`, reads Plex's `Preferences.xml` (readable only by Plex's user) and removes a stale pid file after an unclean stop, starts Plex as its own user, and signals it to stop (without `KILL`, every stop waits for Docker's timeout and kills Plex). On a read-only root the init ignores `PUID`/`PGID` and runs Plex as uid 911, which doesn't own the data |
+| tautulli | `CHOWN`, `SETUID`, `SETGID`, `KILL` | no | The same init: ownership of `/config`, Tautulli as its own user, a clean stop; writable root for the same reason |
+| aura, kometa, quickstart, imagemaid | none | yes (`/tmp` in memory) | They run as `PUID:PGID` and write only their data directories |
+| dozzle-agent | none | yes (`/tmp` in memory) | Reads the Docker socket, which belongs to root |
+| autoheal | none | yes | Only talks to socket-proxy |
+| socket-proxy | none | yes (`/run`, `/tmp` in memory) | Only reads the socket |
 
 Plex's GPU is a device reservation handled by the NVIDIA runtime outside the container, so it needs no
 capability; CI has no GPU, so only the host proves it. The Dozzle agent, autoheal and socket-proxy still run as
