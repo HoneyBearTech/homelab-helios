@@ -59,7 +59,8 @@ point makes it see a new library and rescan everything, losing watch state for f
 same image family too (Plex's own or LinuxServer.io's), since they lay out `/config` differently. Take a backup
 of the old data first.
 
-Running `main` instead of a release is possible but unsupported for anything you depend on.
+The maintainer's server runs `main` rather than a release, and deploys every merge by itself
+([upgrading.md](upgrading.md#following-main)). For your own setup, a release is the safer choice.
 
 ## Running it securely
 

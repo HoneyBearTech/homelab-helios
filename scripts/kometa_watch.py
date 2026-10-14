@@ -239,8 +239,8 @@ def render(findings: Findings) -> str:
     lines = [
         (
             "Kometa upstream compared with `compose.yaml` by the weekly watch (`scripts/kometa_watch.py`). "
-            "Dependabot proposes the update itself; merge it once the `Kometa config` check passes, then deploy "
-            "as in `docs/upgrading.md`."
+            "Dependabot proposes the update itself; it merges once the `Kometa config` check passes, and the merge "
+            "deploys it: then validate Kometa on the server as in `docs/kometa.md`."
         ),
         "",
         "| | Tag | Image digest |",

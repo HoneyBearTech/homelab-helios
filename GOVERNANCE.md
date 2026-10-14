@@ -34,7 +34,7 @@ reasoning, and may change course. Because the code is MIT-licensed, you can alwa
 
 Automated tools also take part: Dependabot proposes updates to the stack's images, the Python check tools
 and the GitHub Actions (patch, minor and major updates merge automatically once every required check passes; a
-merge never deploys, and the maintainer reads a major version's release notes before redeploying), and CI with the Compose policy check, CodeQL, dependency review and
+merge deploys to the maintainer's server), and CI with the Compose policy check, CodeQL, dependency review and
 OpenSSF Scorecard check every change.
 
 ## Access to sensitive resources

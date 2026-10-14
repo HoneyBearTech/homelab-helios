@@ -49,8 +49,10 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
   logs in one web UI
 
 Every service has a health check that autoheal watches, and every image is pinned by tag **and** digest, for
-`linux/amd64`. New versions arrive as Dependabot pull requests that CI checks and the maintainer merges;
-nothing on the host updates itself.
+`linux/amd64`. New versions arrive as Dependabot pull requests that CI checks before they're merged.
+The maintainer's server follows `main`: a pull agent there applies each merge within a couple of minutes
+([upgrading](docs/upgrading.md#following-main)). Nothing updates from a registry tag by itself: what runs is always a
+commit in `main`.
 
 ## Getting started
 
@@ -79,7 +81,8 @@ make check                        # policy check: every image pinned, nothing pr
 scripts/backup.sh                 # back up every service's data (stops each briefly), never the media library
 ```
 
-Upgrading to a new release: [docs/upgrading.md](docs/upgrading.md).
+Upgrading to a new release, or following `main` the way the maintainer's server does:
+[docs/upgrading.md](docs/upgrading.md).
 
 ## Configuration
 
@@ -119,7 +122,8 @@ A new Plex server's one-time claim token goes in a gitignored `plex.env`, never 
   Docker socket: it goes through a proxy that only lets it list, inspect, restart and stop containers. Its
   optional webhook URL (restart notices, for example to Discord) goes in `autoheal.env` (template
   [`autoheal.env.example`](autoheal.env.example), mode `600`, gitignored).
-- Don't run an auto-updater such as Watchtower on these containers; upgrade by release instead.
+- Don't run an auto-updater such as Watchtower on these containers; upgrade from this repository instead (a
+  release, or `main`).
 - Every service drops every Linux capability and runs with `no-new-privileges`, adding back only what its image
   needs. The policy check refuses that being skipped, privileged containers, capabilities beyond Docker's
   defaults, device mappings, host networking and Docker socket mounts unless a service documents why

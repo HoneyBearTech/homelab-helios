@@ -172,7 +172,7 @@ def render(findings: Findings) -> str:
         (
             "linuxserver.io's Plex builds compared with `compose.yaml` by the weekly watch (`scripts/plex_watch.py`). "
             "Dependabot can't follow Plex's tags, so this update is made by hand: pin the latest build's tag and "
-            "digest below in a pull request, then deploy as in `docs/upgrading.md`."
+            "digest below in a pull request; merging it deploys it (`docs/upgrading.md`)."
         ),
         "",
         "| | Tag | Image digest |",
