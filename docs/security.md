@@ -57,7 +57,7 @@ a non-empty reason:
 - **Access to the other web UIs.** Keeping Tautulli and AURA on the LAN, behind a reverse proxy's access lists,
   is the operator's job. Kometa Quickstart has no login at all: anyone on the LAN can read the tokens in it while
   it runs, so the stack doesn't start it with the others and doesn't restart it after a reboot; running it only
-  while it's used, and never beyond the LAN, is the operator's job ([quickstart.md](quickstart.md)).
+  while it's used, and never beyond the LAN, is the operator's job ([quickstart.md](kometa-quickstart.md)).
 - **Plex's data, to ImageMaid.** ImageMaid mounts Plex's data directory read-write and deletes images Plex no
   longer uses; a faulty version could delete more. Back up before upgrading it, as for Plex.
 - **The media library.** Plex and AURA mount it read-write: AURA writes artwork into it, and Plex deletes files

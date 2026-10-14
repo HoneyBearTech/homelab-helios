@@ -58,6 +58,7 @@ cleanup() {
 networks=()
 trap cleanup EXIT
 
+data_dirs=()
 while IFS= read -r line; do
   [ -n "$line" ] || continue
   key=${line%%=*}
@@ -68,8 +69,7 @@ while IFS= read -r line; do
       mkdir -p "$value"
       # Placeholder data a service needs to start at all (Kometa's config.yml), from tests/smoke/<setting>/.
       if [ -d "$root/tests/smoke/$name" ]; then cp -R "$root/tests/smoke/$name/." "$value/"; fi
-      # Writable by any user: some services run as a fixed uid that isn't the caller's.
-      chmod -R a+rwX "$value"
+      data_dirs+=("$value")
       ;;
     *_PREFIX) value=${project}_ ;;
     *_VOLUME) value=${project}_$(echo "$key" | tr 'A-Z_' 'a-z-') ;;
@@ -78,6 +78,22 @@ while IFS= read -r line; do
   esac
   printf '%s=%s\n' "$key" "$value"
 done <<<"$settings" >"$work/env"
+
+# The directories are owned as on a host: by PUID:PGID with mode 0755 when the stack sets PUID (the LinuxServer.io
+# images' convention), so a service that needs more than that, such as DAC_OVERRIDE to write into a directory it
+# doesn't own, fails here rather than at a deploy. Without PUID they're writable by any user: some services run as
+# a fixed uid that isn't the caller's. chown runs as root in a throwaway container, and covers the placeholder data
+# copied in above (on the host, all of a service's data belongs to PUID:PGID).
+puid=$(sed -n 's/^PUID=//p' "$work/env")
+pgid=$(sed -n 's/^PGID=//p' "$work/env")
+for dir in "${data_dirs[@]+"${data_dirs[@]}"}"; do
+  if [ -n "$puid" ]; then
+    docker run --rm --network none -v "$dir:/data" "$busybox" \
+      sh -c 'chown -R "$1:$2" /data && chmod 0755 /data' own "$puid" "${pgid:-$puid}" </dev/null
+  else
+    chmod -R a+rwX "$dir"
+  fi
+done
 
 # Networks the stack expects to exist (external ones, named by *_NETWORK settings) are created for the test only.
 while IFS='=' read -r key value; do
@@ -118,7 +134,8 @@ YAML
 } >"$work/override.yaml"
 
 compose config --quiet
-echo "Starting $(compose config --services | wc -l | tr -d ' ') services, waiting up to ${timeout}s for them to be healthy"
+echo "Starting $(compose config --services | wc -l | tr -d ' ') services," \
+  "waiting up to ${timeout}s for them to be healthy"
 # One retry: a service that fetches something from the internet as it starts can fail on the network, not the
 # stack. A service that is really broken fails both attempts.
 if ! compose up --detach --quiet-pull --wait --wait-timeout "$timeout"; then
@@ -188,6 +205,8 @@ else
     grep -Eq "^$network"$'\t'"[0-9a-f.:]+/[0-9]+"$'\t' "$work/backup/NETWORKS" ||
       fail "the backup's NETWORKS doesn't record the address range of $network"
   done
+  # NETWORKS is written even when the stack joins no network it doesn't create (then it has only its header).
+  [ -f "$work/backup/NETWORKS" ] || fail "the backup has no NETWORKS"
   [ -s "$work/backup/VERSION" ] || fail "the backup has no VERSION"
   [ "$(compose ps --services --status running | wc -l)" -eq "$(compose config --services | wc -l)" ] ||
     fail "backup.sh didn't start every service again"
