@@ -51,7 +51,10 @@ backup timer.
 
 ## Rules for the stack
 - **Every image is pinned as `name:tag@sha256:<digest>`.** Never `latest`, never tag-only. Dependabot
-  (`docker-compose` ecosystem) updates tag and digest together. Patch, minor and major updates auto-merge once
+  (`docker-compose` ecosystem) updates tag and digest together. linuxserver.io images use their
+  `version-<app version>` tag (socket-proxy its bare version), never the `-lsNNN` build tag: Dependabot can't
+  follow those. Plex is the exception: no Plex tag is one Dependabot can read (its version carries a commit
+  hash), so it keeps its build tag and is updated by hand. Patch, minor and major updates auto-merge once
   the required checks pass (Plex included: it can't touch the media; majors too, owner 2026-10-08). A merge
   never deploys: Helios changes only on a deliberate pull, and a major's release notes are read before it
   (it can migrate a service's data one way).
