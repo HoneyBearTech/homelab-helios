@@ -8,12 +8,17 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- Dependabot's image rebuilds (the same tag moving to a new digest: a rebuild of the same app version, with newer
+  base packages) now merge automatically once every required check passes, as on homelab-atlas. The rule merges only
+  a pull request whose one changed file is `compose.yaml`, whose changed lines are all `image:` lines, and whose
+  image tags stay the same.
 - Tautulli is pinned by its linuxserver.io `version-<app version>` tag (`version-v2.18.2`) and socket-proxy by its
   bare version (`3.4.6`, as on the other homelab stacks) instead of their build tags (`v2.18.2-ls246`,
   `3.4.6-r0-ls101`). Dependabot reads a build tag's `-lsNNN` as a suffix that must match exactly, so it never
   proposed a new version or build of either; now it proposes both. The digests are unchanged, so the images are
   the ones pinned before, and Dependabot brings the newer builds in its own pull requests. Plex keeps its build tag:
   no Plex tag is one Dependabot can read, so Plex is updated by hand.
+
 
 ## [0.3.0] - 2026-10-14
 
