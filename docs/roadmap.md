@@ -21,9 +21,9 @@ file changes with them, in the same pull request.
   with what changed upstream ([kometa.md](kometa.md)).
 - Done: first release (0.1.0) before Helios switches over, so the server is first deployed from a signed, verified
   version.
-- Switch Helios to run the stack from a checkout of this repository, adopting the existing data, ports and
-  library paths so nothing that reaches the server notices: Plex keeps its libraries, watch history and
-  identity, and players don't need to find it again.
+- Done: Helios runs the stack from a checkout of a release tag, on the existing data, ports and library paths,
+  so nothing that reaches the server noticed: Plex kept its libraries, watch history and identity, and players
+  didn't need to find it again.
 
 ## Next: safe upgrades and rebuilds
 
