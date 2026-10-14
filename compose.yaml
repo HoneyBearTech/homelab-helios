@@ -49,6 +49,8 @@ services:
     image: lscr.io/linuxserver/plex:1.43.4.10903-e5521bd8c-ls327@sha256:06e07af2851e6a822e89062b148435495dd794d6d5aaf36247dee05fb3dcc4b8
     container_name: plex
     restart: unless-stopped
+    # Its root filesystem stays writable: the init (s6-overlay) rewrites /etc/passwd to give abc PUID/PGID, and on a
+    # read-only root it ignores PUID/PGID and runs as uid 911, which doesn't own the data.
     # Its init (s6-overlay) runs as root and starts Plex as abc (PUID/PGID), so it needs these of Docker's default
     # capabilities. Each is proven by the smoke test or by starting the image without it.
     cap_add:
@@ -94,6 +96,8 @@ services:
     image: lscr.io/linuxserver/tautulli:v2.18.2-ls246@sha256:bfcd2f3f6f89d2171d161ac1780723d1633f8de3c4c993d0dc52aa9edb729e16
     container_name: tautulli
     restart: unless-stopped
+    # Its root filesystem stays writable: the init (s6-overlay) rewrites /etc/passwd to give abc PUID/PGID, and on a
+    # read-only root it ignores PUID/PGID and runs as uid 911, which doesn't own the data.
     # Its init (s6-overlay) runs as root and starts Tautulli as abc (PUID/PGID), so it needs these of Docker's
     # default capabilities. Each is proven by the smoke test or by starting the image without it.
     cap_add:
@@ -118,6 +122,10 @@ services:
     image: ghcr.io/mediux-team/aura:v0.9.108@sha256:2686144a003dd5ac1f86188b60bb77f9ef7286bc7bb89d5a1414351bce07a6d7
     container_name: aura
     restart: unless-stopped
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     labels:
       <<: *labels
@@ -149,6 +157,10 @@ services:
     image: kometateam/kometa:v2.5.2@sha256:06e498cded70c9815522c6b2d8708b31759c1e37714746d1eeb56f1e40a8fd95
     container_name: kometa
     restart: unless-stopped
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     labels:
       <<: *labels
@@ -197,6 +209,10 @@ services:
     profiles: [tools]
     # Not restarted after a reboot: it is reachable without a login only while someone has it running.
     restart: "no"
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     labels:
       <<: *labels
@@ -218,6 +234,10 @@ services:
     image: kometateam/imagemaid:v1.2.0@sha256:94cf9ed79a264238c64cdcbf241822fc3569225cc103de542a6390bfaf393034
     container_name: imagemaid
     restart: unless-stopped
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     # Plex creates the directories ImageMaid works in.
     depends_on:
@@ -257,6 +277,10 @@ services:
     image: amir20/dozzle:v11.3.2@sha256:0d8cf9702f422d65a7e8ad238785dc6b05b2b9c43c945f6bbdf3358ad5da5f6c
     container_name: dozzle-agent
     restart: unless-stopped
+    # Writes nothing outside temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     command: agent
     healthcheck:
       <<: *healthcheck
@@ -279,6 +303,7 @@ services:
     image: willfarrell/autoheal:latest@sha256:e7f42d5365c7c4490dd0cafc2858bb9fd2d64a274448d2de2bb5c386f1af7a0f
     container_name: autoheal
     restart: unless-stopped
+    read_only: true
     # autoheal exits if it can't reach the proxy, so it starts only once the proxy answers. (After a host reboot
     # Docker starts both at once; autoheal then restarts until the proxy is up, a few seconds.)
     depends_on:
