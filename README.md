@@ -120,8 +120,10 @@ A new Plex server's one-time claim token goes in a gitignored `plex.env`, never 
   optional webhook URL (restart notices, for example to Discord) goes in `autoheal.env` (template
   [`autoheal.env.example`](autoheal.env.example), mode `600`, gitignored).
 - Don't run an auto-updater such as Watchtower on these containers; upgrade by release instead.
-- The policy check refuses privileged containers, added capabilities, host networking and Docker socket
-  mounts unless a service documents why ([docs/security.md](docs/security.md)).
+- Every service drops every Linux capability and runs with `no-new-privileges`, adding back only what its image
+  needs. The policy check refuses that being skipped, privileged containers, capabilities beyond Docker's
+  defaults, device mappings, host networking and Docker socket mounts unless a service documents why
+  ([docs/security.md](docs/security.md#hardening)).
 
 Report vulnerabilities privately: [SECURITY.md](SECURITY.md).
 

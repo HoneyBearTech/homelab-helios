@@ -9,6 +9,14 @@
 
 name: homelab-helios
 
+# Every service starts with no Linux capabilities and can't gain privileges (setuid binaries, file capabilities);
+# a service that needs a capability adds back only that one, from Docker's default set (docs/security.md#hardening).
+x-hardened: &hardened
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
 x-linuxserver-env: &linuxserver-env
   PUID: ${PUID:?set PUID in .env}
   PGID: ${PGID:?set PGID in .env}
@@ -37,9 +45,20 @@ services:
   # it through plex.tv; Docker keeps the client's address, so Plex's LAN settings still apply). VERSION=docker
   # makes the image run the Plex it ships with instead of downloading the newest one at every start.
   plex:
+    <<: *hardened
     image: lscr.io/linuxserver/plex:1.43.4.10903-e5521bd8c-ls327@sha256:06e07af2851e6a822e89062b148435495dd794d6d5aaf36247dee05fb3dcc4b8
     container_name: plex
     restart: unless-stopped
+    # Its root filesystem stays writable: the init (s6-overlay) rewrites /etc/passwd to give abc PUID/PGID, and on a
+    # read-only root it ignores PUID/PGID and runs as uid 911, which doesn't own the data.
+    # Its init (s6-overlay) runs as root and starts Plex as abc (PUID/PGID), so it needs these of Docker's default
+    # capabilities. Each is proven by the smoke test or by starting the image without it.
+    cap_add:
+      - CHOWN # takes ownership of /config (a new server: Plex can't start without it)
+      - DAC_OVERRIDE # reads Preferences.xml (mode 600, abc's) and removes a stale pid file after an unclean stop
+      - SETUID # starts Plex as abc
+      - SETGID
+      - KILL # signals Plex (abc) to stop; without it every stop waits for Docker's timeout and kills Plex
     labels:
       <<: *labels
       # The library is too large to back up here (the storage that holds it keeps snapshots); the cache and
@@ -73,9 +92,19 @@ services:
 
   # Watches Plex: activity, history, statistics and notifications.
   tautulli:
+    <<: *hardened
     image: lscr.io/linuxserver/tautulli:v2.18.2-ls246@sha256:bfcd2f3f6f89d2171d161ac1780723d1633f8de3c4c993d0dc52aa9edb729e16
     container_name: tautulli
     restart: unless-stopped
+    # Its root filesystem stays writable: the init (s6-overlay) rewrites /etc/passwd to give abc PUID/PGID, and on a
+    # read-only root it ignores PUID/PGID and runs as uid 911, which doesn't own the data.
+    # Its init (s6-overlay) runs as root and starts Tautulli as abc (PUID/PGID), so it needs these of Docker's
+    # default capabilities. Each is proven by the smoke test or by starting the image without it.
+    cap_add:
+      - CHOWN # takes ownership of /config (new data: Tautulli can't start without it)
+      - SETUID # starts Tautulli as abc
+      - SETGID
+      - KILL # signals Tautulli (abc) to stop; without it every stop waits for Docker's timeout and kills it
     labels: *labels
     healthcheck:
       <<: *healthcheck
@@ -89,9 +118,14 @@ services:
   # MediUX's artwork manager: browse artwork sets and apply them to Plex, saving artwork next to the media or
   # writing sets for Kometa. The media is mounted at the same path as in Plex, as AURA requires.
   aura:
+    <<: *hardened
     image: ghcr.io/mediux-team/aura:v0.9.108@sha256:2686144a003dd5ac1f86188b60bb77f9ef7286bc7bb89d5a1414351bce07a6d7
     container_name: aura
     restart: unless-stopped
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     labels:
       <<: *labels
@@ -119,9 +153,14 @@ services:
   # directory (kometa.env.example). Logs, cache, assets and overlays stay in the data directory. A single-file
   # mount keeps the old file after a git pull until the container is recreated (docs/upgrading.md).
   kometa:
+    <<: *hardened
     image: kometateam/kometa:v2.5.2@sha256:06e498cded70c9815522c6b2d8708b31759c1e37714746d1eeb56f1e40a8fd95
     container_name: kometa
     restart: unless-stopped
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     labels:
       <<: *labels
@@ -164,11 +203,16 @@ services:
   # runs and its self-updater download unpinned code from GitHub; the stack's pinned Kometa and ImageMaid do that
   # work instead (docs/kometa-quickstart.md).
   quickstart:
+    <<: *hardened
     image: kometateam/quickstart:v0.10.12@sha256:edb5319f7a4884c62fb175dd4f1c210bbc95d8c86b2a48291d05e231ffa90cc5
     container_name: quickstart
     profiles: [tools]
     # Not restarted after a reboot: it is reachable without a login only while someone has it running.
     restart: "no"
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     labels:
       <<: *labels
@@ -186,9 +230,14 @@ services:
   # Removes images Plex no longer uses from Plex's data directory, on its schedule. Its .env (Plex's address and
   # token, the mode, notifications) lives in its data directory; the schedule and Plex's path come from here.
   imagemaid:
+    <<: *hardened
     image: kometateam/imagemaid:v1.2.0@sha256:94cf9ed79a264238c64cdcbf241822fc3569225cc103de542a6390bfaf393034
     container_name: imagemaid
     restart: unless-stopped
+    # Writes only its data and temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     user: ${PUID:?set PUID in .env}:${PGID:?set PGID in .env}
     # Plex creates the directories ImageMaid works in.
     depends_on:
@@ -224,9 +273,14 @@ services:
   # logs of every host in one web UI. It has no web UI of its own and no data to back up. Keep it on the hub's
   # version.
   dozzle-agent:
+    <<: *hardened
     image: amir20/dozzle:v11.3.2@sha256:0d8cf9702f422d65a7e8ad238785dc6b05b2b9c43c945f6bbdf3358ad5da5f6c
     container_name: dozzle-agent
     restart: unless-stopped
+    # Writes nothing outside temporary files: the image itself stays read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
     command: agent
     healthcheck:
       <<: *healthcheck
@@ -245,9 +299,11 @@ services:
   # container whose process exits). It reaches Docker only through socket-proxy, which lets it list, inspect,
   # restart and stop containers and nothing else. Optional restart notices go to a webhook from autoheal.env.
   autoheal:
+    <<: *hardened
     image: willfarrell/autoheal:latest@sha256:e7f42d5365c7c4490dd0cafc2858bb9fd2d64a274448d2de2bb5c386f1af7a0f
     container_name: autoheal
     restart: unless-stopped
+    read_only: true
     # autoheal exits if it can't reach the proxy, so it starts only once the proxy answers. (After a host reboot
     # Docker starts both at once; autoheal then restarts until the proxy is up, a few seconds.)
     depends_on:
@@ -282,6 +338,7 @@ services:
   # listing and inspecting containers, and restarting or stopping them (CONTAINERS, ALLOW_RESTARTS). Creating,
   # starting or deleting containers, exec, images, volumes and every other POST are refused.
   socket-proxy:
+    <<: *hardened
     image: lscr.io/linuxserver/socket-proxy:3.4.6-r0-ls101@sha256:362cadf55b3c7920189347d0f4d60b389e2f80e929581bf10793f2371aab41e5
     container_name: socket-proxy
     restart: unless-stopped
