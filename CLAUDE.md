@@ -191,8 +191,9 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
   without the owner's OK. Never bypass a check or the ruleset.
   Dependabot's patch, minor and major updates and image rebuilds still auto-merge through
   `dependabot-auto-merge.yml` once every required check passes, so they now deploy unattended, majors included;
-  Plex is pinned by hand. Keeping that auto-merge (above all for majors) is the owner's call: don't change
-  `dependabot-auto-merge.yml` without it.
+  Plex is pinned by hand. Keeping that auto-merge (above all for majors; owner 2026-10-08, kept 2026-10-14) is the
+  owner's call: don't change `dependabot-auto-merge.yml` without it. Claude never merges a major update itself:
+  majors are merged only by Dependabot's auto-merge or by the owner.
 
 ## Commands
 ```sh
