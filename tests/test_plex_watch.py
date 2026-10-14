@@ -258,3 +258,16 @@ def test_main_dry_run(upstream: FakeGitHub, capsys: pytest.CaptureFixture[str]) 
 def test_main_reports_what_it_couldnt_check(capsys: pytest.CaptureFixture[str]) -> None:
     assert pw.main(["--repo", "o/r", "--pinned", "bad"]) == 1
     assert "::error::" in capsys.readouterr().out
+
+
+def test_main_test_alert(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    posted: list[str] = []
+    monkeypatch.setattr(pw, "post", lambda url, *_: posted.append(url))
+    monkeypatch.setenv("DISCORD_WEBHOOK", "https://d.example/w")
+    monkeypatch.delenv("NTFY_URL", raising=False)
+    assert pw.main(["--test-alert"]) == 0
+    assert posted == ["https://d.example/w"]
+    assert "Test alert sent: discord" in capsys.readouterr().out
+    monkeypatch.delenv("DISCORD_WEBHOOK")
+    assert pw.main(["--test-alert"]) == 1
+    assert "none" in capsys.readouterr().out
