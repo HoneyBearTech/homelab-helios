@@ -16,15 +16,8 @@ setting marked required stops `docker compose` with an error naming it when it's
 | `TZ` | yes | `Etc/UTC` | Time zone (tz database name) for logs and schedules. |
 | `PUID`, `PGID` | yes | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library. |
 | `MEDIA_PATH` | yes | `/srv/media` | Host path of the media library, mounted read-write into Plex and AURA. Never backed up by this stack. |
-| `PLEX_CONFIG_PATH` | yes | `/srv/appdata/plex` | Plex's database, metadata and settings. |
-| `PLEX_CACHE_PATH` | yes | `/srv/plex-cache` | Plex's cache (disposable, not backed up). |
-| `PLEX_TRANSCODE_PATH` | yes | `/srv/plex-transcode` | Scratch space for transcodes in progress (not backed up). |
-| `TAUTULLI_CONFIG_PATH` | yes | `/srv/appdata/tautulli` | Tautulli's database and settings. |
-| `AURA_CONFIG_PATH` | yes | `/srv/appdata/aura` | AURA's settings, including its Plex and MediUX tokens. |
-| `KOMETA_CONFIG_PATH` | yes | `/srv/appdata/kometa` | Kometa's data: the `.env` with its Plex token and API keys (from `kometa.env.example`), overlays, assets, cache, logs. Its `config.yml` and collection files come from `kometa/` (read-only). AURA writes artwork sets into its `aura` directory. |
+| `CONFIG_ROOT` | yes | `/srv/config` | Host directory every app keeps its data in: `CONFIG_ROOT/<app>/config` (`<app>` is the service's name) at the app's data path, and the app's other folders beside it as `CONFIG_ROOT/<app>/<purpose>` (Plex's `cache` and `transcode`, never backed up). Never inside `/var/lib/docker/volumes`: a volume prune deletes data kept there ([installing.md](installing.md#where-data-lives)). |
 | `KOMETA_TIMES` | no | `02:00` | When Kometa runs each day (`HH:MM`, comma-separated). |
-| `IMAGEMAID_CONFIG_PATH` | yes | `/srv/appdata/imagemaid` | ImageMaid's settings (its `.env`: Plex's address and token, the mode, notifications). |
-| `QUICKSTART_CONFIG_PATH` | yes | `/srv/appdata/quickstart` | Kometa Quickstart's data: its SQLite database, with the configs built in it and the Plex token and API keys entered there. |
 | `IMAGEMAID_SCHEDULE` | yes | `22:00\|weekly(sunday)` | When ImageMaid runs, in its own schedule syntax. |
 | `UMASK` | no | `002` | File-creation mask for Plex and Tautulli. |
 
@@ -92,22 +85,24 @@ the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml` in `.env`.
 
 ## Volumes and mounts
 
+Every mount is a host directory: the stack declares no named Docker volumes, and no service keeps data in one.
+
 | Container path | Host source | Service |
 | --- | --- | --- |
 | `/media` | `MEDIA_PATH` | Plex: the media library (read-write; never backed up) |
-| `/config` | `PLEX_CONFIG_PATH` | Plex: database, metadata, settings |
-| Plex's `Cache` directory under `/config` | `PLEX_CACHE_PATH` | Plex: cache (not backed up) |
-| `/transcode` | `PLEX_TRANSCODE_PATH` | Plex: transcodes in progress (not backed up) |
-| `/config` | `TAUTULLI_CONFIG_PATH` | Tautulli: database, settings, Plex token |
-| `/config` | `AURA_CONFIG_PATH` | AURA: settings, Plex and MediUX tokens |
-| `/kometa` | `KOMETA_CONFIG_PATH/aura` | AURA: artwork sets for Kometa (backed up with Kometa's data) |
-| `/config` | `KOMETA_CONFIG_PATH` | Kometa: its `.env` (secrets), overlays, assets, cache, logs |
+| `/config` | `CONFIG_ROOT/plex/config` | Plex: database, metadata, settings |
+| Plex's `Cache` directory under `/config` | `CONFIG_ROOT/plex/cache` | Plex: cache (not backed up) |
+| `/transcode` | `CONFIG_ROOT/plex/transcode` | Plex: transcodes in progress (not backed up) |
+| `/config` | `CONFIG_ROOT/tautulli/config` | Tautulli: database, settings, Plex token |
+| `/config` | `CONFIG_ROOT/aura/config` | AURA: settings, Plex and MediUX tokens |
+| `/kometa` | `CONFIG_ROOT/kometa/config/aura` | AURA: artwork sets for Kometa (backed up with Kometa's data) |
+| `/config` | `CONFIG_ROOT/kometa/config` | Kometa: its `.env` (secrets), overlays, assets, cache, logs |
 | `/config/config.yml` and `/config/<name>.yml` for each collection file | `kometa/` in the checkout, read-only | Kometa: its configuration, placeholders only (not backed up: it's in git) |
-| `/auraassets` | `AURA_CONFIG_PATH/auraassets` | Kometa: AURA's artwork (backed up with AURA's data) |
-| `/config` | `IMAGEMAID_CONFIG_PATH` | ImageMaid: settings |
-| `/config` | `QUICKSTART_CONFIG_PATH` | Quickstart: its SQLite database (configs, with the Plex token and API keys entered in it), logs, caches |
-| `/plex` | `PLEX_CONFIG_PATH/Library/Application Support/Plex Media Server` | ImageMaid: Plex's data, to clean (backed up with Plex's data) |
-| `/plex/Cache` | `PLEX_CACHE_PATH` | ImageMaid: Plex's cache, for its PhotoTranscoder cleanup (not backed up) |
+| `/auraassets` | `CONFIG_ROOT/aura/config/auraassets` | Kometa: AURA's artwork (backed up with AURA's data) |
+| `/config` | `CONFIG_ROOT/imagemaid/config` | ImageMaid: settings |
+| `/config` | `CONFIG_ROOT/quickstart/config` | Quickstart: its SQLite database (configs, with the Plex token and API keys entered in it), logs, caches |
+| `/plex` | `CONFIG_ROOT/plex/config/Library/Application Support/Plex Media Server` | ImageMaid: Plex's data, to clean (backed up with Plex's data) |
+| `/plex/Cache` | `CONFIG_ROOT/plex/cache` | ImageMaid: Plex's cache, for its PhotoTranscoder cleanup (not backed up) |
 | `/media` | `MEDIA_PATH` | AURA: saves artwork next to the media (read-write; never backed up) |
 | `/var/run/docker.sock` (read-only) | the Docker socket | socket-proxy and the Dozzle agent only (allowed exceptions, see below; not backed up) |
 
@@ -135,8 +130,8 @@ published; autoheal also joins the default network, to reach its webhook.
 | `make test`, `make lint` | The checker's tests and the linters |
 | `scripts/backup.sh [DIR]` | Archives every service's data mounts (every read-write volume or bind mount except the Docker socket, anonymous volumes and the paths in the service's `backup.skip` label: the media library, Plex's cache and transcode directory; a mount inside another mount, such as Plex's cache inside its `/config`, and the paths in the service's `backup.exclude` label are left out of the outer archive), `.env` and any `<service>.env` into `DIR` (default `backups/<date>-<time>`, gitignored) with a `MANIFEST`, `NETWORKS` (the address range of each network the stack uses but doesn't create; none today, so only its header), `VERSION` (the checkout's `git describe`) and `SHA256SUMS`, all mode `600`. Each service is stopped only while its own data is copied and started again (with any service Compose stopped along with it) before the copy is compressed (with `pigz` when it's installed, else `gzip`). A tool that has never been started (Quickstart) has no data yet and is skipped. Holds the pull agent's deploy lock from the start (see below). Exit 0 = backup complete |
 | `scripts/scheduled-backup.sh` | Runs `scripts/backup.sh` into `BACKUP_DIR/<date>-<time>`, copies it to `BACKUP_REMOTE` with rsync (`SHA256SUMS` last), deletes all but the newest `BACKUP_REMOTE_KEEP` there and `BACKUP_KEEP` here, and reports to `BACKUP_PING_URL` ([`backup.env`](#backupenv)). Run nightly by the systemd user units in `deploy/systemd/` |
-| `scripts/restore.sh [--yes] DIR [SERVICE...]` | Verifies `DIR/SHA256SUMS`, checks the `MANIFEST`, asks for confirmation (unless `--yes`), stops the services, replaces the contents of each listed mount with its archive, and starts what was running. Writes only mounts the service still has read-write; never the Docker socket, a path in the service's `backup.skip` label, another mount inside the one it restores, or a path in its `backup.exclude` label. Fails before anything stops if a `backup.exclude` label is invalid. Holds the pull agent's deploy lock from the start |
-| `make smoke` | `scripts/smoke-test.sh`: starts every service under a separate Compose project with throwaway directories (owned by `PUID:PGID`, mode 0755, as on a host), no GPU and no published ports, waits until all are healthy, round-trips a backup and restore over every data mount, checks the backup's `NETWORKS` and `VERSION`, checks that excluded mounts and left-out paths were neither archived nor overwritten, runs the scheduled backup against a stand-in backup server and checks the copy and the pruning, makes a test container unhealthy and checks that autoheal restarts it, then removes what it created. Exit 0 = all healthy and restored (or no `compose.yaml` yet) |
+| `scripts/restore.sh [--yes] DIR [SERVICE...]` | Verifies `DIR/SHA256SUMS`, checks the `MANIFEST`, asks for confirmation (unless `--yes`), stops the services, replaces the contents of each listed mount with its archive, and starts what was running. Each archive goes to what `compose.yaml` mounts at its container path now, whatever host path the `MANIFEST` names: a container created from an older `compose.yaml` or `.env` is recreated first, and a missing directory is created (so a backup taken before `CONFIG_ROOT` restores into the new directories). Writes only mounts the service still has read-write; never the Docker socket, a path in the service's `backup.skip` label, another mount inside the one it restores, or a path in its `backup.exclude` label. Fails before anything stops if a `backup.exclude` label is invalid. Holds the pull agent's deploy lock from the start |
+| `make smoke` | `scripts/smoke-test.sh`: starts every service under a separate Compose project with throwaway directories (owned by `PUID:PGID`, mode 0755, as on a host), no GPU and no published ports, waits until all are healthy, round-trips a backup and restore over every data mount (one app's config directory removed and its container recreated from other settings first, to check the restore recreates the directory where `compose.yaml` says), checks the backup's `NETWORKS` and `VERSION`, checks that excluded mounts and left-out paths were neither archived nor overwritten, runs the scheduled backup against a stand-in backup server and checks the copy and the pruning, makes a test container unhealthy and checks that autoheal restarts it, then removes what it created. Exit 0 = all healthy and restored (or no `compose.yaml` yet) |
 
 `scripts/backup.sh` and `scripts/restore.sh` take the lock the server's pull agent holds while it deploys (`flock` on `homelab-pull/helios/lock` under `HOMELAB_PULL_STATE_DIR`, else `XDG_STATE_HOME`, else `~/.local/state`), wait up to 30 minutes for a deploy in progress (then exit 1 without stopping anything) and keep it until they exit, so no deploy overlaps them. Where that directory doesn't exist (no agent), they don't lock.
 

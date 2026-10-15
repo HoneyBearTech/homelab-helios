@@ -58,9 +58,10 @@ ImageMaid ──read/write──▶ Plex's data directory (removes unused images
 LAN browsers ──HTTP(S) via reverse proxy──▶ Tautulli UI · AURA UI
 ```
 
-Each service keeps its settings and database in its own data directory (see
-[interfaces.md](interfaces.md#volumes-and-mounts)), which is what `scripts/backup.sh` archives. The media
-library, Plex's cache and the transcode directory are never archived.
+Each service keeps its settings and database in its own data directory, `CONFIG_ROOT/<service>/config` on the host
+(see [interfaces.md](interfaces.md#volumes-and-mounts)), which is what `scripts/backup.sh` archives; no data is kept
+in a named Docker volume. The media library, Plex's cache and the transcode directory (`CONFIG_ROOT/plex/cache` and
+`CONFIG_ROOT/plex/transcode`) are never archived.
 
 ## How changes reach the host
 

@@ -3,7 +3,7 @@
 Kometa's configuration lives in this repository, in [`kometa/`](../kometa/): `config.yml` and the collection files it
 links. Each file is mounted read-only over `/config/<name>` in the container, and `KOMETA_READ_ONLY_CONFIG` stops
 Kometa from trying to rewrite `config.yml`. Everything Kometa writes (logs, its cache, assets, overlays, reports)
-stays in its data directory, `KOMETA_CONFIG_PATH`.
+stays in its data directory, `CONFIG_ROOT/kometa/config`.
 
 ## Secrets: placeholders and Kometa's `.env`
 
@@ -13,7 +13,7 @@ Sonarr's addresses, keys and root folders.
 
 - The values go in `.env` in Kometa's data directory, created from [`kometa.env.example`](../kometa.env.example),
   which lists every name with a comment:
-  `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <KOMETA_CONFIG_PATH>/.env`. Kometa reads that file
+  `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <CONFIG_ROOT>/kometa/config/.env`. Kometa reads that file
   itself when it starts, so the values never enter the container's environment (`docker inspect` doesn't show
   them). Backups include it, as they include the rest of Kometa's data except the downloaded `assets/`.
 - A placeholder whose variable isn't set silently becomes empty, and `<<lower_snake>>` is never filled.

@@ -11,6 +11,8 @@ appdata/
 data/
 media/
 transcode/
+# ...except the smoke test's empty placeholder directories (scripts/smoke-test.sh)
+!tests/smoke/config-root/plex/transcode/
 
 # Kometa's committed configuration is kometa/*.yml and nothing else. If kometa/ is ever Kometa's /config, what
 # Kometa writes there (logs/, config.cache, config.yml.bak*, assets/, overlays/, reports, missing/) stays untracked

@@ -68,7 +68,10 @@ A server that follows `main` ([upgrading.md](upgrading.md#following-main)) stays
 
 Copy any `<service>.env` from the backup's `env/` the same way (mode `600`); Plex's claim token isn't needed,
 since the restored server is already claimed. Edit `.env` if the new host's paths differ (but keep the media
-library's container path), create the data directories as your user, then:
+library's container path; `CONFIG_ROOT` never inside `/var/lib/docker/volumes`,
+[installing.md](installing.md#where-data-lives)). A backup's `.env` from before `CONFIG_ROOT` has per-app path
+settings instead: add `CONFIG_ROOT` and drop those; `scripts/restore.sh` puts each archive where `compose.yaml` mounts
+it now. Create the data directories under `CONFIG_ROOT` as your user ([quick start](quick-start.md), step 3), then:
 
 ```sh
 docker compose config --quiet && docker compose pull

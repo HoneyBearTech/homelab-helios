@@ -30,14 +30,16 @@ The sibling repos `~/GitHub/homelab-ares`, `~/GitHub/homelab-atlas`, `~/GitHub/h
 (above). This repo was bootstrapped from deimos (the closest match: an NVIDIA GPU, a media library on a network
 share). What stays specific to helios: the `tools` profile (`tool_profiles`/`COMPOSE_PROFILES` in `lib.sh`, the
 never-started-tool skip in `backup.sh`, `--profile tools` in the workflows, Makefile and `.gitlab-ci.yml`),
-everything Kometa, the amd64 runners, `compose.gpu.yaml`, the NVIDIA apt hold, auto-merge of majors and the 01:00
-backup timer.
+everything Kometa, the amd64 runners, `compose.gpu.yaml`, the NVIDIA apt hold, auto-merge of majors, the 01:00
+backup timer, and in the smoke test the placeholder tree `tests/smoke/config-root/` (the apps' directories, owned by
+PUID:PGID as on a host, and Kometa's `config.yml`) and the moved-config check picking an app that shares no folder
+under `CONFIG_ROOT` with another service (`shared`).
 
 ## This repo is public
 - No hostnames, IP addresses, internal or public domains, host paths, NFS exports, Portainer stack names, Plex
   server names, Plex account names or personal email addresses in anything committed: code, compose, the
   docs, examples, tests, commit messages. Host facts live only in the Chronos notes. Examples use
-  placeholders (`/srv/appdata`, `/srv/media`, `example.com`, `homelab-helios_`).
+  placeholders (`/srv/config`, `/srv/media`, `example.com`, `homelab-helios_`).
 - Commit as `31805425+HoneyBearTech@users.noreply.github.com` (set as this repo's `user.email`), with
   `git commit -s` for the DCO sign-off; commits and tags are SSH-signed.
 - No secrets: Plex's server token, the Plex tokens Tautulli, AURA, Kometa and ImageMaid hold, AURA's MediUX
@@ -102,7 +104,19 @@ backup timer.
   `docker compose up`, no edits to service data, Plex libraries or settings, or Portainer stacks. Read-only inspection
   (`docker ps`, `docker inspect`) only when asked (host quirks for doing so are in the Chronos Architecture note).
 - Every setting goes through `.env` (`${VAR:?…}` in compose when required) and is listed in `.env.example`
-  and `docs/interfaces.md`.
+  and `docs/interfaces.md` (`tests/test_settings.py` checks both).
+- **App data lives under `CONFIG_ROOT`** (owner 2026-10-15, the same layout in all five homelab stacks): each app's
+  settings and database in `${CONFIG_ROOT:?set CONFIG_ROOT in .env}/<app>/config` at the app's data path, any other
+  host folder of the app's beside it as `CONFIG_ROOT/<app>/<purpose>` (Plex's `cache` and `transcode`); `<app>` is
+  the lowercase service name. A mount of another app's folder derives from that app's (AURA's `/kometa` =
+  `CONFIG_ROOT/kometa/config/aura`, Kometa's `/auraassets` = `CONFIG_ROOT/aura/config/auraassets`, ImageMaid's `/plex`
+  and `/plex/Cache` from Plex's). No per-app path settings and no named Docker volumes for app data; only the media
+  library keeps its own setting (`MEDIA_PATH`). `tests/test_settings.py` enforces the layout.
+- **Never point a path setting into `/var/lib/docker/volumes`, and never keep app data in a named Docker volume.**
+  `docker volume prune`, `docker system prune --volumes` and Portainer's "remove unused volumes" delete every volume
+  no container mounts *as a volume*, including one whose `_data` folder a service bind-mounts by path. A volume
+  prune deleted a server's Plex database that way (2026-10-15). Keep data under `CONFIG_ROOT`; the warning is in
+  docs/installing.md#where-data-lives.
 - **Container paths, image family and ports are load-bearing**: Plex stores library paths (`/media/...`) in its
   database, and the LinuxServer.io image family (Plex, Tautulli) lays out `/config` its own way; players, Tautulli, plex-director-mcp and the
   reverse proxy reach the services by their published ports. Adopt the existing data and keep paths, image
