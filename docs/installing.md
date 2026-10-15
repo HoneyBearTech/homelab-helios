@@ -15,49 +15,64 @@ The [quick start](quick-start.md) is the short version of this page.
   that group small.
 - The media library mounted on the host (local disk or a network share) and readable and writable by
   `PUID`/`PGID` (AURA saves artwork next to the media; Plex deletes files only if you allow it).
-- Disk for Plex's data: its metadata and thumbnails grow with the library and can reach tens of gigabytes. Put
-  the transcode directory on fast local disk with room for several streams at once, not on the network share.
+- Disk for Plex's data: its metadata and thumbnails grow with the library and can reach tens of gigabytes. Keep
+  `CONFIG_ROOT` on local disk, not on the network share, and give Plex's transcode directory
+  (`CONFIG_ROOT/plex/transcode`) fast disk with room for several streams at once (mount another disk there if
+  `CONFIG_ROOT` isn't on one).
 
 ## Where data lives
+
+Every app keeps its data in host directories under one setting, `CONFIG_ROOT`: its settings and database in
+`CONFIG_ROOT/<app>/config` (`<app>` is the service's name in `compose.yaml`), and any other folder of the app's
+beside it, `CONFIG_ROOT/<app>/<purpose>`. The media library stays where `MEDIA_PATH` says.
 
 | What | Where on the host | In the container |
 | --- | --- | --- |
 | The media library | `MEDIA_PATH` | `/media` (Plex and AURA) |
-| Plex's database, metadata and settings | `PLEX_CONFIG_PATH` | `/config` |
-| Plex's cache | `PLEX_CACHE_PATH` | Plex's `Cache` directory under `/config` |
-| Plex's transcodes in progress | `PLEX_TRANSCODE_PATH` | `/transcode` |
-| Tautulli's database and settings | `TAUTULLI_CONFIG_PATH` | `/config` |
-| AURA's settings and tokens | `AURA_CONFIG_PATH` | `/config` |
-| Artwork sets AURA hands to Kometa | `KOMETA_CONFIG_PATH`'s `aura` directory | AURA: `/kometa` |
-| Kometa's secrets (`.env`), overlays, assets, cache, logs | `KOMETA_CONFIG_PATH` | `/config` |
+| Plex's database, metadata and settings | `CONFIG_ROOT/plex/config` | `/config` |
+| Plex's cache | `CONFIG_ROOT/plex/cache` | Plex's `Cache` directory under `/config` |
+| Plex's transcodes in progress | `CONFIG_ROOT/plex/transcode` | `/transcode` |
+| Tautulli's database and settings | `CONFIG_ROOT/tautulli/config` | `/config` |
+| AURA's settings and tokens | `CONFIG_ROOT/aura/config` | `/config` |
+| Artwork sets AURA hands to Kometa | `CONFIG_ROOT/kometa/config/aura` | AURA: `/kometa` |
+| Kometa's secrets (`.env`), overlays, assets, cache, logs | `CONFIG_ROOT/kometa/config` | `/config` |
 | Kometa's configuration and collection files (placeholders only) | `kometa/` in the checkout, read-only | `/config/config.yml`, `/config/<name>.yml` |
-| AURA's artwork, read by Kometa | `AURA_CONFIG_PATH`'s `auraassets` directory | Kometa: `/auraassets` |
-| ImageMaid's settings | `IMAGEMAID_CONFIG_PATH` | `/config` |
-| Kometa Quickstart's database, with the configs and tokens entered in it | `QUICKSTART_CONFIG_PATH` | `/config` |
-| Plex's data, cleaned by ImageMaid | `PLEX_CONFIG_PATH`'s `Library/Application Support/Plex Media Server` | ImageMaid: `/plex` |
+| AURA's artwork, read by Kometa | `CONFIG_ROOT/aura/config/auraassets` | Kometa: `/auraassets` |
+| ImageMaid's settings | `CONFIG_ROOT/imagemaid/config` | `/config` |
+| Kometa Quickstart's database, with the configs and tokens entered in it | `CONFIG_ROOT/quickstart/config` | `/config` |
+| Plex's data, cleaned by ImageMaid | `CONFIG_ROOT/plex/config/Library/Application Support/Plex Media Server` | ImageMaid: `/plex` |
+| Plex's cache, cleaned by ImageMaid | `CONFIG_ROOT/plex/cache` | ImageMaid: `/plex/Cache` |
 
 Every mount is listed in [interfaces.md](interfaces.md#volumes-and-mounts).
+
+> [!WARNING]
+> **Never point `CONFIG_ROOT` (or any path setting) into `/var/lib/docker/volumes`, and don't keep app data in
+> named Docker volumes.** `docker volume prune`, `docker system prune --volumes` and Portainer's "remove unused
+> volumes" delete every volume no container mounts *as a volume*, and that includes a volume whose `_data` folder a
+> service bind-mounts by its path: Docker counts it as unused. A volume prune deleted a server's Plex database
+> that way. Keep all app data in directories under `CONFIG_ROOT`, outside Docker's own directories, where no Docker
+> cleanup command reaches it.
 
 ## Installing
 
 1. Clone the repository (or download a release's source archive and verify it,
    [verifying-releases.md](verifying-releases.md)).
 2. Create `.env` from `.env.example` (mode `600`) and set every value.
-3. Create the data directories. Create Kometa's secrets file from `kometa.env.example`, owned by `PUID` and
-   readable only by it, and fill in every value:
-   `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <KOMETA_CONFIG_PATH>/.env` (the values from
+3. Create the data directories under `CONFIG_ROOT`, owned by `PUID:PGID` (the
+   [quick start](quick-start.md) has the command). Create Kometa's secrets file from `kometa.env.example`, owned by
+   `PUID` and readable only by it, and fill in every value:
+   `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <CONFIG_ROOT>/kometa/config/.env` (the values from
    `.env`). Kometa reads it itself, so the values stay out of the container's environment. Its configuration,
    `kometa/`, holds only `<<UPPER_SNAKE>>` placeholders, which Kometa fills from these `KOMETA_*` values.
 4. `docker compose up -d`, then check Kometa's configuration with the real values:
    `docker compose run --rm kometa --validate --validate-level full` should end with `Result: PASSED`.
 
-**Adopting existing containers.** If the services already run on the host (from Portainer stacks or another
-Compose project), point the stack at their existing data instead of starting empty: stop the old containers,
-set each path in `.env` to where its data already is, and keep the same published ports and the **same
-container path for the media library**: Plex stores every file's path in its database, so a different mount
-point makes it see a new library and rescan everything, losing watch state for files it can't match. Keep the
-same image family too (Plex's own or LinuxServer.io's), since they lay out `/config` differently. Take a backup
-of the old data first.
+**Adopting existing containers.** If the services already run on the host (from Portainer stacks or another Compose
+project), point the stack at their existing data instead of starting empty: stop the old containers, move each service's
+data into its directory under `CONFIG_ROOT` (owned by `PUID:PGID`), and keep the same published ports and the **same
+container path for the media library**: Plex stores every file's path in its database, so a different mount point makes
+it see a new library and rescan everything, losing watch state for files it can't match. Keep the same image family too
+(Plex's own or LinuxServer.io's), since they lay out `/config` differently. Take a backup of the old data first.
 
 The maintainer's server runs `main` rather than a release, and deploys every merge by itself
 ([upgrading.md](upgrading.md#following-main)). For your own setup, a release is the safer choice.
@@ -170,6 +185,6 @@ its `SHA256SUMS` first, and a copy that was cut off has none yet, so it is refus
 docker compose down          # stops and removes the containers and the stack's network
 ```
 
-The data directories, Plex's cache and transcode directory, and the media library are left untouched. Remove
-the data directories by hand if you no longer want the services' data. To remove the server from your Plex
+The data directories under `CONFIG_ROOT` (Plex's cache and transcode directory included) and the media library are
+left untouched. Remove them by hand if you no longer want the services' data. To remove the server from your Plex
 account as well, do it in Plex's account settings on plex.tv.

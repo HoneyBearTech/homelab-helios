@@ -6,6 +6,11 @@
 # (docs/security.md#policy).
 # The NVIDIA GPU for Plex is in compose.gpu.yaml, so the stack also starts without one (CI has none); the host
 # adds it with COMPOSE_FILE in .env.
+# Each app's data lives in host directories under CONFIG_ROOT: CONFIG_ROOT/<service>/config at the app's data path,
+# and any other folder of the app's beside it (CONFIG_ROOT/plex/cache, CONFIG_ROOT/plex/transcode). No app data is
+# in a named Docker volume, and CONFIG_ROOT must never point into /var/lib/docker/volumes: `docker volume prune`
+# deletes a volume no container mounts as a volume, even one whose _data folder a service bind-mounts
+# (docs/installing.md#where-data-lives).
 
 name: homelab-helios
 
@@ -85,11 +90,11 @@ services:
     ports:
       - "32400:32400"
     volumes:
-      - ${PLEX_CONFIG_PATH:?set PLEX_CONFIG_PATH in .env}:/config
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/plex/config:/config
       - type: bind
-        source: ${PLEX_CACHE_PATH:?set PLEX_CACHE_PATH in .env}
+        source: ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/plex/cache
         target: /config/Library/Application Support/Plex Media Server/Cache
-      - ${PLEX_TRANSCODE_PATH:?set PLEX_TRANSCODE_PATH in .env}:/transcode
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/plex/transcode:/transcode
       - ${MEDIA_PATH:?set MEDIA_PATH in .env}:/media
 
   # Watches Plex: activity, history, statistics and notifications.
@@ -115,7 +120,7 @@ services:
     ports:
       - "8181:8181"
     volumes:
-      - ${TAUTULLI_CONFIG_PATH:?set TAUTULLI_CONFIG_PATH in .env}:/config
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/tautulli/config:/config
 
   # MediUX's artwork manager: browse artwork sets and apply them to Plex, saving artwork next to the media or
   # writing sets for Kometa. The media is mounted at the same path as in Plex, as AURA requires.
@@ -145,8 +150,8 @@ services:
       - "3000:3000"
       - "8888:8888"
     volumes:
-      - ${AURA_CONFIG_PATH:?set AURA_CONFIG_PATH in .env}:/config
-      - ${KOMETA_CONFIG_PATH:?set KOMETA_CONFIG_PATH in .env}/aura:/kometa
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/aura/config:/config
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/kometa/config/aura:/kometa
       - ${MEDIA_PATH:?set MEDIA_PATH in .env}:/media
 
   # Builds collections and overlays in Plex and applies artwork and metadata (including the sets AURA writes), on
@@ -190,13 +195,13 @@ services:
       # stops (still exiting 0). With it, Kometa uses the setting's default and logs a warning.
       KOMETA_READ_ONLY_CONFIG: "true"
     volumes:
-      - ${KOMETA_CONFIG_PATH:?set KOMETA_CONFIG_PATH in .env}:/config
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/kometa/config:/config
       - ./kometa/config.yml:/config/config.yml:ro
       - ./kometa/movies_refresh.yml:/config/movies_refresh.yml:ro
       - ./kometa/tv_refresh.yml:/config/tv_refresh.yml:ro
       - ./kometa/separator_franchise.yml:/config/separator_franchise.yml:ro
       - ./kometa/radarr4k_tags.yml:/config/radarr4k_tags.yml:ro
-      - ${AURA_CONFIG_PATH:?set AURA_CONFIG_PATH in .env}/auraassets:/auraassets
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/aura/config/auraassets:/auraassets
 
   # Kometa Quickstart: a web UI for building and validating Kometa configurations. A tool, started on demand and
   # not by `docker compose up -d`: `docker compose --profile tools up -d quickstart`, then
@@ -228,7 +233,7 @@ services:
     ports:
       - "7171:7171"
     volumes:
-      - ${QUICKSTART_CONFIG_PATH:?set QUICKSTART_CONFIG_PATH in .env}:/config
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/quickstart/config:/config
 
   # Removes images Plex no longer uses from Plex's data directory, on its schedule. Its .env (Plex's address and
   # token, the mode, notifications) lives in its data directory; the schedule and Plex's path come from here.
@@ -266,11 +271,11 @@ services:
       PLEX_PATH: /plex
       SCHEDULE: ${IMAGEMAID_SCHEDULE:?set IMAGEMAID_SCHEDULE in .env}
     volumes:
-      - ${IMAGEMAID_CONFIG_PATH:?set IMAGEMAID_CONFIG_PATH in .env}:/config
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/imagemaid/config:/config
       - type: bind
-        source: ${PLEX_CONFIG_PATH:?set PLEX_CONFIG_PATH in .env}/Library/Application Support/Plex Media Server
+        source: ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/plex/config/Library/Application Support/Plex Media Server
         target: /plex
-      - ${PLEX_CACHE_PATH:?set PLEX_CACHE_PATH in .env}:/plex/Cache
+      - ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/plex/cache:/plex/Cache
 
   # A Dozzle agent: it serves this host's container logs to the homelab's Dozzle on another host, which shows the
   # logs of every host in one web UI. It has no web UI of its own and no data to back up. Keep it on the hub's

@@ -6,6 +6,36 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ## [Unreleased]
 
+### Upgrading
+
+- **Move each app's data into its folder under `CONFIG_ROOT` before deploying this**, and **add `CONFIG_ROOT` to
+  `.env`** (required; see `.env.example`). Never set it to a path inside `/var/lib/docker/volumes`
+  ([docs/installing.md](docs/installing.md#where-data-lives)). With the whole stack stopped (`docker compose stop`:
+  AURA, Kometa and ImageMaid mount each other's and Plex's folders), move each old location (wherever its setting
+  pointed, a Docker volume's `_data` folder included) to its new folder, owned by `PUID:PGID` (every app here runs as
+  that user):
+
+  | Old location (setting) | New folder |
+  | --- | --- |
+  | `PLEX_CONFIG_PATH` | `CONFIG_ROOT/plex/config` |
+  | `PLEX_CACHE_PATH` | `CONFIG_ROOT/plex/cache` (disposable: an empty folder will do) |
+  | `PLEX_TRANSCODE_PATH` | `CONFIG_ROOT/plex/transcode` (scratch: an empty folder will do) |
+  | `TAUTULLI_CONFIG_PATH` | `CONFIG_ROOT/tautulli/config` |
+  | `AURA_CONFIG_PATH` (with its `auraassets`) | `CONFIG_ROOT/aura/config` |
+  | `KOMETA_CONFIG_PATH` (with its `.env` and `aura`) | `CONFIG_ROOT/kometa/config` |
+  | `IMAGEMAID_CONFIG_PATH` | `CONFIG_ROOT/imagemaid/config` |
+  | `QUICKSTART_CONFIG_PATH` | `CONFIG_ROOT/quickstart/config` |
+
+  On the same filesystem a move is instant (`mv`); across filesystems, copy with `cp -a` (keeps owners and modes) and
+  remove the old folder once the stack runs from the new one. Every folder in the table must exist before the deploy,
+  even if empty: Plex's cache is mounted with Compose's long syntax, which doesn't create a missing folder
+  ([docs/quick-start.md](docs/quick-start.md) step 3 makes them all). Then drop the old settings from `.env` (they're no
+  longer read) and keep the stack stopped until this is deployed. A deploy without `CONFIG_ROOT` stops at
+  `docker compose config` and changes nothing. To keep transcodes on a separate fast disk, mount it at
+  `CONFIG_ROOT/plex/transcode`.
+- Backups taken with the old settings restore as they are: `scripts/restore.sh` puts each archive where
+  `compose.yaml` mounts its container path now.
+
 ### Added
 
 - A weekly Plex update watch (`.github/workflows/plex-update-watch.yml`, `scripts/plex_watch.py`), because
@@ -17,6 +47,21 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- Every app's data moves to one layout under a new required setting, `CONFIG_ROOT` (the maintainer's decision,
+  2026-10-15, the same in all the homelab stacks): each app's settings and database in `CONFIG_ROOT/<app>/config`,
+  and its other folders beside it (Plex's `cache` and `transcode`). It replaces `PLEX_CONFIG_PATH`,
+  `PLEX_CACHE_PATH`, `PLEX_TRANSCODE_PATH`, `TAUTULLI_CONFIG_PATH`, `AURA_CONFIG_PATH`, `KOMETA_CONFIG_PATH`,
+  `IMAGEMAID_CONFIG_PATH` and `QUICKSTART_CONFIG_PATH`; container paths, the media library (`MEDIA_PATH`) and the
+  backup labels are unchanged. `scripts/restore.sh` writes each archive to what the service mounts at that container
+  path now, recreating a container made from an older `compose.yaml` or `.env` and creating a missing directory, as
+  on homelab-atlas; the smoke test covers that path. A new test (`tests/test_settings.py`) checks that every
+  setting is in `.env.example` and `docs/interfaces.md`, that each app's data comes from `CONFIG_ROOT/<app>/...`
+  and that nothing mounts a named volume. `.env.example` now lists `UMASK` too.
+- Docs: a warning never to point a path setting into `/var/lib/docker/volumes` nor keep app data in named Docker
+  volumes. `docker volume prune`, `docker system prune --volumes` and Portainer's "remove unused volumes" delete
+  every volume no container mounts as a volume, including one whose `_data` folder a service bind-mounts by path: a
+  volume prune deleted a server's Plex database that way
+  ([docs/installing.md](docs/installing.md#where-data-lives)).
 - `scripts/backup.sh` and `scripts/restore.sh` take the pull agent's deploy lock before they stop anything and hold
   it until they finish, so a merge can't be deployed in the middle of a backup or a restore (the deploy's
   `docker compose up -d` would start a service while its data is being copied, and the archive of a database could

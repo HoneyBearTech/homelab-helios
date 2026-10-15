@@ -20,17 +20,18 @@ Toolkit and a Plex Pass ([installing.md](installing.md#requirements)).
    cp .env.example .env && chmod 600 .env
    ```
 
-   In `.env`, set `TZ`, `PUID`/`PGID` (a user that can read and write your media library), `MEDIA_PATH` and the data
-   paths. Every setting is described in [interfaces.md](interfaces.md#settings). For a new Plex server (not one
-   you're adopting), put a claim token from [plex.tv/claim](https://www.plex.tv/claim/) in `plex.env` just
-   before step 5; it expires within minutes.
+   In `.env`, set `TZ`, `PUID`/`PGID` (a user that can read and write your media library), `MEDIA_PATH` and
+   `CONFIG_ROOT`, the directory every app keeps its data in (never inside `/var/lib/docker/volumes`:
+   [why](installing.md#where-data-lives)). Every setting is described in [interfaces.md](interfaces.md#settings). For a
+   new Plex server (not one you're adopting), put a claim token from [plex.tv/claim](https://www.plex.tv/claim/) in
+   `plex.env` just before step 5; it expires within minutes.
 
 3. **Create the data directories** as your user, so Docker doesn't create them owned by root:
 
    ```sh
-   . ./.env && mkdir -p "$PLEX_CONFIG_PATH" "$PLEX_CACHE_PATH" "$PLEX_TRANSCODE_PATH" \
-     "$TAUTULLI_CONFIG_PATH" "$AURA_CONFIG_PATH" "$KOMETA_CONFIG_PATH" \
-     "$IMAGEMAID_CONFIG_PATH" "$QUICKSTART_CONFIG_PATH"
+   CONFIG_ROOT=$(sed -n 's/^CONFIG_ROOT=//p' .env) && mkdir -p "$CONFIG_ROOT"/plex/{config,cache,transcode} \
+     "$CONFIG_ROOT"/{tautulli,imagemaid,quickstart}/config \
+     "$CONFIG_ROOT"/aura/config/auraassets "$CONFIG_ROOT"/kometa/config/aura
    ```
 
 4. **Check the GPU** is visible to containers, and let Plex use it:

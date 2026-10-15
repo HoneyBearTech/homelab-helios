@@ -13,7 +13,7 @@ docker compose stop quickstart                    # stop it when you're done
 ```
 
 Inside Quickstart, Plex is at `http://plex:32400` (the stack's network). Its data, including every config built in
-it, is in `QUICKSTART_CONFIG_PATH` and survives a stop; `scripts/backup.sh` backs it up like any other service's
+it, is in `CONFIG_ROOT/quickstart/config` and survives a stop; `scripts/backup.sh` backs it up like any other service's
 data (a Quickstart that has never been started has none and is skipped).
 
 ## What it can reach, and who can reach it

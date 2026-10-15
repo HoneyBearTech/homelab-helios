@@ -60,10 +60,10 @@ On a fresh Docker host:
 
 ```sh
 git clone https://github.com/HoneyBearTech/homelab-helios.git && cd homelab-helios
-cp .env.example .env && chmod 600 .env              # then set TZ, PUID/PGID and the paths
-. ./.env && mkdir -p "$PLEX_CONFIG_PATH" "$PLEX_CACHE_PATH" "$PLEX_TRANSCODE_PATH" \
-  "$TAUTULLI_CONFIG_PATH" "$AURA_CONFIG_PATH" "$KOMETA_CONFIG_PATH" "$IMAGEMAID_CONFIG_PATH" \
-  "$QUICKSTART_CONFIG_PATH"
+cp .env.example .env && chmod 600 .env              # then set TZ, PUID/PGID, MEDIA_PATH and CONFIG_ROOT
+CONFIG_ROOT=$(sed -n 's/^CONFIG_ROOT=//p' .env) && mkdir -p "$CONFIG_ROOT"/plex/{config,cache,transcode} \
+  "$CONFIG_ROOT"/{tautulli,imagemaid,quickstart}/config \
+  "$CONFIG_ROOT"/aura/config/auraassets "$CONFIG_ROOT"/kometa/config/aura
 echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU
 docker compose up -d --wait
 ```
@@ -93,15 +93,8 @@ Settings come from `.env` (template [`.env.example`](.env.example)), which holds
 | `TZ` | `Etc/UTC` | Time zone |
 | `PUID`, `PGID` | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library |
 | `MEDIA_PATH` | `/srv/media` | The media library, mounted read-write into Plex and AURA (never backed up by this stack) |
-| `PLEX_CONFIG_PATH` | `/srv/appdata/plex` | Plex's database, metadata and settings |
-| `PLEX_CACHE_PATH` | `/srv/plex-cache` | Plex's cache (not backed up) |
-| `PLEX_TRANSCODE_PATH` | `/srv/plex-transcode` | Scratch space for transcodes in progress (not backed up) |
-| `TAUTULLI_CONFIG_PATH` | `/srv/appdata/tautulli` | Tautulli's database and settings |
-| `AURA_CONFIG_PATH` | `/srv/appdata/aura` | AURA's settings, including its Plex and MediUX tokens |
-| `KOMETA_CONFIG_PATH` | `/srv/appdata/kometa` | Kometa's data: its `.env` (Plex token, API keys; from `kometa.env.example`), overlays, assets. Its configuration is `kometa/`, mounted read-only |
+| `CONFIG_ROOT` | `/srv/config` | Where every app keeps its data: `CONFIG_ROOT/<app>/config` (settings, database, tokens) and the app's other folders beside it, such as Plex's cache and transcode directory (not backed up). Never inside `/var/lib/docker/volumes` ([why](docs/installing.md#where-data-lives)) |
 | `KOMETA_TIMES` | `02:00` | When Kometa runs each day |
-| `IMAGEMAID_CONFIG_PATH` | `/srv/appdata/imagemaid` | ImageMaid's settings, with its Plex token |
-| `QUICKSTART_CONFIG_PATH` | `/srv/appdata/quickstart` | Kometa Quickstart's database, with the configs and tokens entered in it |
 
 A new Plex server's one-time claim token goes in a gitignored `plex.env`, never in `.env`
 ([interfaces](docs/interfaces.md#plexenv)). Ports, volumes and labels: [docs/interfaces.md](docs/interfaces.md).
