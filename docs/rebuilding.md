@@ -37,18 +37,23 @@ apt-config dump Unattended-Upgrade::Package-Blacklist     # lists "^nvidia-" and
 
 Kernel updates still install unattended: DKMS builds the installed driver's module for each new kernel. Update
 the driver yourself in a quiet window and reboot straight after (`sudo apt update && sudo apt upgrade && sudo
-reboot`). The rule doesn't cover a driver installed as prebuilt kernel modules (`linux-modules-nvidia-*`), whose
-versions follow the kernel's.
+reboot`); the NVIDIA Container Toolkit's `nvidia-cdi-refresh` (step 3) regenerates the GPU's CDI spec for the new
+driver by itself. The rule doesn't cover a driver installed as prebuilt kernel modules (`linux-modules-nvidia-*`),
+whose versions follow the kernel's.
 
 ## 3. Docker and the NVIDIA Container Toolkit
 
 Install Docker Engine and the Compose plugin from Docker's own repository, following
-[docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu/) (Docker Engine 25 or
+[docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu/) (Docker Engine 29.2 or
 later, Compose 2.24 or later). Then the
-[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
+[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html),
+1.18 or later. Docker 29.2+ gives containers the GPU through CDI with the toolkit's `nvidia-cdi-hook` and the CDI
+spec its `nvidia-cdi-refresh` keeps current; an older Engine uses the NVIDIA runtime hook, and Plex then loses the
+GPU at every `systemctl daemon-reload` ([installing.md](installing.md#the-gpu-and-docker-292)).
 
 ```sh
 sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker
+nvidia-ctk cdi list                               # nvidia.com/gpu=all: the CDI spec Docker uses for the GPU
 docker run --rm --gpus all ubuntu nvidia-smi      # the GPU is visible to containers
 sudo usermod -aG docker "$USER"                   # equivalent to root on the host; log in again
 ```
@@ -88,6 +93,13 @@ docker compose ps
 Then sign in to each service: Plex should list its libraries and watch history under the same server name,
 transcode on the GPU, and show up in Plex apps without being added again; Tautulli should show its history and
 reach Plex. Plex rebuilds its cache by itself.
+
+Check that Plex keeps the GPU through a systemd reload (as apt and unattended-upgrades run one):
+
+```sh
+sudo systemctl daemon-reload
+docker exec plex nvidia-smi -L        # still lists the GPU; "Failed to initialize NVML" means Docker is older than 29.2
+```
 
 ## What the backup doesn't bring back
 

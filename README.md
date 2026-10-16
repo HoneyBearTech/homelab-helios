@@ -68,8 +68,9 @@ echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU
 docker compose up -d --wait
 ```
 
-The host needs the NVIDIA driver and the NVIDIA Container Toolkit, and the Plex account a Plex Pass, for Plex
-to transcode on the GPU ([installing](docs/installing.md#requirements)). The full steps are in the
+The host needs the NVIDIA driver, the NVIDIA Container Toolkit 1.18+ and Docker Engine 29.2+ (or Plex loses the GPU
+at every `systemctl daemon-reload`), and the Plex account a Plex Pass, for Plex to transcode on the GPU
+([installing](docs/installing.md#the-gpu-and-docker-292)). The full steps are in the
 [quick start](docs/quick-start.md).
 
 ## Usage
