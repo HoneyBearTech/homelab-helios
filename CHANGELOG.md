@@ -47,6 +47,14 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- Docs: a GPU host needs **Docker Engine 29.2 or later** and NVIDIA Container Toolkit 1.18 or later
+  ([docs/installing.md](docs/installing.md#the-gpu-and-docker-292)). From 29.2 Docker serves `compose.gpu.yaml`'s
+  `driver: nvidia` reservation through CDI (the toolkit's `nvidia-cdi-hook`, with `nvidia-cdi-refresh` keeping the
+  spec current). On an older Engine it uses NVIDIA's runtime hook, and Plex loses the GPU at every
+  `systemctl daemon-reload` (apt and unattended-upgrades run one): `nvidia-smi` in the container fails with "Failed
+  to initialize NVML: Unknown Error" (NVIDIA container-toolkit issue #48) and Plex transcodes on the CPU. The docs
+  give a check (`sudo systemctl daemon-reload`, then `docker exec plex nvidia-smi -L`). The compose files are
+  unchanged apart from a comment.
 - Every app's data moves to one layout under a new required setting, `CONFIG_ROOT` (the maintainer's decision,
   2026-10-15, the same in all the homelab stacks): each app's settings and database in `CONFIG_ROOT/<app>/config`,
   and its other folders beside it (Plex's `cache` and `transcode`). It replaces `PLEX_CONFIG_PATH`,

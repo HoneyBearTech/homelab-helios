@@ -78,10 +78,12 @@ Plex runs the version in the pinned image and never downloads another at start. 
 ## GPU
 
 Plex gets the host's NVIDIA GPU as a Compose device reservation (`driver: nvidia`, `capabilities: [gpu]`, with
-`NVIDIA_DRIVER_CAPABILITIES` including `video` for NVENC/NVDEC), which needs the NVIDIA Container Toolkit on the
-host. Hardware transcoding in Plex also needs a Plex Pass. The reservation lives in
-[`compose.gpu.yaml`](../compose.gpu.yaml), so the stack also starts on a machine without a GPU (such as CI);
-the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml` in `.env`.
+`NVIDIA_DRIVER_CAPABILITIES` including `video` for NVENC/NVDEC), which needs the NVIDIA Container Toolkit (1.18 or
+later) and Docker Engine 29.2 or later on the host: from 29.2 Docker serves it through CDI, so Plex keeps the GPU
+through `systemctl daemon-reload` ([installing.md](installing.md#the-gpu-and-docker-292)). Hardware transcoding in
+Plex also needs a Plex Pass. The reservation lives in [`compose.gpu.yaml`](../compose.gpu.yaml), so the stack also
+starts on a machine without a GPU (such as CI); the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml`
+in `.env`.
 
 ## Volumes and mounts
 
