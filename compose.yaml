@@ -190,7 +190,7 @@ services:
           for p in os.listdir("/proc") if p.isdigit()))
     environment:
       TZ: ${TZ:?set TZ in .env}
-      KOMETA_TIMES: ${KOMETA_TIMES:-02:00}
+      KOMETA_TIMES: ${KOMETA_TIMES:-07:30}
       # config.yml is mounted read-only: without this, Kometa tries to add a missing setting to it and the run
       # stops (still exiting 0). With it, Kometa uses the setting's default and logs a warning.
       KOMETA_READ_ONLY_CONFIG: "true"

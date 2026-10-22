@@ -81,7 +81,7 @@ under `CONFIG_ROOT` with another service (`shared`).
   backup also records `NETWORKS` (external networks' address ranges; none here) and `VERSION` (`git describe`).
   `backup.sh` stops one service at a time, only while it copies that service's data, and
   compresses after starting it again (gzip of Plex's 12 GB of databases takes ~14 min on Helios, the copy ~2).
-  `scripts/scheduled-backup.sh` + `deploy/systemd/` run it nightly at 01:00 (before Kometa's 02:00 run) and copy it
+  `scripts/scheduled-backup.sh` + `deploy/systemd/` run it nightly at 01:00 (Kometa runs at 07:30, after it) and copy it
   off the host; the backup server's name lives only in the host's `~/.ssh/config` and `backup.env`, never here.
 - **Every service is hardened** (`x-hardened`: `cap_drop: [ALL]`, `no-new-privileges:true`) and adds back only
   the capabilities from Docker's default set its image needs, each with a comment saying why (Plex: `CHOWN

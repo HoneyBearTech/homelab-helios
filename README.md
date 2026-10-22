@@ -95,7 +95,7 @@ Settings come from `.env` (template [`.env.example`](.env.example)), which holds
 | `PUID`, `PGID` | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library |
 | `MEDIA_PATH` | `/srv/media` | The media library, mounted read-write into Plex and AURA (never backed up by this stack) |
 | `CONFIG_ROOT` | `/srv/config` | Where every app keeps its data: `CONFIG_ROOT/<app>/config` (settings, database, tokens) and the app's other folders beside it, such as Plex's cache and transcode directory (not backed up). Never inside `/var/lib/docker/volumes` ([why](docs/installing.md#where-data-lives)) |
-| `KOMETA_TIMES` | `02:00` | When Kometa runs each day |
+| `KOMETA_TIMES` | `07:30` | When Kometa runs each day (after the nightly backup) |
 
 A new Plex server's one-time claim token goes in a gitignored `plex.env`, never in `.env`
 ([interfaces](docs/interfaces.md#plexenv)). Ports, volumes and labels: [docs/interfaces.md](docs/interfaces.md).

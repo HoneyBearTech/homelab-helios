@@ -191,8 +191,10 @@ restore leaves those paths alone, and on a new host Plex, Kometa and AURA re-cre
    journalctl --user -u homelab-helios-backup                 # what the last runs did
    ```
 
-   01:00 leaves the backup time to finish before Kometa's run at 02:00 (`KOMETA_TIMES`); if you move either, keep
-   them apart, since the backup stops Kometa while it copies Kometa's data.
+   Kometa runs at 07:30 (`KOMETA_TIMES`), well after the backup's 01:00 start: the backup stops Plex and Kometa while
+   it copies their data, and a backup usually takes under an hour but has taken five when something else loads the
+   disk at the same time (a backup of the whole virtual machine, say). If you move either, keep them apart. A Kometa
+   run while Plex is stopped finds none of its libraries and does nothing.
 
 On a server that deploys with a pull agent ([upgrading.md](upgrading.md#following-main)), `scripts/backup.sh` and
 `scripts/restore.sh` take the agent's lock before they stop anything and keep it until they finish, so a merge

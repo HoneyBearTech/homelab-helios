@@ -47,6 +47,10 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- Kometa runs at 07:30 by default (`KOMETA_TIMES`, was 02:00), well after the nightly backup. A backup that
+  runs long, as when a backup of the whole virtual machine loads the disk at the same time, kept Plex stopped
+  past 02:00, and the Kometa run found none of its libraries and did nothing. **Set `KOMETA_TIMES=07:30` in
+  `.env`** if yours has `02:00` (copied from `.env.example`): the default only applies when it's unset.
 - Docs: a GPU host needs **Docker Engine 29.2 or later** and NVIDIA Container Toolkit 1.18 or later
   ([docs/installing.md](docs/installing.md#the-gpu-and-docker-292)). From 29.2 Docker serves `compose.gpu.yaml`'s
   `driver: nvidia` reservation through CDI (the toolkit's `nvidia-cdi-hook`, with `nvidia-cdi-refresh` keeping the
