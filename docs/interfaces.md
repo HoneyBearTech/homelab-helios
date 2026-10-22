@@ -17,7 +17,7 @@ setting marked required stops `docker compose` with an error naming it when it's
 | `PUID`, `PGID` | yes | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library. |
 | `MEDIA_PATH` | yes | `/srv/media` | Host path of the media library, mounted read-write into Plex and AURA. Never backed up by this stack. |
 | `CONFIG_ROOT` | yes | `/srv/config` | Host directory every app keeps its data in: `CONFIG_ROOT/<app>/config` (`<app>` is the service's name) at the app's data path, and the app's other folders beside it as `CONFIG_ROOT/<app>/<purpose>` (Plex's `cache` and `transcode`, never backed up). Never inside `/var/lib/docker/volumes`: a volume prune deletes data kept there ([installing.md](installing.md#where-data-lives)). |
-| `KOMETA_TIMES` | no | `02:00` | When Kometa runs each day (`HH:MM`, comma-separated). |
+| `KOMETA_TIMES` | no | `07:30` | When Kometa runs each day (`HH:MM`, comma-separated). Keep it clear of the nightly backup. |
 | `IMAGEMAID_SCHEDULE` | yes | `22:00\|weekly(sunday)` | When ImageMaid runs, in its own schedule syntax. |
 | `UMASK` | no | `002` | File-creation mask for Plex and Tautulli. |
 

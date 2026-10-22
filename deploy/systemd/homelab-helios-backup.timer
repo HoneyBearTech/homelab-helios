@@ -1,5 +1,5 @@
 # Starts homelab-helios-backup.service every night. Each service is stopped only while its own data is copied (a few
-# minutes for Plex), so pick a quiet hour: 01:00 leaves time to finish before Kometa's run at 02:00 (KOMETA_TIMES).
+# minutes for Plex), so pick a quiet hour: 01:00. Kometa runs at 07:30 (KOMETA_TIMES), after it.
 # Persistent: a run missed while the host was off happens at the next boot.
 [Unit]
 Description=Nightly backup of the homelab-helios stack
