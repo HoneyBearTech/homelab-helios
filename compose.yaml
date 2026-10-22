@@ -212,7 +212,7 @@ services:
   # work instead (docs/kometa-quickstart.md).
   quickstart:
     <<: *hardened
-    image: kometateam/quickstart:v0.10.12@sha256:edb5319f7a4884c62fb175dd4f1c210bbc95d8c86b2a48291d05e231ffa90cc5
+    image: kometateam/quickstart:v0.10.14@sha256:3b738f5ca494ec098bfe90cf6899968e60a824b85cf35d43302a18f301d31640
     container_name: quickstart
     profiles: [tools]
     # Not restarted after a reboot: it is reachable without a login only while someone has it running.
