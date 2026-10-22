@@ -110,6 +110,12 @@ All notable changes to homelab-helios are documented here. The format follows
   anything. Every service that was running when the backup began must be running again at the end, or the backup
   fails and names it (the scheduled backup reports that to the push monitor).
 
+### Security
+
+- The Dozzle agent moves to v11.3.4 (built with Go 1.27.3), which fixes the image scan's Go `crypto/x509` finding
+  (CVE-2026-111943) in v11.3.2. Dependabot didn't propose it: it holds back Docker Hub releases for a few days
+  after they're published, and both v11.3.3 and v11.3.4 were still that new at its last run.
+
 ## [0.3.0] - 2026-10-14
 
 The backup scripts, smoke test and CI are aligned with homelab-ares, the template for the homelab stacks, and every
