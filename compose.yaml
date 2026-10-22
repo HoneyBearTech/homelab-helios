@@ -239,7 +239,7 @@ services:
   # token, the mode, notifications) lives in its data directory; the schedule and Plex's path come from here.
   imagemaid:
     <<: *hardened
-    image: kometateam/imagemaid:v1.2.0@sha256:94cf9ed79a264238c64cdcbf241822fc3569225cc103de542a6390bfaf393034
+    image: kometateam/imagemaid:v1.2.2@sha256:2a425468a2527860141edb5e1d1ac7c97ccc509bd7f3287212d95dbb18428ac3
     container_name: imagemaid
     restart: unless-stopped
     # Writes only its data and temporary files: the image itself stays read-only.
