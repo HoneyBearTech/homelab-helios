@@ -61,7 +61,7 @@ on a host. Each capability added back was proven by starting the image without i
 | plex | `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID`, `KILL` | no | Its init (s6-overlay) runs as root: it takes ownership of `/config`, reads Plex's `Preferences.xml` (readable only by Plex's user) and removes a stale pid file after an unclean stop, starts Plex as its own user, and signals it to stop (without `KILL`, every stop waits for Docker's timeout and kills Plex). On a read-only root the init ignores `PUID`/`PGID` and runs Plex as uid 911, which doesn't own the data |
 | tautulli | `CHOWN`, `SETUID`, `SETGID`, `KILL` | no | The same init: ownership of `/config`, Tautulli as its own user, a clean stop; writable root for the same reason |
 | aura, kometa, quickstart, imagemaid | none | yes (`/tmp` in memory) | They run as `PUID:PGID` and write only their data directories |
-| dozzle-agent | none | yes (`/tmp` in memory) | Reads the Docker socket and its certificate and key, all owned by root |
+| dozzle-agent | none | yes (`/tmp`, `/data` in memory) | Reads the Docker socket and its certificate and key, all owned by root; writes its address file to `/tmp` and the notification settings the Dozzle hub sends it to `/data`. The hub keeps those settings and sends them again each time it starts (an agent restarted while the hub runs has none until then) |
 | autoheal | none | yes | Only talks to socket-proxy |
 | socket-proxy | none | yes (`/run`, `/tmp` in memory) | Only reads the socket |
 

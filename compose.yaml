@@ -287,10 +287,12 @@ services:
     image: amir20/dozzle:v11.3.4@sha256:8796ae7e1ecbe011482319cb7040e69aae91a0632b87bbe24b3f643e7455d94b
     container_name: dozzle-agent
     restart: unless-stopped
-    # Writes nothing outside temporary files: the image itself stays read-only.
+    # Writes nothing outside temporary files: the image itself stays read-only. /data holds the notification settings
+    # the Dozzle hub sends it, in memory: the hub keeps them itself and sends them again each time it starts.
     read_only: true
     tmpfs:
       - /tmp
+      - /data
     command: agent
     healthcheck:
       <<: *healthcheck
