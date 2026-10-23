@@ -76,7 +76,10 @@ since the restored server is already claimed. Edit `.env` if the new host's path
 library's container path; `CONFIG_ROOT` never inside `/var/lib/docker/volumes`,
 [installing.md](installing.md#where-data-lives)). A backup's `.env` from before `CONFIG_ROOT` has per-app path
 settings instead: add `CONFIG_ROOT` and drop those; `scripts/restore.sh` puts each archive where `compose.yaml` mounts
-it now. Create the data directories under `CONFIG_ROOT` as your user ([quick start](quick-start.md), step 3), then:
+it now. Create the data directories under `CONFIG_ROOT` as your user ([quick start](quick-start.md), step 3), and put
+the Dozzle agent's certificate and key back from your password manager, owned by root
+([installing.md](installing.md#dozzles-certificate)): they aren't in the backup, and without them the restore can't
+create the agent's container. Then:
 
 ```sh
 docker compose config --quiet && docker compose pull
@@ -103,6 +106,8 @@ docker exec plex nvidia-smi -L        # still lists the GPU; "Failed to initiali
 
 ## What the backup doesn't bring back
 
+- **The Dozzle agent's certificate and key** (`CONFIG_ROOT/dozzle/certs`): never backed up; they come from your
+  password manager (step 4).
 - **Plex's artwork and preview thumbnails, and Kometa's downloaded assets**: left out of backups. Plex shows
   blank posters until it fetches them again (refresh the libraries' metadata); Kometa downloads its assets and
   puts its overlays and the AURA sets saved for it back on its next run (its overlay originals are in the
