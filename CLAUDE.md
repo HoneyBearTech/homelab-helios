@@ -162,8 +162,12 @@ check (`scripts/kometa-validate.sh`), and watched weekly (`scripts/kometa_watch.
 - **Pinning by hand**: the owner checks out another commit or tag on the host; the agent pauses until the checkout
   is on `main` again. Release tags stay as signed, verified snapshots; they no longer drive deploys.
 - **Kometa**: the agent (homelab-pull 0.2.0+) recreates a running service whose bind-mounted checkout file changed
-  (Kometa's `kometa/*.yml`), but it doesn't run `--validate --validate-level full` with the real values. After a
-  merge that changes `kometa/` or Kometa's image, the owner runs it on the host (docs/upgrading.md#following-main).
+  (Kometa's `kometa/*.yml`). From homelab-pull 0.5.0 it then runs `scripts/post-deploy-check.sh` (its `CHECK`
+  setting on Helios): `docker compose run --rm --no-deps kometa --validate --validate-level full` with the real
+  values, only when `kometa/` or the `kometa` service's lines in `compose.yaml` changed since the last commit the
+  check passed on. A failure leaves the deploy running and is `failed:check` in the agent (alerted, retried);
+  docs/kometa.md#the-check-with-the-real-values-after-a-deploy. Keep the script's arguments separate words and its
+  pass rule (exit 0 and `Result: PASSED`) as in `kometa-validate.sh`.
 - **Image prune** (homelab-pull 0.3.0): after each successful deploy the agent runs `docker image prune --all
   --force`, so images no container uses (the backup's busybox, Quickstart's image unless it has a container) are
   pulled again when next needed.

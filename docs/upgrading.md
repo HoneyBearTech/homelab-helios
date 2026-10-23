@@ -87,11 +87,12 @@ itself ([dependencies.md](dependencies.md#tracking-dependencies)).
   and take a backup on the server (`scripts/backup.sh`). The updates that merge by themselves (patch, minor and
   major ones, and image rebuilds) reach the server with only the nightly [scheduled
   backup](installing.md#scheduled-backups) behind them.
-- **Kometa is the exception.** The agent doesn't run Kometa's check with the real values. After a merge that
-  changes `kometa/` or Kometa's image, run on the server
-  `docker compose run --rm kometa --validate --validate-level full` (it must end with `Result: PASSED`)
-  ([kometa.md](kometa.md#upgrading-kometa-safely)). The agent has already recreated Kometa with the new files or
-  image; if the check fails, revert the merge.
+- **Kometa is checked with the real values after the deploy.** After a merge that changes `kometa/` or Kometa's
+  service (its image included), the agent (homelab-pull 0.5.0 or later) runs `scripts/post-deploy-check.sh`:
+  Kometa's `--validate --validate-level full` in a one-off container, with the real values. The agent has already
+  recreated Kometa with the new files or image; if the check fails, the deploy stays, the agent records
+  `failed:check` (which alerts) and retries the check, and you fix the value or revert the merge
+  ([kometa.md](kometa.md#the-check-with-the-real-values-after-a-deploy)).
 - **Rolling back** is a revert pull request, deployed the same way. If the service already migrated its data,
   restore that too ([Rolling back](#rolling-back)).
 - **Holding the server on a version**: check out that commit or release on the server (`git checkout vX.Y.Z`).
