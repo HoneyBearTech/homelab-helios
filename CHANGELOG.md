@@ -38,6 +38,13 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Added
 
+- `scripts/post-deploy-check.sh`: the check the server's pull agent (homelab-pull 0.5.0 or later, its `CHECK`
+  setting) runs after each deploy. When `kometa/` or the `kometa` service in `compose.yaml` (its image included)
+  changed since the commit the check last passed on, it validates Kometa's configuration with the real values
+  (`--validate --validate-level full` in a one-off `docker compose run --rm --no-deps` container, stopped after
+  `KOMETA_CHECK_TIMEOUT`, default 480 s), which CI can't do. A failure leaves the deploy running; the agent logs it
+  as `failed:check`, which alerts, and retries it. Replaces the manual check after a merge that changes Kometa
+  ([docs/kometa.md](docs/kometa.md#the-check-with-the-real-values-after-a-deploy)).
 - A weekly Plex update watch (`.github/workflows/plex-update-watch.yml`, `scripts/plex_watch.py`), because
   Dependabot can't read any of Plex's image tags: while linuxserver.io has a newer Plex build than the one pinned (a
   new Plex version or a rebuild), it keeps one issue, "Plex update available", with the newer builds and the latest

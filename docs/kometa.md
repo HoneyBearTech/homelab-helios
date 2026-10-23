@@ -69,8 +69,8 @@ Dependabot proposes the update itself; the watch is the early warning, with the 
 1. Dependabot opens a pull request with Kometa's new tag and digest. It merges automatically once every required
    check passes, **Kometa config** included: a release that rejects `kometa/` doesn't merge.
 2. A merge deploys: on a server that follows `main`, the pull agent pulls the new image and recreates Kometa
-   within minutes ([upgrading.md](upgrading.md#following-main)), without the check with the real values; run it
-   there right after the merge (the `--validate` command below). On a server upgraded by hand, follow
+   within minutes ([upgrading.md](upgrading.md#following-main)), then checks Kometa's configuration with the real
+   values ([below](#the-check-with-the-real-values-after-a-deploy)). On a server upgraded by hand, follow
    [upgrading.md](upgrading.md): back up (`scripts/backup.sh`), check out the new version, then check Kometa's
    configuration with the real values before starting it:
 
@@ -85,3 +85,25 @@ Dependabot proposes the update itself; the watch is the early warning, with the 
    when a mounted file changed).
 3. If the next run goes wrong, go back to the previous version and restore Kometa's data
    (`scripts/restore.sh <backup> kometa`): a new Kometa may migrate its cache.
+
+## The check with the real values after a deploy
+
+CI validates `kometa/` with dummy values; the real ones exist only on the server. So the server's pull agent
+(homelab-pull 0.5.0 or later, with `CHECK=scripts/post-deploy-check.sh` in its settings for this stack) runs
+[`scripts/post-deploy-check.sh`](../scripts/post-deploy-check.sh) after every deploy:
+
+- It validates only when Kometa may have changed since the commit the check last passed on: `kometa/` differs, or
+  the `kometa` service's own lines in `compose.yaml` do (its image, a Dependabot bump or rebuild, among them), or
+  it never passed. Otherwise it passes at once.
+- The validation is `docker compose run --rm --no-deps kometa --validate --validate-level full`: a one-off
+  container of the same service, with the same image, settings and data directory (so Kometa reads the real values
+  from the `.env` there), which validates and exits. It never starts a Kometa run and leaves the running `kometa`
+  container alone. It passes only if Kometa exits 0 and prints `Result: PASSED`; `KOMETA_CHECK_TIMEOUT` (default
+  480 s, below the agent's own 600 s limit) stops one that hangs, and the container is removed.
+- Kometa's report goes to the agent's journal; Kometa's whole output is in `logs/meta.log` in its data directory.
+  Kometa's own webhooks (errors, a newer version) can fire, as on any Kometa start.
+- **When it fails**, the new commit stays deployed and running (the agent rolls nothing back), and the agent
+  records the deploy as `failed:check`, which the server's monitoring alerts on. Read the report
+  (`journalctl --user -u homelab-pull@helios`): usually a value in Kometa's `.env` needs fixing (or a service it
+  connects to is down). Then start the agent by hand (`systemctl --user start homelab-pull@helios`), which runs the
+  check again at once (it also retries by itself every 15 minutes). If the change itself is wrong, revert it.
