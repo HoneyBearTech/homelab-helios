@@ -81,6 +81,8 @@ under `CONFIG_ROOT` with another service (`shared`).
   backup also records `NETWORKS` (external networks' address ranges; none here) and `VERSION` (`git describe`).
   `backup.sh` stops one service at a time, only while it copies that service's data, and
   compresses after starting it again (gzip of Plex's 12 GB of databases takes ~14 min on Helios, the copy ~2).
+  `restore.sh` stops a service that bind-mounts a folder inside a mount it restores (ImageMaid Plex's, AURA and Kometa
+  each other's) and starts it again with it; the smoke test checks both, with a test container and the real ones.
   `scripts/scheduled-backup.sh` + `deploy/systemd/` run it nightly at 01:00 (Kometa runs at 07:30, after it) and copy it
   off the host; the backup server's name lives only in the host's `~/.ssh/config` and `backup.env`, never here.
 - **Every service is hardened** (`x-hardened`: `cap_drop: [ALL]`, `no-new-privileges:true`) and adds back only
