@@ -47,6 +47,10 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- The smoke test runs a stack's own steps from `scripts/smoke-stack.sh` when that exists (`smoke_prepare` before the
+  services start, `smoke_check` once they are healthy and again after the restore), gives a `*_SUBNET` setting a free
+  address range, and leaves a service with Docker secrets out of the restore's "recreated with older settings" check.
+  None of these is in use here; they keep the stacks' tooling the same.
 - Kometa runs at 07:30 by default (`KOMETA_TIMES`, was 02:00), well after the nightly backup. A backup that
   runs long, as when a backup of the whole virtual machine loads the disk at the same time, kept Plex stopped
   past 02:00, and the Kometa run found none of its libraries and did nothing. **Set `KOMETA_TIMES=07:30` in
@@ -109,6 +113,12 @@ All notable changes to homelab-helios are documented here. The format follows
   container to exit and carries on; if it still runs then, the backup fails and waits once more before starting
   anything. Every service that was running when the backup began must be running again at the end, or the backup
   fails and names it (the scheduled backup reports that to the push monitor).
+- `scripts/restore.sh` stops a service that bind-mounts a folder inside a mount it restores, and starts it again
+  afterwards. Such a container kept seeing the folder the restore had replaced, deleted, until it restarted (found on
+  homelab-hyperion). Here that is ImageMaid, which reads Plex's folder, and AURA and Kometa, which mount each other's:
+  restoring only Plex left ImageMaid on the deleted folder, and restoring only Kometa or AURA did the same to the
+  other. A full restore was not affected (every one of them is restored and restarted). The smoke test now checks it
+  with a test container that follows another service's folder, and by restoring Plex, AURA and Kometa each on its own.
 
 ### Security
 
