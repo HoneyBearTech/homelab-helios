@@ -1,6 +1,7 @@
 # The Helios stack. Every setting comes from .env (template: .env.example; reference: docs/interfaces.md); the
 # secrets a service can only take from its environment from plex.env (Plex's one-time claim token) and
-# autoheal.env (autoheal's optional webhook), both optional and gitignored.
+# autoheal.env (autoheal's optional webhook), both optional and gitignored; the Dozzle agent's certificate and key
+# from files under CONFIG_ROOT/dozzle/certs (Docker secrets, at the end).
 # Every image is pinned as name:tag@sha256:<digest>; Dependabot proposes updates (patch, minor and major ones
 # merge automatically once CI passes; a merge deploys). scripts/check_compose.py enforces the policy
 # (docs/security.md#policy).
@@ -279,7 +280,8 @@ services:
 
   # A Dozzle agent: it serves this host's container logs to the homelab's Dozzle on another host, which shows the
   # logs of every host in one web UI. It has no web UI of its own and no data to back up. Keep it on the hub's
-  # version.
+  # version. It accepts only a hub that presents the homelab's own certificate and key (the secrets at the end), never
+  # the pair built into every Dozzle image, which anyone can use.
   dozzle-agent:
     <<: *hardened
     image: amir20/dozzle:v11.3.4@sha256:8796ae7e1ecbe011482319cb7040e69aae91a0632b87bbe24b3f643e7455d94b
@@ -298,6 +300,12 @@ services:
       org.honeybeartech.helios.allow.docker-socket: >-
         The Dozzle agent reads container logs through the Docker API for the Dozzle hub. The socket is mounted
         read-only, which protects the socket file but not the API, so the agent's port must stay on the LAN.
+    environment:
+      DOZZLE_CERT: /run/secrets/dozzle_cert
+      DOZZLE_KEY: /run/secrets/dozzle_key
+    secrets:
+      - dozzle_cert
+      - dozzle_key
     ports:
       - "7007:7007"
     volumes:
@@ -380,3 +388,15 @@ networks:
   # autoheal ↔ socket-proxy only: no route out, nothing published.
   docker-proxy:
     internal: true
+
+# The certificate and key the Dozzle agent and the homelab's Dozzle hub authenticate each other with: one pair, made
+# once with `dozzle generate-certs`, the same on the hub and on every agent (docs/installing.md#dozzles-certificate).
+# Files on the host, owned by root: the agent runs as root without capabilities, so it can read only a file that root
+# owns. Compose mounts each read-only at /run/secrets/<name>, and the agent doesn't start while one is missing, so it
+# never falls back to the built-in pair. Never committed, and never in the stack's backups (they copy read-write
+# mounts only): keep the key in a password manager.
+secrets:
+  dozzle_cert:
+    file: ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/dozzle/certs/dozzle_cert.pem
+  dozzle_key:
+    file: ${CONFIG_ROOT:?set CONFIG_ROOT in .env}/dozzle/certs/dozzle_key.pem

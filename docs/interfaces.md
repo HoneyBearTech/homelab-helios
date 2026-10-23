@@ -107,6 +107,7 @@ Every mount is a host directory: the stack declares no named Docker volumes, and
 | `/plex/Cache` | `CONFIG_ROOT/plex/cache` | ImageMaid: Plex's cache, for its PhotoTranscoder cleanup (not backed up) |
 | `/media` | `MEDIA_PATH` | AURA: saves artwork next to the media (read-write; never backed up) |
 | `/var/run/docker.sock` (read-only) | the Docker socket | socket-proxy and the Dozzle agent only (allowed exceptions, see below; not backed up) |
+| `/run/secrets/dozzle_cert`, `/run/secrets/dozzle_key` (read-only; Docker secrets) | `CONFIG_ROOT/dozzle/certs/dozzle_cert.pem` and `dozzle_key.pem`, owned by root ([installing.md](installing.md#dozzles-certificate)) | the Dozzle agent (`DOZZLE_CERT`, `DOZZLE_KEY` point at them; not backed up) |
 
 `socket-proxy` and `autoheal` share the internal network `docker-proxy`, which has no route out and nothing
 published; autoheal also joins the default network, to reach its webhook.

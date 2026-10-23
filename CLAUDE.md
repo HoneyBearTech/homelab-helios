@@ -46,7 +46,10 @@ under `CONFIG_ROOT` with another service (`shared`).
   token, Kometa's API keys (in the `.env` in its data directory) and logins stay in the
   services' data on the host, never in `compose.yaml`, `.env` or the `*.example` files. A secret a service can
   only take from its environment gets its own gitignored `<service>.env` (`env_file`) with a committed
-  `<service>.env.example`: Plex's one-time `PLEX_CLAIM` goes in `plex.env`. `.gitignore` covers `.env`, keys,
+  `<service>.env.example`: Plex's one-time `PLEX_CLAIM` goes in `plex.env`. The Dozzle agent's certificate and key,
+  the same pair as the hub's, are Docker secret files in `CONFIG_ROOT/dozzle/certs` on the host (owned by root, never
+  in the repo or the backups, copy in the owner's password manager); never let the agent fall back to the pair built
+  into every Dozzle image (the smoke test checks it, `scripts/smoke-stack.sh`). `.gitignore` covers `.env`, keys,
   certificates, `appdata/`, `data/`, `media/`, `transcode/`, `backups/`; extend it rather than work around it.
 - Keep the repo on track for OpenSSF Baseline Levels 1 and 2 and the Best Practices Passing and Silver
   badges (project 15291). If a change would break a met criterion (for example unpinning an image or an

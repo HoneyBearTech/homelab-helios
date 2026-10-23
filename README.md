@@ -112,7 +112,9 @@ A new Plex server's one-time claim token goes in a gitignored `plex.env`, never 
 - The GPU is given to Plex as a device reservation through the NVIDIA runtime, never by running it privileged.
 - Secrets (Plex and MediUX tokens, Kometa's API keys, logins) live only in each service's data, never in this repository
   or `.env`. Backups contain them, and Plex's and Tautulli's viewing history: keep them private and off the host.
-- The Dozzle agent reads logs through the Docker socket: keep its port (7007) on the LAN. autoheal never gets the
+- The Dozzle agent reads logs through the Docker socket: it accepts only a Dozzle hub with the certificate and key
+  you made for them, never the pair built into every Dozzle image
+  ([docs/installing.md](docs/installing.md#dozzles-certificate)), and its port (7007) stays on the LAN. autoheal never gets the
   Docker socket: it goes through a proxy that only lets it list, inspect, restart and stop containers. Its
   optional webhook URL (restart notices, for example to Discord) goes in `autoheal.env` (template
   [`autoheal.env.example`](autoheal.env.example), mode `600`, gitignored).

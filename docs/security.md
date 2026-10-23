@@ -61,7 +61,7 @@ on a host. Each capability added back was proven by starting the image without i
 | plex | `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID`, `KILL` | no | Its init (s6-overlay) runs as root: it takes ownership of `/config`, reads Plex's `Preferences.xml` (readable only by Plex's user) and removes a stale pid file after an unclean stop, starts Plex as its own user, and signals it to stop (without `KILL`, every stop waits for Docker's timeout and kills Plex). On a read-only root the init ignores `PUID`/`PGID` and runs Plex as uid 911, which doesn't own the data |
 | tautulli | `CHOWN`, `SETUID`, `SETGID`, `KILL` | no | The same init: ownership of `/config`, Tautulli as its own user, a clean stop; writable root for the same reason |
 | aura, kometa, quickstart, imagemaid | none | yes (`/tmp` in memory) | They run as `PUID:PGID` and write only their data directories |
-| dozzle-agent | none | yes (`/tmp` in memory) | Reads the Docker socket, which belongs to root |
+| dozzle-agent | none | yes (`/tmp` in memory) | Reads the Docker socket and its certificate and key, all owned by root |
 | autoheal | none | yes | Only talks to socket-proxy |
 | socket-proxy | none | yes (`/run`, `/tmp` in memory) | Only reads the socket |
 
@@ -91,9 +91,11 @@ reach what it owns.
   files; only snapshots on the storage that holds the library protect against that, and this stack never backs
   it up.
 - **Dozzle's access to Docker.** The Dozzle agent needs the Docker socket to read logs; read-only mounting
-  doesn't limit the Docker API, so any Dozzle that can reach the agent's port, and anyone who can use that
-  Dozzle's web UI, can see every container's logs. It is an allowed exception (label in `compose.yaml`); keep its
-  port on the LAN.
+  doesn't limit the Docker API, so any Dozzle that the agent accepts, and anyone who can use that Dozzle's web UI,
+  can see every container's logs. The agent accepts only a Dozzle that presents its own certificate and key, never
+  the pair built into every Dozzle image ([installing.md](installing.md#dozzles-certificate)), so whoever holds the
+  key (root on the hub's host and on every agent's, and the password manager it is kept in) is trusted too. It is an
+  allowed exception (label in `compose.yaml`); keep its port on the LAN.
 - **autoheal's reach.** autoheal never holds the socket: `socket-proxy` does, and passes on only listing,
   inspecting, restarting and stopping containers, on an internal network with no published port. Whoever
   controls autoheal or the proxy can still stop any container on the host and read containers' settings,
@@ -127,6 +129,7 @@ reach what it owns.
 | ImageMaid's Plex token | ImageMaid's data | same |
 | The Plex token and API keys entered in Kometa Quickstart, and the configs built there | Quickstart's data (SQLite); readable by anyone who reaches port 7171 while it runs, since it has no login | same; never forward 7171 |
 | autoheal's webhook URL | `autoheal.env` (mode `600`, gitignored) | same |
+| The Dozzle agent's key, shared with the Dozzle hub | `CONFIG_ROOT/dozzle/certs/dozzle_key.pem` (root, mode `600`) and a password manager | same, and the stack's backups |
 | Backups of the data | off the host, mode `600` | anywhere public |
 | The backup push monitor's URL | `backup.env` (mode `600`, gitignored) | the repository, issues, logs you paste |
 | The key for the backup server | the backup user's `~/.ssh` on the host, restricted on the server to this host | same |
