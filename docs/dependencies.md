@@ -33,6 +33,7 @@ decision about those players, not about this stack. It runs with no added privil
 | Linters and scanners used only by CI (actionlint, gitleaks, Trivy) | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`scan.yml`](../.github/workflows/scan.yml) | version tag and digest | Docker |
 | GitHub Actions | [`.github/workflows/`](../.github/workflows/) | full commit SHA (version in a comment) | GitHub Actions |
 | Images of the GitLab copy's pipeline (Python, Docker CLI, git, gitleaks, actionlint) | [`.gitlab-ci.yml`](../.gitlab-ci.yml) | version tag and digest | GitLab Runner (Docker executor) |
+| git for the tests on GitLab (`tests/test_post_deploy_check.py` runs it) | the Python image in [`.gitlab-ci.yml`](../.gitlab-ci.yml): the full Debian image, not `-slim` | that image's digest (Debian's git package, as built into the image) | the image; nothing is installed at run time |
 
 Each release carries a CycloneDX SBOM listing every service's image and digest
 ([verifying-releases.md](verifying-releases.md)).
@@ -42,7 +43,8 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
 - **Dependabot** ([`.github/dependabot.yml`](../.github/dependabot.yml)) checks weekly for new image versions in the Compose file, new tool versions and new Action
   versions, and opens a pull request for each. Dependabot alerts and security updates are on.
 - The CI-only images in `run:` steps, the images in `.gitlab-ci.yml` and the scripts' busybox image aren't seen
-  by Dependabot; they're bumped by hand at least every quarter.
+  by Dependabot; they're bumped by hand at least every quarter. The GitLab pipeline's git comes with its Python
+  image, so it's updated when that image is: a newer digest of the same tag carries Debian's newer git.
 - **Patch, minor and major updates merge automatically** once every required check has passed (CI with the Compose
   policy check, the smoke test and the validation of Kometa's configuration against the new Kometa, CodeQL,
   dependency review). That includes Plex, which releases often: it

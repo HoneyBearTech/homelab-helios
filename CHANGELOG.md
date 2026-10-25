@@ -127,6 +127,9 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Fixed
 
+- The GitLab copy's `checks` job passes again: it runs in the full Python image (`python:3.14.9-trixie`, pinned
+  by digest) instead of `-slim`, which has no git, so the tests of `scripts/post-deploy-check.sh` failed there with
+  "No such file or directory: '/usr/bin/git'". GitHub's checks were unaffected.
 - **The Dozzle agent keeps the notification settings the Dozzle hub sends it in memory** (`/data` is a tmpfs now).
   It saves them to `/data`, which was part of its read-only root filesystem, so each time the hub started the agent
   logged "failed to save config: open ./data/notifications.yml: read-only file system" and "Could not remove cloud.yml

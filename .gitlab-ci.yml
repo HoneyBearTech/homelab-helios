@@ -65,7 +65,8 @@ checks:
   extends: .checks
   stage: checks
   needs: [compose-config]
-  image: python:3.14.8-slim-trixie@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2
+  # The full image, not -slim: it has git, which tests/test_post_deploy_check.py runs (GitHub's runner has its own).
+  image: python:3.14.9-trixie@sha256:2c90493710bd462e097441e60b0218430d8f7e2b46779bfca3742b2efd386feb
   variables:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
   script:
