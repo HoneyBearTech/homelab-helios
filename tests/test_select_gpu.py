@@ -6,7 +6,7 @@ $FAKE_DOCKER_INFO_EXIT (default 0: Docker answers), the fake `docker compose up`
 folder named argus-agent (the Argus agent's), the fake records the COMPOSE_PROFILES it got, lists the agent's
 services for those profiles (`config --services`: agent, plus plex-exporter and gpu-exporter for the `plex` and `gpu`
 profiles) and exits $FAKE_AGENT_CONFIG_EXIT, $FAKE_AGENT_RM_EXIT or $FAKE_AGENT_UP_EXIT; it fails if this stack's
-COMPOSE_FILE reaches it.
+COMPOSE_FILE reaches it. A stand-in for `mv` fails to rename the metric's temporary file when $FAKE_MV_FAIL is set.
 """
 
 from __future__ import annotations
@@ -51,6 +51,25 @@ esac
 exit 0
 """
 
+FAKE_MV = """#!/bin/sh
+for arg; do
+  case $arg in *.prom.tmp.*) [ -z "${FAKE_MV_FAIL:-}" ] || { echo "fake mv: can't rename $arg" >&2; exit 1; } ;; esac
+done
+exec /bin/mv "$@"
+"""
+
+METRIC = "homelab-helios-gpu.prom"
+
+
+def metric(vendor: str) -> str:
+    """The metrics file for the GPU `vendor` chosen, as the Argus agent's textfile collector reads it."""
+    return (
+        "# HELP homelab_gpu_selected The GPU select-gpu.sh last chose for Plex (vendor: nvidia, intel or none).\n"
+        "# TYPE homelab_gpu_selected gauge\n"
+        f'homelab_gpu_selected{{vendor="{vendor}"}} 1\n'
+    )
+
+
 # The agent's .env as on a host: settings around COMPOSE_PROFILES that must come through a rewrite unchanged.
 AGENT_ENV = """ARGUS_HOST=gpu-host
 # Password of the Argus server's Prometheus user.
@@ -88,8 +107,9 @@ class Host:
             path.mkdir(parents=True)
         for name in ("select-gpu.sh", "lib.sh"):
             shutil.copy2(SCRIPTS / name, self.dir / "scripts" / name)
-        (self.bin / "docker").write_text(FAKE_DOCKER, encoding="utf-8")
-        (self.bin / "docker").chmod(0o755)
+        for name, text in (("docker", FAKE_DOCKER), ("mv", FAKE_MV)):
+            (self.bin / name).write_text(text, encoding="utf-8")
+            (self.bin / name).chmod(0o755)
 
     def device(self, address: str, ids: tuple[str, str], driver: str | None, *, render: bool = True) -> None:
         """A PCI device: (vendor, class), the driver bound to it (None: none) and, for a GPU, its DRM nodes."""
@@ -124,6 +144,11 @@ class Host:
         lines = self.agent_env.read_text(encoding="utf-8").splitlines()
         return [line for line in lines if line.startswith("COMPOSE_PROFILES=")]
 
+    @property
+    def metrics(self) -> Path:
+        """The pull agent's metrics directory, where the metric goes by default (made by the tests that want it)."""
+        return self.home / "state" / "homelab-pull" / "metrics"
+
     def link(self) -> str | None:
         path = self.dir / LINK
         return str(path.readlink()) if path.is_symlink() else None
@@ -132,7 +157,8 @@ class Host:
         env = {
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
             "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.home / "state"),  # no pull agent here: deploy_lock does nothing
+            # No pull agent here (no state/homelab-pull/helios): deploy_lock does nothing.
+            "XDG_STATE_HOME": str(self.home / "state"),
             "FAKE_LOG": str(self.log),
             "GPU_SYSFS": str(self.sys),
             **extra,
@@ -419,6 +445,101 @@ def test_leaves_the_agent_alone_when_gpu_argus_agent_dir_is_empty(host: Host) ->
     assert "Argus" not in result.stdout
     assert host.calls() == []
     assert host.agent_env.read_text(encoding="utf-8") == before
+
+
+@pytest.mark.parametrize(
+    ("gpu", "vendor"),
+    [
+        (NVIDIA_ON, "nvidia"),
+        (INTEL_ON, "intel"),
+        (NVIDIA_VFIO, "none"),  # an NVIDIA GPU still handed to a VM: Plex can't use it, nor can the GPU exporter
+        (None, "none"),
+    ],
+)
+def test_writes_the_gpu_chosen_as_a_metric_even_when_nothing_changes(
+    host: Host, gpu: tuple[tuple[str, str], str] | None, vendor: str
+) -> None:
+    host.metrics.mkdir(parents=True)
+    with_gpu(host, gpu)
+    result = host.run(COMPOSE_FILE=f"compose.yaml:{LINK}")
+    assert result.returncode == 0, result.stderr
+    assert "already points at" in result.stdout
+    assert host.calls() == []
+    # Exactly one series, and no temporary file left for the collector to find.
+    assert [path.name for path in host.metrics.iterdir()] == [METRIC]
+    assert (host.metrics / METRIC).read_text(encoding="utf-8") == metric(vendor)
+    assert f'Wrote homelab_gpu_selected{{vendor="{vendor}"}} to {host.metrics / METRIC}' in result.stdout
+
+
+def test_a_failover_replaces_the_metric(host: Host) -> None:
+    host.metrics.mkdir(parents=True)
+    (host.metrics / METRIC).write_text(metric("nvidia"), encoding="utf-8")
+    (host.metrics / "helios.prom").write_text('homelab_pull_paused{stack="helios"} 0\n', encoding="utf-8")
+    (host.dir / LINK).symlink_to("compose.gpu.yaml")
+    host.device("0000:01:00.0", INTEL, "i915")
+    result = host.run(COMPOSE_FILE=f"compose.yaml:{LINK}")
+    assert result.returncode == 0, result.stderr
+    assert (host.metrics / METRIC).read_text(encoding="utf-8") == metric("intel")
+    # The pull agent's own file is left as it is.
+    assert sorted(path.name for path in host.metrics.iterdir()) == sorted([METRIC, "helios.prom"])
+    assert (host.metrics / "helios.prom").read_text(encoding="utf-8") == 'homelab_pull_paused{stack="helios"} 0\n'
+    assert host.calls() == ["docker info", UP]
+
+
+def test_writes_the_metric_before_waiting_for_docker(host: Host) -> None:
+    host.metrics.mkdir(parents=True)
+    host.device("0000:01:00.0", INTEL, "i915")
+    result = host.run(COMPOSE_FILE=f"compose.yaml:{LINK}", FAKE_DOCKER_INFO_EXIT="1", GPU_DOCKER_WAIT="0")
+    assert result.returncode == 1
+    assert (host.metrics / METRIC).read_text(encoding="utf-8") == metric("intel")
+
+
+@pytest.mark.parametrize("setting", ["HOMELAB_PULL_STATE_DIR", "GPU_METRICS_DIR"])
+def test_finds_the_metrics_directory_where_the_settings_say(host: Host, tmp_path: Path, setting: str) -> None:
+    # HOMELAB_PULL_STATE_DIR moves the pull agent's state (metrics/ in it), GPU_METRICS_DIR the metric alone.
+    state = tmp_path / "pull-state"
+    metrics = state / "metrics" if setting == "HOMELAB_PULL_STATE_DIR" else tmp_path / "textfile"
+    metrics.mkdir(parents=True)
+    host.metrics.mkdir(parents=True)  # the default, which those settings override
+    with_gpu(host, NVIDIA_ON)
+    result = host.run(**{setting: str(state if setting == "HOMELAB_PULL_STATE_DIR" else metrics)})
+    assert result.returncode == 0, result.stderr
+    assert (metrics / METRIC).read_text(encoding="utf-8") == metric("nvidia")
+    assert list(host.metrics.iterdir()) == []
+
+
+def test_writes_no_metric_without_a_metrics_directory(host: Host) -> None:
+    with_gpu(host, INTEL_ON)
+    result = host.run()
+    assert result.returncode == 0, result.stderr
+    assert f"No metrics directory {host.metrics} (no pull agent here): no metric written" in result.stdout
+    assert not host.metrics.exists()  # not created: nothing would read it
+
+
+def test_writes_no_metric_when_gpu_metrics_dir_is_empty(host: Host) -> None:
+    host.metrics.mkdir(parents=True)
+    with_gpu(host, INTEL_ON)
+    result = host.run(GPU_METRICS_DIR="")
+    assert result.returncode == 0, result.stderr
+    assert "homelab_gpu_selected" not in result.stdout
+    assert "No metrics directory" not in result.stdout
+    assert list(host.metrics.iterdir()) == []
+
+
+@pytest.mark.parametrize("changes", [False, True])
+def test_fails_when_the_metric_cant_be_written_but_does_the_rest(host: Host, *, changes: bool) -> None:
+    host.metrics.mkdir(parents=True)
+    (host.metrics / METRIC).write_text(metric("nvidia"), encoding="utf-8")
+    (host.dir / LINK).symlink_to("compose.gpu.yaml" if changes else "compose.intel.yaml")
+    host.device("0000:01:00.0", INTEL, "i915")
+    result = host.run(COMPOSE_FILE=f"compose.yaml:{LINK}", FAKE_MV_FAIL="1")
+    assert result.returncode == 1
+    assert f"error: couldn't write the metric to {host.metrics / METRIC}" in result.stderr
+    # The old file stays whole, the temporary one is gone, and Plex still follows the GPU.
+    assert [path.name for path in host.metrics.iterdir()] == [METRIC]
+    assert (host.metrics / METRIC).read_text(encoding="utf-8") == metric("nvidia")
+    assert host.link() == "compose.intel.yaml"
+    assert host.calls() == (["docker info", UP] if changes else [])
 
 
 @pytest.mark.parametrize("value", ["soon", "-5", "1.5"])

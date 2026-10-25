@@ -98,7 +98,12 @@ points `compose.host-gpu.yaml`, a gitignored symlink in the checkout, at the ove
 GPU on the `nvidia` driver first, then an Intel GPU on `i915`/`xe` with a render node, else `compose.cpu.yaml`) and,
 when that changed, recreates Plex (`docker compose up --detach --no-deps --wait plex`) under the pull agent's lock.
 It also keeps `gpu` in the `COMPOSE_PROFILES` of an [Argus](https://github.com/HoneyBearTech/Argus) agent's `.env`
-only while there is an NVIDIA GPU, removing or starting the agent's NVIDIA GPU exporter to match.
+only while there is an NVIDIA GPU, removing or starting the agent's NVIDIA GPU exporter to match. Every run, whether
+or not anything changed, records the GPU it chose for the Argus agent's textfile collector as exactly one series,
+`homelab_gpu_selected{vendor="nvidia"}`, `{vendor="intel"}` or `{vendor="none"}` (value 1), in
+`homelab-helios-gpu.prom` in the pull agent's metrics directory, which the agent's node exporter reads. Argus' alerts
+use it to expect the NVIDIA GPU exporter only while `vendor="nvidia"`, so the metric's name and label are an interface:
+keep them as they are.
 Plex's Transcoder setting "Hardware transcoding device" must be **Auto** for it to use whichever GPU it gets: a
 specific device stops working when the GPU changes ([installing.md](installing.md#the-gpu-at-boot)).
 
@@ -106,6 +111,7 @@ specific device stops working when the GPU changes ([installing.md](installing.m
 | --- | --- | --- |
 | `GPU_ARGUS_AGENT_DIR` | `~/argus-agent` | The Argus agent's folder (its compose file and `.env`). Nothing is done there when it has no `.env`; empty leaves the agent alone |
 | `GPU_DOCKER_WAIT` | `300` | Seconds to wait for Docker to answer before giving up (exit 1) |
+| `GPU_METRICS_DIR` | the pull agent's `metrics` directory (`~/.local/state/homelab-pull/metrics`, or under `HOMELAB_PULL_STATE_DIR` / `XDG_STATE_HOME`) | Where `homelab-helios-gpu.prom` goes. Nothing is written when the directory doesn't exist; empty writes no metric |
 | `GPU_SYSFS` | `/sys` | Where sysfs is mounted (for tests) |
 
 ## Volumes and mounts
