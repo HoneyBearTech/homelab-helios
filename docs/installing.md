@@ -69,6 +69,14 @@ that failed is tried again by the next. While the exporter is gone, the Argus se
 target down until the NVIDIA GPU is back. Without an agent's `.env` there nothing happens; `GPU_ARGUS_AGENT_DIR=`
 (empty) leaves an agent alone.
 
+Every run also tells Argus which GPU it chose, whether or not anything changed: one series,
+`homelab_gpu_selected{vendor="nvidia"}`, `{vendor="intel"}` or `{vendor="none"}` with the value 1, in
+`homelab-helios-gpu.prom` in the pull agent's metrics directory (`~/.local/state/homelab-pull/metrics`, or
+`GPU_METRICS_DIR`), which the Argus agent's node exporter reads with its textfile collector. A new file is renamed over
+the old one, so the collector never reads half of one. Argus uses it to expect the NVIDIA GPU exporter only while
+there is an NVIDIA GPU. Where that directory doesn't exist (no pull agent), nothing is written. To check:
+`cat ~/.local/state/homelab-pull/metrics/homelab-helios-gpu.prom`, and `homelab_gpu_selected` in Argus' Prometheus.
+
 1. **Plex's Transcoder setting "Hardware transcoding device" on Auto** (Settings → Transcoder, with advanced
    settings shown). A specific device stops working when the GPU changes.
 2. **Make the link, then let the stack follow it**, in `.env` and, where the pull agent deploys, in its settings

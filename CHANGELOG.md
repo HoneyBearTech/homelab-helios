@@ -53,6 +53,11 @@ All notable changes to homelab-helios are documented here. The format follows
   The same script moves an [Argus](https://github.com/HoneyBearTech/Argus) agent beside the stack (`~/argus-agent`,
   or `GPU_ARGUS_AGENT_DIR`) with the GPU: `gpu` stays in its `.env`'s `COMPOSE_PROFILES` only while there is an
   NVIDIA GPU, and its NVIDIA GPU exporter is removed or started to match; its other containers aren't touched.
+  Every run, changed or not, also records the GPU it chose for Argus as one series,
+  `homelab_gpu_selected{vendor="nvidia"|"intel"|"none"} 1`, in `homelab-helios-gpu.prom` in the pull agent's
+  metrics directory (written to a temporary file and renamed), which the Argus agent's textfile collector reads; Argus
+  uses it to expect the NVIDIA GPU exporter only on the NVIDIA GPU. `GPU_METRICS_DIR` moves it; nothing is written
+  where the directory doesn't exist.
 - `scripts/post-deploy-check.sh`: the check the server's pull agent (homelab-pull 0.5.0 or later, its `CHECK`
   setting) runs after each deploy. When `kometa/` or the `kometa` service in `compose.yaml` (its image included)
   changed since the commit the check last passed on, it validates Kometa's configuration with the real values
