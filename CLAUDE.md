@@ -3,7 +3,8 @@
 The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24.04, amd64, a VM with an NVIDIA
 GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal and a Dozzle agent (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
 the server can be upgraded and rebuilt from this repository. Helios runs the stack (`compose.yaml` +
-`compose.gpu.yaml`) from a checkout of `main` that a pull agent deploys (see Deploys below); its nightly backups go
+`compose.gpu.yaml`; on a failover to another hypervisor it gets an Intel GPU instead, `compose.intel.yaml`, picked at
+boot by `scripts/select-gpu.sh`) from a checkout of `main` that a pull agent deploys (see Deploys below); its nightly backups go
 off the host.
 homelab-ares is the template for the homelab stacks: tooling that isn't specific to this host's services (checker,
 backup scripts, smoke test, workflows) is kept the same as ares'; a change here that isn't about this host's
@@ -30,7 +31,8 @@ The sibling repos `~/GitHub/homelab-ares`, `~/GitHub/homelab-atlas`, `~/GitHub/h
 (above). This repo was bootstrapped from deimos (the closest match: an NVIDIA GPU, a media library on a network
 share). What stays specific to helios: the `tools` profile (`tool_profiles`/`COMPOSE_PROFILES` in `lib.sh`, the
 never-started-tool skip in `backup.sh`, `--profile tools` in the workflows, Makefile and `.gitlab-ci.yml`),
-everything Kometa, the amd64 runners, `compose.gpu.yaml`, the NVIDIA apt hold, auto-merge of majors, the 01:00
+everything Kometa, the amd64 runners, `compose.gpu.yaml`/`compose.intel.yaml`/`compose.cpu.yaml` and
+`scripts/select-gpu.sh` (with its user unit), the NVIDIA apt hold, auto-merge of majors, the 01:00
 backup timer, and in the smoke test the placeholder tree `tests/smoke/config-root/` (the apps' directories, owned by
 PUID:PGID as on a host, and Kometa's `config.yml`) and the moved-config check picking an app that shares no folder
 under `CONFIG_ROOT` with another service (`shared`).
@@ -68,7 +70,9 @@ under `CONFIG_ROOT` with another service (`shared`).
 - **Amd64.** Every image must publish `linux/amd64`. The smoke test runs on `ubuntu-latest` and the image scan
   scans `linux/amd64`.
 - **The GPU is optional to CI.** GitHub's runners have no GPU, so the NVIDIA device reservation must not stop
-  the stack from starting without one (`compose.gpu.yaml`, owner 2026-10-07). GPU access is a device reservation, never `privileged: true`.
+  the stack from starting without one (`compose.gpu.yaml`, owner 2026-10-07). GPU access is a device reservation, never `privileged: true`;
+  an Intel GPU, which has no reservation, is Plex's `/dev/dri` mapping in `compose.intel.yaml` (owner 2026-10-25,
+  for the Plex failover to an Arc A310). CI runs the policy check with each GPU override.
 - **The media library is mounted read-write into Plex and AURA only** (owner 2026-10-07: AURA saves artwork
   there and Plex's media deletion stays possible), and is never backed up, restored or deleted by this repo's
   scripts. It is far too large and is protected by the NAS. A service lists such paths in its
@@ -100,7 +104,8 @@ under `CONFIG_ROOT` with another service (`shared`).
   and in the release workflow. Policy exceptions in use (each agreed by the owner): `socket-proxy` (`docker-socket`:
   filters the API down to list/inspect/restart/stop for autoheal, internal network, no port), `autoheal` (`latest`:
   the image's only maintained tag), `dozzle-agent` (`docker-socket`, read-only mount; an agent for the homelab's
-  Dozzle hub on another host, port 7007, owner 2026-10-13). Don't add more without the owner agreeing.
+  Dozzle hub on another host, port 7007, owner 2026-10-13), `plex` in `compose.intel.yaml` only (`devices`: the host's
+  `/dev/dri` for an Intel GPU, owner 2026-10-25). Don't add more without the owner agreeing.
 - **Every service has a health check** and the `autoheal: "true"` label. autoheal (`willfarrell/autoheal`)
   behind `lscr.io/linuxserver/socket-proxy` (read-only socket, internal `docker-proxy` network) is part of the
   first `compose.yaml`, exactly as on homelab-atlas/ares (owner 2026-10-07); its webhook URL goes in the

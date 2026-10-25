@@ -15,7 +15,8 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
    the host), unless the exception is written into the service as a reasoned label and reviewed: the two
    exceptions are socket-proxy, which holds the socket read-only on autoheal's behalf, and the Dozzle agent,
    which holds it read-only to read the containers' logs for the homelab's Dozzle. The GPU is granted as a
-   device reservation through the NVIDIA runtime, not by privilege.
+   device reservation through the NVIDIA runtime, not by privilege; an Intel GPU, which has no reservation, as
+   Plex's one device mapping (`/dev/dri`, in `compose.intel.yaml` only, under its `allow.devices` label).
 3. **No secrets in the repository.** The services keep their logins, Plex tokens and keys in their own data,
    outside the repository. `.env` holds settings only; Plex's one-time claim token goes in a gitignored
    `plex.env`, and autoheal's optional webhook URL in a gitignored `autoheal.env`. Secret scanning with push protection and a gitleaks scan of the whole history in CI back this up.
@@ -46,7 +47,7 @@ a non-empty reason:
 | `cap-add` | adds a capability outside Docker's default set (adding back one of those only narrows the default) |
 | `host-network` / `host-pid` | uses the host's network or PID namespace |
 | `docker-socket` | mounts the Docker socket |
-| `devices` | maps a host device into the container (a GPU reservation under `deploy.resources` is allowed: Plex's) |
+| `devices` | maps a host device into the container (a GPU reservation under `deploy.resources` is allowed: Plex's; Plex's `/dev/dri` for an Intel GPU carries the label) |
 | `healthcheck` | has no health check, or disables it (one defined only in the image isn't visible to the check) |
 
 ## Hardening

@@ -84,6 +84,8 @@ updater doesn't apply to its container; a new Plex version arrives as a new imag
 | --- | --- |
 | `compose.yaml` | The stack |
 | `compose.gpu.yaml` | The NVIDIA GPU for Plex, added on the host with `COMPOSE_FILE` |
+| `compose.intel.yaml`, `compose.cpu.yaml` | An Intel GPU for Plex (`/dev/dri`), and no GPU (no change): the alternatives to `compose.gpu.yaml` |
+| `scripts/select-gpu.sh`, `deploy/systemd/homelab-helios-gpu.service` | At boot, points the gitignored `compose.host-gpu.yaml` at the override for the GPU the host has and recreates Plex when it changed ([installing.md](installing.md#the-gpu-at-boot)) |
 | `.env.example`, `plex.env.example`, `autoheal.env.example` | Templates for the settings, Plex's claim token and autoheal's optional webhook |
 | `scripts/check_compose.py` | The policy check and SBOM generator (standard-library Python) |
 | `scripts/backup.sh`, `scripts/restore.sh` | Backup and restore of every service's data, never the media library; they hold the pull agent's lock while they run, so no deploy overlaps them |

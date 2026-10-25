@@ -1,0 +1,18 @@
+# Runs scripts/select-gpu.sh once at every boot: points Plex at the GPU the host has now (NVIDIA, Intel or none) and
+# recreates it when that changed. For a host whose GPU can change between boots (a VM that fails over to another
+# hypervisor). A systemd user unit, like the backup's: install it for the user who runs the stack, with lingering on
+# (docs/installing.md#the-gpu-at-boot). %h is that user's home directory: change both paths if the checkout lives
+# elsewhere. A user unit can't be ordered after the system's docker.service, so the script waits for Docker itself.
+[Unit]
+Description=Point homelab-helios' Plex at the GPU this host has
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/homelab-helios
+ExecStart=%h/homelab-helios/scripts/select-gpu.sh
+# Docker's start (up to GPU_DOCKER_WAIT, 300 s), a deploy in progress (lib.sh waits up to 30 minutes for the lock)
+# and Plex becoming healthy (600 s).
+TimeoutStartSec=45min
+
+[Install]
+WantedBy=default.target

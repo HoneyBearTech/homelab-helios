@@ -22,6 +22,11 @@ Mount the media library at the same host path as before (`MEDIA_PATH` in the bac
 
 ## 2. The GPU driver
 
+An Intel GPU needs nothing here: the kernel's i915 (or xe) driver runs it with the firmware in Ubuntu's
+`linux-firmware`, and step 3 needs only Docker. Use `compose.intel.yaml` in step 4
+([installing.md](installing.md#the-gpu-at-boot) when the GPU can change between boots). The rest of this step is
+for an NVIDIA GPU.
+
 Install the NVIDIA driver as a DKMS build, for example the headless server branch
 (`sudo apt install nvidia-headless-<branch>-server nvidia-utils-<branch>-server`; `ubuntu-drivers list --gpgpu`
 shows the branches), then reboot and check it with `nvidia-smi`.

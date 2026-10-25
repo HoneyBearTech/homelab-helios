@@ -12,7 +12,7 @@ setting marked required stops `docker compose` with an error naming it when it's
 
 | Setting | Required | Example | Meaning |
 | --- | --- | --- | --- |
-| `COMPOSE_FILE` | no | `compose.yaml:compose.gpu.yaml` | Read by Docker Compose itself: set it on a host with an NVIDIA GPU so Plex uses it ([GPU](#gpu)). |
+| `COMPOSE_FILE` | no | `compose.yaml:compose.gpu.yaml` | Read by Docker Compose itself: set it on a host with a GPU so Plex uses it: `compose.gpu.yaml` (NVIDIA), `compose.intel.yaml` (Intel), or `compose.host-gpu.yaml` where `scripts/select-gpu.sh` picks one at boot ([GPU](#gpu)). |
 | `TZ` | yes | `Etc/UTC` | Time zone (tz database name) for logs and schedules. |
 | `PUID`, `PGID` | yes | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library. |
 | `MEDIA_PATH` | yes | `/srv/media` | Host path of the media library, mounted read-write into Plex and AURA. Never backed up by this stack. |
@@ -85,6 +85,26 @@ Plex also needs a Plex Pass. The reservation lives in [`compose.gpu.yaml`](../co
 starts on a machine without a GPU (such as CI); the host adds it with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml`
 in `.env`.
 
+An Intel GPU (Arc, or an integrated one, on the i915 or xe driver) has no Compose device reservation, so
+[`compose.intel.yaml`](../compose.intel.yaml) maps the host's `/dev/dri` into Plex instead, under the
+`org.honeybeartech.helios.allow.devices` label ([Labels](#labels)); the image's init adds Plex's user to the groups
+that own the device nodes. Plex uses it for Quick Sync / VA-API. [`compose.cpu.yaml`](../compose.cpu.yaml) changes
+nothing: Plex transcodes on the CPU.
+
+On a host whose GPU can change between boots (a VM that fails over to another hypervisor with another card passed
+through), `COMPOSE_FILE=compose.yaml:compose.host-gpu.yaml` in `.env` and in the pull agent's settings, and the
+`homelab-helios-gpu` user unit, which runs [`scripts/select-gpu.sh`](../scripts/select-gpu.sh) at every boot. It
+points `compose.host-gpu.yaml`, a gitignored symlink in the checkout, at the override for the GPU it finds (an NVIDIA
+GPU on the `nvidia` driver first, then an Intel GPU on `i915`/`xe` with a render node, else `compose.cpu.yaml`) and,
+when that changed, recreates Plex (`docker compose up --detach --no-deps --wait plex`) under the pull agent's lock.
+Plex's Transcoder setting "Hardware transcoding device" must be **Auto** for it to use whichever GPU it gets: a
+specific device stops working when the GPU changes ([installing.md](installing.md#the-gpu-at-boot)).
+
+| `select-gpu.sh` setting (environment) | Default | Meaning |
+| --- | --- | --- |
+| `GPU_DOCKER_WAIT` | `300` | Seconds to wait for Docker to answer before giving up (exit 1) |
+| `GPU_SYSFS` | `/sys` | Where sysfs is mounted (for tests) |
+
 ## Volumes and mounts
 
 Every mount is a host directory: the stack declares no named Docker volumes, and no service keeps data in one.
@@ -116,7 +136,7 @@ published; autoheal also joins the default network, to reach its webhook.
 
 | Label | Meaning |
 | --- | --- |
-| `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `no-new-privileges`, `cap-drop`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `devices`, `healthcheck` ([security.md](security.md#policy)). In use: `socket-proxy` and `dozzle-agent` (`docker-socket`), and `autoheal` (`latest`, since its image publishes no current version tags), as on the sibling stacks. |
+| `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `no-new-privileges`, `cap-drop`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `devices`, `healthcheck` ([security.md](security.md#policy)). In use: `socket-proxy` and `dozzle-agent` (`docker-socket`), and `autoheal` (`latest`, since its image publishes no current version tags), as on the sibling stacks; `plex` (`devices`) in `compose.intel.yaml` only, for an Intel GPU's `/dev/dri`. |
 | `org.honeybeartech.helios.backup.skip` | Container paths (comma-separated, exact) that `scripts/backup.sh` never archives and `scripts/restore.sh` refuses to write, even if a backup lists them. In use: `/media`, the cache and `/transcode` for Plex; `/media` and `/kometa` for AURA; `/auraassets` for Kometa; `/plex` and `/plex/Cache` for ImageMaid (each of those is either never backed up or already backed up with the service that owns it). |
 | `org.honeybeartech.helios.backup.exclude` | Paths inside a service's data mounts (comma-separated, exact container paths) that `scripts/backup.sh` leaves out of the mount's archive and `scripts/restore.sh` leaves in place: data the services re-create, too large to copy every night. A path that isn't inside one of the service's data mounts, or contains `..` or a pattern character (`*?[\`), makes both fail before anything stops. In use: Plex's `Metadata` (artwork) and `Media` (preview thumbnails) under `/config/Library/Application Support/Plex Media Server`; `/config/assets` for Kometa. |
 | `autoheal` | `"true"` on every service autoheal may restart when its health check fails (every service, socket-proxy included). autoheal restarts only containers with this label, so other containers on the host are left alone. |
