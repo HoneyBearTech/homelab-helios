@@ -53,7 +53,7 @@ def mounts(service: dict) -> list[tuple[str, str]]:
 def test_every_setting_is_in_env_example_and_interfaces() -> None:
     used = {
         name
-        for path in ("compose.yaml", "compose.gpu.yaml")
+        for path in ("compose.yaml", "compose.gpu.yaml", "compose.intel.yaml", "compose.cpu.yaml")
         for name in re.findall(r"\$\{([A-Z][A-Z0-9_]*)", read(path))
     }
     example = set(re.findall(r"^#? ?([A-Z][A-Z0-9_]*)=", read(".env.example"), re.MULTILINE))

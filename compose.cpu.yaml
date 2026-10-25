@@ -1,0 +1,4 @@
+# No GPU: Plex transcodes on the CPU. Changes nothing in compose.yaml; it exists so scripts/select-gpu.sh can point
+# compose.host-gpu.yaml at it when the host has no GPU Plex can use (docs/installing.md#the-gpu-at-boot).
+
+services: {}

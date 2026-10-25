@@ -11,7 +11,9 @@ The [quick start](quick-start.md) is the short version of this page.
 - For hardware transcoding: an **NVIDIA GPU** (passed through to the VM if the host is virtual), the NVIDIA
   driver, the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
   1.18 or later configured for Docker (`sudo nvidia-ctk runtime configure --runtime=docker`, then restart Docker),
-  and a **Plex Pass** on the server's Plex account. Without them, Plex still runs and transcodes on the CPU.
+  and a **Plex Pass** on the server's Plex account. Without them, Plex still runs and transcodes on the CPU. An
+  **Intel GPU** (Arc, or integrated) on the kernel's i915 or xe driver works too, with `compose.intel.yaml`: it
+  needs no toolkit, only the GPU's firmware (Ubuntu's `linux-firmware`) and the Plex Pass.
 - A user in the `docker` group to run `docker compose`. Membership is equivalent to root on the host, so keep
   that group small.
 - The media library mounted on the host (local disk or a network share) and readable and writable by
@@ -44,6 +46,47 @@ docker version --format '{{.Server.Version}}'   # 29.2 or later
 sudo systemctl daemon-reload
 docker exec plex nvidia-smi -L                  # still lists the GPU
 ```
+
+### The GPU at boot
+
+A host whose GPU can change between boots, such as a virtual machine that fails over to another hypervisor with
+another card passed through (an NVIDIA card on one, an Intel one on the other), can let Plex follow it.
+`scripts/select-gpu.sh` points `compose.host-gpu.yaml`, a gitignored symlink in the checkout, at the override for
+the GPU the host has: `compose.gpu.yaml` for an NVIDIA GPU on the `nvidia` driver, `compose.intel.yaml` for an Intel
+GPU on `i915` or `xe` with a render node, `compose.cpu.yaml` (no change: CPU transcoding) for neither. When the link
+changes, it recreates Plex with the new override (`docker compose up --detach --no-deps --wait plex`), taking the
+pull agent's lock first. A systemd user unit runs it at every boot. A GPU passed through to another VM on the host,
+or one whose driver didn't load, doesn't count; the script says so in its output.
+
+1. **Plex's Transcoder setting "Hardware transcoding device" on Auto** (Settings → Transcoder, with advanced
+   settings shown). A specific device stops working when the GPU changes.
+2. **Make the link, then let the stack follow it**, in `.env` and, where the pull agent deploys, in its settings
+   (its `COMPOSE_FILE` takes precedence over `.env`). Make the link first: a `COMPOSE_FILE` naming a file that
+   doesn't exist stops every `docker compose` command. On the GPU the host has now, switching changes nothing that
+   runs: Compose resolves the link to the same file, so Plex isn't recreated.
+
+   ```sh
+   scripts/select-gpu.sh                                  # "compose.host-gpu.yaml now points at compose.gpu.yaml"
+   sed -i 's/^COMPOSE_FILE=.*/COMPOSE_FILE=compose.yaml:compose.host-gpu.yaml/' .env
+   docker compose config --quiet && docker compose up -d --wait   # Plex: "Running", not "Recreated"
+   ```
+
+3. **Run it at every boot**, with the user unit from [`deploy/systemd/`](../deploy/systemd/) (it expects the checkout
+   at `~/homelab-helios`, like the backup's; lingering on, as for the backups):
+
+   ```sh
+   cp deploy/systemd/homelab-helios-gpu.service ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable homelab-helios-gpu.service
+   journalctl --user -u homelab-helios-gpu      # after a boot: what it found and whether Plex was recreated
+   readlink compose.host-gpu.yaml               # the override in use
+   ```
+
+A user unit can't wait for the system's `docker.service`, so the script waits for Docker itself (up to
+`GPU_DOCKER_WAIT`, 300 s). Until it has run, Docker starts Plex as it was: on a host that now has another GPU,
+Plex's old container fails to start (an NVIDIA reservation without the GPU) or starts without the GPU, and the
+script then recreates it. To check by hand: `ls -l /dev/dri` (an Intel GPU's `renderD*`) or `nvidia-smi`, then
+`docker exec plex ls /dev/dri`. A transcode marked "(hw)" in Plex's dashboard shows the GPU in use.
 
 ## Where data lives
 

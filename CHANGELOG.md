@@ -42,6 +42,14 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Added
 
+- **Plex on an Intel GPU, and a GPU picked at boot.** `compose.intel.yaml` gives Plex an Intel GPU (Arc or
+  integrated, on i915 or xe) for Quick Sync / VA-API: the host's `/dev/dri` as a device mapping, the one exception to
+  the `devices` rule (`org.honeybeartech.helios.allow.devices`). `compose.cpu.yaml` is the no-GPU choice.
+  `scripts/select-gpu.sh`, run at every boot by the new `homelab-helios-gpu` user unit, points the gitignored
+  `compose.host-gpu.yaml` at the override for the GPU the host has (NVIDIA first, then Intel, else none) and
+  recreates Plex when that changed, under the pull agent's lock: for a VM that fails over to another hypervisor with
+  another GPU. Opt-in (`COMPOSE_FILE=compose.yaml:compose.host-gpu.yaml`, [docs/installing.md](docs/installing.md#the-gpu-at-boot));
+  a host that names `compose.gpu.yaml` keeps working as before. CI now runs the policy check with each GPU override.
 - `scripts/post-deploy-check.sh`: the check the server's pull agent (homelab-pull 0.5.0 or later, its `CHECK`
   setting) runs after each deploy. When `kometa/` or the `kometa` service in `compose.yaml` (its image included)
   changed since the commit the check last passed on, it validates Kometa's configuration with the real values

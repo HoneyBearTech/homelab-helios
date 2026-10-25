@@ -64,7 +64,7 @@ cp .env.example .env && chmod 600 .env              # then set TZ, PUID/PGID, ME
 CONFIG_ROOT=$(sed -n 's/^CONFIG_ROOT=//p' .env) && mkdir -p "$CONFIG_ROOT"/plex/{config,cache,transcode} \
   "$CONFIG_ROOT"/{tautulli,imagemaid,quickstart}/config \
   "$CONFIG_ROOT"/aura/config/auraassets "$CONFIG_ROOT"/kometa/config/aura
-echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU
+echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU (compose.intel.yaml: Intel)
 docker compose up -d --wait
 ```
 
