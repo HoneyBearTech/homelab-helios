@@ -4,7 +4,7 @@ The Docker Compose stack for Helios, the owner's homelab media server (Ubuntu 24
 GPU passed through): Plex, Tautulli, AURA (MediUX artwork), Kometa and ImageMaid, with autoheal and a Dozzle agent (and Kometa Quickstart as an on-demand tool), every image pinned by tag and digest so
 the server can be upgraded and rebuilt from this repository. Helios runs the stack (`compose.yaml` +
 `compose.gpu.yaml`; on a failover to another hypervisor it gets an Intel GPU instead, `compose.intel.yaml`, picked at
-boot by `scripts/select-gpu.sh`) from a checkout of `main` that a pull agent deploys (see Deploys below); its nightly backups go
+boot by `scripts/select-gpu.sh`, which also drops the Argus agent's NVIDIA-only `gpu` profile there) from a checkout of `main` that a pull agent deploys (see Deploys below); its nightly backups go
 off the host.
 homelab-ares is the template for the homelab stacks: tooling that isn't specific to this host's services (checker,
 backup scripts, smoke test, workflows) is kept the same as ares'; a change here that isn't about this host's

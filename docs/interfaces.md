@@ -97,11 +97,14 @@ through), `COMPOSE_FILE=compose.yaml:compose.host-gpu.yaml` in `.env` and in the
 points `compose.host-gpu.yaml`, a gitignored symlink in the checkout, at the override for the GPU it finds (an NVIDIA
 GPU on the `nvidia` driver first, then an Intel GPU on `i915`/`xe` with a render node, else `compose.cpu.yaml`) and,
 when that changed, recreates Plex (`docker compose up --detach --no-deps --wait plex`) under the pull agent's lock.
+It also keeps `gpu` in the `COMPOSE_PROFILES` of an [Argus](https://github.com/HoneyBearTech/Argus) agent's `.env`
+only while there is an NVIDIA GPU, removing or starting the agent's NVIDIA GPU exporter to match.
 Plex's Transcoder setting "Hardware transcoding device" must be **Auto** for it to use whichever GPU it gets: a
 specific device stops working when the GPU changes ([installing.md](installing.md#the-gpu-at-boot)).
 
 | `select-gpu.sh` setting (environment) | Default | Meaning |
 | --- | --- | --- |
+| `GPU_ARGUS_AGENT_DIR` | `~/argus-agent` | The Argus agent's folder (its compose file and `.env`). Nothing is done there when it has no `.env`; empty leaves the agent alone |
 | `GPU_DOCKER_WAIT` | `300` | Seconds to wait for Docker to answer before giving up (exit 1) |
 | `GPU_SYSFS` | `/sys` | Where sysfs is mounted (for tests) |
 

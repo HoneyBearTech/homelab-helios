@@ -58,6 +58,17 @@ changes, it recreates Plex with the new override (`docker compose up --detach --
 pull agent's lock first. A systemd user unit runs it at every boot. A GPU passed through to another VM on the host,
 or one whose driver didn't load, doesn't count; the script says so in its output.
 
+An [Argus](https://github.com/HoneyBearTech/Argus) agent beside the stack (its `agent/compose.yml` and `.env` in
+`~/argus-agent`, or wherever `GPU_ARGUS_AGENT_DIR` says) follows the GPU too: its `gpu` Compose profile runs an NVIDIA
+GPU exporter, which can't start without an NVIDIA GPU. The script keeps `gpu` in the `COMPOSE_PROFILES` line of the
+agent's `.env` only while there is an NVIDIA GPU on the `nvidia` driver. Without one it removes the exporter
+(`docker compose rm --stop --force`: `up --remove-orphans` leaves a service whose profile was dropped running) and
+takes `gpu` out of the line; with one again it starts the exporter (`docker compose up --detach --wait`) and puts
+`gpu` back. The agent's other containers aren't touched, and the line changes only once the containers have, so a run
+that failed is tried again by the next. While the exporter is gone, the Argus server can't scrape it and reports that
+target down until the NVIDIA GPU is back. Without an agent's `.env` there nothing happens; `GPU_ARGUS_AGENT_DIR=`
+(empty) leaves an agent alone.
+
 1. **Plex's Transcoder setting "Hardware transcoding device" on Auto** (Settings → Transcoder, with advanced
    settings shown). A specific device stops working when the GPU changes.
 2. **Make the link, then let the stack follow it**, in `.env` and, where the pull agent deploys, in its settings
@@ -78,7 +89,7 @@ or one whose driver didn't load, doesn't count; the script says so in its output
    cp deploy/systemd/homelab-helios-gpu.service ~/.config/systemd/user/
    systemctl --user daemon-reload
    systemctl --user enable homelab-helios-gpu.service
-   journalctl --user -u homelab-helios-gpu      # after a boot: what it found and whether Plex was recreated
+   journalctl --user -u homelab-helios-gpu      # after a boot: what it found, and what it changed for Plex and Argus
    readlink compose.host-gpu.yaml               # the override in use
    ```
 
