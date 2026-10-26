@@ -71,6 +71,11 @@ All notable changes to homelab-helios are documented here. The format follows
   one's tag and digest, ready to pin. It never repeats itself, sends an optional alert to its own Discord webhook or
   ntfy topic (`PLEX_DISCORD_WEBHOOK`, `PLEX_NTFY_URL`; the Kometa watch's while those aren't set), and closes the
   issue once the pin is the newest build. A manual run can instead send just a test alert.
+- An encrypted copy off the host for the scheduled backup: with `BACKUP_AGE_RECIPIENT` (an age public key) in
+  `backup.env`, only `backup.tar.age` and its `SHA256SUMS` leave the host, and only the private key's holder can
+  read them (`age -d -i <key> backup.tar.age | tar -x`). Needs `age` on the host; optional, and without it the
+  backup is copied as before. The smoke test checks that only the archive leaves, that the key opens it into the
+  backup `scripts/restore.sh` reads, and that another key doesn't.
 
 ### Changed
 
@@ -132,6 +137,12 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Fixed
 
+- The smoke test's restore into a removed config directory also runs for a stack built from this one where only one
+  service keeps its data in `CONFIG_ROOT/<service>/config`; it used to fail with "no service keeps only its config
+  directory". Helios has six such services (Plex, Tautulli, AURA, Kometa, ImageMaid and Quickstart) and isn't
+  affected.
+- CI's smoke test always logs out of Docker Hub after pulling the images, also when it pulled anonymously on a runner
+  image that comes with a Docker Hub entry of its own.
 - The GitLab copy's `checks` job passes again: it runs in the full Python image (`python:3.14.9-trixie`, pinned
   by digest) instead of `-slim`, which has no git, so the tests of `scripts/post-deploy-check.sh` failed there with
   "No such file or directory: '/usr/bin/git'". GitHub's checks were unaffected.

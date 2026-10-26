@@ -25,7 +25,9 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
 5. **Releases are verifiable.** Release files are listed in a `SHA256SUMS` signed keylessly by the release
    workflow, with SLSA provenance and an SBOM of the pinned images ([verifying-releases.md](verifying-releases.md)).
 6. **Backups don't leak and can't reach the media.** `scripts/backup.sh` writes archives readable only by the
-   user who ran it (the scheduled copy off the host keeps those modes), and `scripts/restore.sh` writes only the mounts the backup's checksummed `MANIFEST` lists and
+   user who ran it (the scheduled copy off the host keeps those modes). With `BACKUP_AGE_RECIPIENT` set, that copy
+   is encrypted to an age key whose private half isn't on this host, so the backup server holds nothing it can read.
+   `scripts/restore.sh` writes only the mounts the backup's checksummed `MANIFEST` lists and
    the service still has read-write, never the media library or any other path a service excludes with its
    `org.honeybeartech.helios.backup.skip` label.
 
@@ -106,9 +108,12 @@ reach what it owns.
   unhealthy; that keeps a hung service available but can hide a real fault. Restarts are logged (and sent to the
   webhook if one is set).
 - **Backups off the host from the host itself.** The scheduled backup can delete old backups on the backup
-  server, so whoever controls this host can delete or overwrite them too. Snapshots or a versioned copy on the
-  backup server, outside this host's reach, are what protect them; a recycle bin may not see deletions made over
-  rsync (Synology's doesn't).
+  server, so whoever controls this host can delete or overwrite them too (though not read them, when they're
+  encrypted). Snapshots or a versioned copy on the backup server, outside this host's reach, are what protect them;
+  a recycle bin may not see deletions made over rsync (Synology's doesn't). The backups in `BACKUP_DIR` on the host
+  aren't encrypted.
+- **The age private key.** With `BACKUP_AGE_RECIPIENT` set, whoever has it can read every backup copied off the
+  host; whoever loses it can read none. Keeping it is the operator's job.
 - **The GPU driver and runtime.** The NVIDIA driver and Container Toolkit on the host are trusted and kept up to
   date by the operator. The driver is kept out of unattended upgrades ([rebuilding.md](rebuilding.md#2-the-gpu-driver)),
   so its security updates wait for the operator to install them and reboot; that trades a delay for a GPU that
@@ -131,6 +136,7 @@ reach what it owns.
 | The Plex token and API keys entered in Kometa Quickstart, and the configs built there | Quickstart's data (SQLite); readable by anyone who reaches port 7171 while it runs, since it has no login | same; never forward 7171 |
 | autoheal's webhook URL | `autoheal.env` (mode `600`, gitignored) | same |
 | The Dozzle agent's key, shared with the Dozzle hub | `CONFIG_ROOT/dozzle/certs/dozzle_key.pem` (root, mode `600`) and a password manager | same, and the stack's backups |
-| Backups of the data | off the host, mode `600` | anywhere public |
+| Backups of the data | on the host and off it mode `600`; off the host encrypted with age when `BACKUP_AGE_RECIPIENT` is set | anywhere public |
+| The age private key for the backups (`BACKUP_AGE_RECIPIENT`) | off this host, with the operator's recovery secrets | this host, the backup server, anywhere public |
 | The backup push monitor's URL | `backup.env` (mode `600`, gitignored) | the repository, issues, logs you paste |
 | The key for the backup server | the backup user's `~/.ssh` on the host, restricted on the server to this host | same |

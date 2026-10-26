@@ -111,7 +111,8 @@ A new Plex server's one-time claim token goes in a gitignored `plex.env`, never 
   deletion). Keep snapshots of it on the storage that holds it; this stack never backs it up.
 - The GPU is given to Plex as a device reservation through the NVIDIA runtime, never by running it privileged.
 - Secrets (Plex and MediUX tokens, Kometa's API keys, logins) live only in each service's data, never in this repository
-  or `.env`. Backups contain them, and Plex's and Tautulli's viewing history: keep them private and off the host.
+  or `.env`. Backups contain them, and Plex's and Tautulli's viewing history: keep them private and off the host, and
+  encrypt the copy that leaves it (`BACKUP_AGE_RECIPIENT`).
 - The Dozzle agent reads logs through the Docker socket: it accepts only a Dozzle hub with the certificate and key
   you made for them, never the pair built into every Dozzle image
   ([docs/installing.md](docs/installing.md#dozzles-certificate)), and its port (7007) stays on the LAN. autoheal never gets the

@@ -38,7 +38,8 @@ and is protected by snapshots on the storage that holds it; the cache and transc
 leaves out Plex's artwork (`Metadata`) and preview thumbnails (`Media`) and Kometa's downloaded `assets/` (the
 services' `backup.exclude` labels): they are most of the data, and the services re-create them. Plex's databases
 are archived, so Plex stays stopped for a few minutes. A restore leaves the left-out paths as they are.
-[Scheduled backups](installing.md#scheduled-backups) do this nightly and copy each backup off the host.
+[Scheduled backups](installing.md#scheduled-backups) do this nightly and copy each backup off the host, encrypted
+with age when `BACKUP_AGE_RECIPIENT` is set.
 
 The directory holds one `<service>--<path>.tar.gz` per mount, the settings under `env/`, a `MANIFEST` naming
 each archive's service, container path, host path and image, `NETWORKS` (the address range of any network the
@@ -120,3 +121,8 @@ watched between the backup and the restore drops out of Plex's and Tautulli's hi
 
 See [rebuilding.md](rebuilding.md): install the host, restore `.env`, then `scripts/restore.sh` creates the
 containers and fills their data from the backup.
+
+A backup copied off the host with `BACKUP_AGE_RECIPIENT` set is encrypted to that age key: restoring from it needs
+**the private key**, on the machine that holds it (`age -d -i helios-backup.key backup.tar.age | tar -x` gives back the
+backup directory; [rebuilding.md](rebuilding.md#an-encrypted-backup)). The backups in `BACKUP_DIR` on the host aren't
+encrypted.

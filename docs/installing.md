@@ -22,6 +22,7 @@ The [quick start](quick-start.md) is the short version of this page.
   `CONFIG_ROOT` on local disk, not on the network share, and give Plex's transcode directory
   (`CONFIG_ROOT/plex/transcode`) fast disk with room for several streams at once (mount another disk there if
   `CONFIG_ROOT` isn't on one).
+- `age` if the backups are copied off the host encrypted ([Scheduled backups](#scheduled-backups)).
 
 ### The GPU and Docker 29.2
 
@@ -244,10 +245,11 @@ it reaches the agent.
 
 ## Scheduled backups
 
-`scripts/scheduled-backup.sh` takes a backup (`scripts/backup.sh`), copies it to another machine with rsync, keeps
-only the newest few in both places and reports to an Uptime Kuma push monitor. A systemd timer runs it nightly.
-Every setting is in the optional `backup.env` ([interfaces.md](interfaces.md#backupenv)). The backups hold every
-login and token: copy them only to a machine you trust as much as this one.
+`scripts/scheduled-backup.sh` takes a backup (`scripts/backup.sh`), copies it to another machine with rsync
+(encrypted with age, when `BACKUP_AGE_RECIPIENT` is set), keeps only the newest few in both places and reports to an
+Uptime Kuma push monitor. A systemd timer runs it nightly. Every setting is in the optional `backup.env`
+([interfaces.md](interfaces.md#backupenv)). The backups hold every login and token: copy them only to a machine you
+trust as much as this one, or encrypt the copy (step 3).
 
 A nightly backup leaves out Plex's artwork and preview thumbnails and Kometa's downloaded assets (their
 `backup.exclude` labels, [interfaces.md](interfaces.md#labels)), so it is the databases, settings and Kometa's
@@ -264,11 +266,11 @@ restore leaves those paths alone, and on a new host Plex, Kometa and AURA re-cre
    rotation, into a folder the backup user has no access to). A recycle bin isn't enough: Synology's doesn't keep
    files deleted over rsync.
 2. **On this host**, as the user who runs the stack, install rsync and curl (and pigz, which compresses the
-   archives on every core instead of one), and create a key used only for the backups, with an alias for it in
-   `~/.ssh/config`:
+   archives on every core instead of one; age, to encrypt the copy), and create a key used only for the backups,
+   with an alias for it in `~/.ssh/config`:
 
    ```sh
-   sudo apt install -y rsync curl pigz
+   sudo apt install -y rsync curl pigz age
    ssh-keygen -t ed25519 -N '' -f ~/.ssh/homelab-helios-backup
    ```
 
@@ -283,12 +285,19 @@ restore leaves those paths alone, and on a new host Plex, Kometa and AURA re-cre
    Add the public key to the backup user's `~/.ssh/authorized_keys` on the server, prefixed with
    `restrict,from="<this host's address>"` (no shell or forwarding, and only from this host), then check that
    `rsync --list-only backup-host:/volume1/<folder>/` works without a password prompt.
-3. **Settings**: `cp backup.env.example backup.env && chmod 600 backup.env`, then set
-   `BACKUP_REMOTE=backup-host:/volume1/<folder>` and, optionally, the retention and `BACKUP_PING_URL`. For the
-   ping, add a monitor of type **Push** in Uptime Kuma with a heartbeat interval of 25 hours, and copy its URL.
-4. **Try it**: `scripts/scheduled-backup.sh`. Each service stops only while its own data is copied, and the
-   archives are compressed after it has started again.
-5. **Schedule it**, with the systemd user units in [`deploy/systemd/`](../deploy/systemd/) (they expect the
+3. **The encryption key** (optional, recommended), on another machine you trust (not this host):
+   `age-keygen -o helios-backup.key`. It prints the public key (`age1...`). Keep the key file where you keep your
+   other recovery secrets, such as a password manager, and never copy it to this host: without it no encrypted
+   backup off the host can be read, and with it any of them can.
+4. **Settings**: `cp backup.env.example backup.env && chmod 600 backup.env`, then set
+   `BACKUP_REMOTE=backup-host:/volume1/<folder>`, `BACKUP_AGE_RECIPIENT=age1...` (the public key from step 3; leave
+   it empty to copy the backups as they are) and, optionally, the retention and `BACKUP_PING_URL`. For the ping, add
+   a monitor of type **Push** in Uptime Kuma with a heartbeat interval of 25 hours, and copy its URL.
+5. **Try it**: `scripts/scheduled-backup.sh`. Each service stops only while its own data is copied, and the
+   archives are compressed after it has started again. With `BACKUP_AGE_RECIPIENT`, the copy off the host is one
+   folder per backup holding only `backup.tar.age` and its `SHA256SUMS`; the backup itself stays readable here, in
+   `BACKUP_DIR`.
+6. **Schedule it**, with the systemd user units in [`deploy/systemd/`](../deploy/systemd/) (they expect the
    checkout at `~/homelab-helios`; edit both paths in the `.service` file if it's elsewhere). Lingering lets the
    timer run while you're logged out:
 
@@ -315,7 +324,10 @@ the agent skips its runs while they hold the lock and deploys the merge afterwar
 there is no lock and they don't wait.
 
 Restore a copy from the backup server as [rebuilding.md](rebuilding.md) describes; `scripts/restore.sh` verifies
-its `SHA256SUMS` first, and a copy that was cut off has none yet, so it is refused.
+its `SHA256SUMS` first, and a copy that was cut off has none yet, so it is refused. An encrypted copy is decrypted
+first with the private key (`age -d -i helios-backup.key backup.tar.age | tar -x`), which gives the backup directory
+`scripts/restore.sh` reads; check the copy's `SHA256SUMS` before that (it is sent last, so a copy that was cut off
+has none), as [rebuilding.md](rebuilding.md#an-encrypted-backup) shows.
 
 ## Uninstalling
 

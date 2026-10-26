@@ -17,7 +17,7 @@ the secure design principles it follows, and how common weaknesses are countered
 | The containers' logs, the host | Someone on the LAN connecting their own Dozzle to the Dozzle agent, which reads the Docker API for it | The agent accepts only a peer presenting the homelab's own certificate and key (Docker secrets owned by root, never committed or backed up), never the pair built into every Dozzle image, and doesn't start without them; the smoke test proves both; the agent's port (7007) kept on the LAN ([installing.md](installing.md#running-it-securely)); the socket mounted read-only (which doesn't limit the API), as a reasoned `docker-socket` exception |
 | The host's devices | The GPU granted by running privileged | GPU only as a device reservation through the NVIDIA runtime; `privileged` refused by the policy check |
 | Plex tokens, logins, certificate keys | Committed to the public repository | Kept in the services' data, never in the repo; the claim token in a gitignored `plex.env`; `.gitignore`; GitHub push protection; gitleaks over the history in CI |
-| Plex tokens, logins, viewing history | Leaked through a backup | `scripts/backup.sh` writes backups readable only by the user who ran it; documented as secret, to be kept off the host |
+| Plex tokens, logins, viewing history | Leaked through a backup | `scripts/backup.sh` writes backups readable only by the user who ran it; documented as secret, to be kept off the host; the scheduled copy off the host can be encrypted with age to a key that isn't on the host (`BACKUP_AGE_RECIPIENT`) |
 | The services' data | An upgrade that migrates and breaks it | Backup before every update merged by hand, nightly otherwise; rollback = a revert (or the old tag) + `scripts/restore.sh`, exercised against the real stack by the CI smoke test on every change |
 | The host | A bad change merged to `main` deploying by itself | The required checks (policy check, smoke test, Kometa validation) pass before any merge; Plex is updated by hand; the pull agent only fast-forwards and backs out a change that doesn't resolve or pull; rollback is a revert pull request |
 | The services' data | A crafted backup writing outside the services' data | `restore.sh` verifies `SHA256SUMS` (which covers the `MANIFEST`), accepts only plain archive names and absolute container paths without `..`, and writes only a mount the service has read-write and doesn't exclude from backups |
@@ -79,7 +79,8 @@ of the Plex account that owns the server.
 - CI on every change: ruff (with the bandit rules), yamllint, actionlint, gitleaks over the history,
   shellcheck, pytest with a 90 % branch-coverage floor, `docker compose config`, the
   policy check, and a smoke test on amd64 that starts every pinned image without a GPU, waits for its health
-  check, round-trips a backup and restore, checks that excluded and nested mounts and left-out paths are left alone, runs the scheduled backup against a stand-in backup server, and checks that
+  check, round-trips a backup and restore, checks that excluded and nested mounts and left-out paths are left alone, runs the scheduled backup against a stand-in backup server, checks the encrypted copy off the host (only the
+  archive leaves, the right key opens it, another doesn't) and checks that
   autoheal restarts a container that turns unhealthy (a dynamic test of the stack and the scripts); a test that
   Kometa's configuration holds only placeholders, and its validation with the pinned Kometa and its JSON schemas
   (fails on errors, on no result and on unknown keys).
