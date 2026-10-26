@@ -1,12 +1,14 @@
-"""scripts/select-gpu.sh: points compose.host-gpu.yaml, and the Argus agent's `gpu` profile, at the GPU the host has.
+"""scripts/select-gpu.sh: points compose.host-gpu.yaml, and the Argus agent's GPU profile, at the GPU the host has.
 
 Each test runs the script from a copy in a throwaway checkout (with lib.sh beside it, which it sources) against a
 fake sysfs tree, with a stand-in for `docker` that records how it was called. The fake `docker info` exits
 $FAKE_DOCKER_INFO_EXIT (default 0: Docker answers), the fake `docker compose up` $FAKE_UP_EXIT (default 0). In a
 folder named argus-agent (the Argus agent's), the fake records the COMPOSE_PROFILES it got, lists the agent's
-services for those profiles (`config --services`: agent, plus plex-exporter and gpu-exporter for the `plex` and `gpu`
-profiles) and exits $FAKE_AGENT_CONFIG_EXIT, $FAKE_AGENT_RM_EXIT or $FAKE_AGENT_UP_EXIT; it fails if this stack's
-COMPOSE_FILE reaches it. A stand-in for `mv` fails to rename the metric's temporary file when $FAKE_MV_FAIL is set.
+services for those profiles (`config --services`: agent, plus plex-exporter, gpu-exporter and intel-gpu-exporter for
+the `plex`, `gpu` and `intel-gpu` profiles; no intel-gpu-exporter when $FAKE_AGENT_NO_INTEL_GPU is set, as before
+Argus had that profile) and exits $FAKE_AGENT_CONFIG_EXIT, $FAKE_AGENT_RM_EXIT or $FAKE_AGENT_UP_EXIT; it fails if
+this stack's COMPOSE_FILE reaches it. A stand-in for `mv` fails to rename the metric's temporary file when
+$FAKE_MV_FAIL is set.
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ case $PWD in
     echo agent
     case ,$COMPOSE_PROFILES, in *,plex,*) echo plex-exporter ;; esac
     case ,$COMPOSE_PROFILES, in *,gpu,*) echo gpu-exporter ;; esac
+    case ,$COMPOSE_PROFILES, in *,intel-gpu,*) [ -n "${FAKE_AGENT_NO_INTEL_GPU:-}" ] || echo intel-gpu-exporter ;; esac
     exit "${FAKE_AGENT_CONFIG_EXIT:-0}"
     ;;
   "compose rm "*) exit "${FAKE_AGENT_RM_EXIT:-0}" ;;
@@ -91,6 +94,7 @@ def agent_up(profiles: str, services: str) -> str:
 
 
 NVIDIA = ("0x10de", "0x030000")
+INTEL_EXPORTER = "intel-gpu-exporter"
 INTEL = ("0x8086", "0x030000")
 
 
@@ -307,20 +311,28 @@ def with_gpu(host: Host, gpu: tuple[tuple[str, str], str] | None) -> None:
 
 
 @pytest.mark.parametrize(
-    ("gpu", "line", "old", "new"),
+    ("gpu", "line", "old", "new", "gone", "added"),
     [
-        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "plex,gpu", "plex"),  # a failover to the Intel GPU
-        (INTEL_ON, "COMPOSE_PROFILES=gpu,plex", "gpu,plex", "plex"),
-        (INTEL_ON, 'COMPOSE_PROFILES="plex,gpu"', "plex,gpu", "plex"),
-        (NVIDIA_VFIO, "COMPOSE_PROFILES=plex,gpu", "plex,gpu", "plex"),  # an NVIDIA GPU without its driver
-        (None, "COMPOSE_PROFILES=gpu", "gpu", ""),
-        (NVIDIA_ON, "COMPOSE_PROFILES=plex", "plex", "plex,gpu"),  # back on the NVIDIA GPU
-        (NVIDIA_ON, "COMPOSE_PROFILES=", "", "gpu"),
-        (NVIDIA_ON, None, "", "gpu"),  # no COMPOSE_PROFILES line yet: one is added
+        # A failover to the Intel GPU: the NVIDIA exporter goes, the Intel one starts.
+        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "plex,gpu", "plex,intel-gpu", "gpu-exporter", "intel-gpu-exporter"),
+        (INTEL_ON, "COMPOSE_PROFILES=gpu,plex", "gpu,plex", "plex,intel-gpu", "gpu-exporter", "intel-gpu-exporter"),
+        (INTEL_ON, 'COMPOSE_PROFILES="plex,gpu"', "plex,gpu", "plex,intel-gpu", "gpu-exporter", "intel-gpu-exporter"),
+        (INTEL_ON, "COMPOSE_PROFILES=plex", "plex", "plex,intel-gpu", "", "intel-gpu-exporter"),
+        (INTEL_ON, "COMPOSE_PROFILES=", "", "intel-gpu", "", "intel-gpu-exporter"),
+        # An NVIDIA GPU without its driver.
+        (NVIDIA_VFIO, "COMPOSE_PROFILES=plex,gpu", "plex,gpu", "plex", "gpu-exporter", ""),
+        (None, "COMPOSE_PROFILES=gpu", "gpu", "", "gpu-exporter", ""),
+        (None, "COMPOSE_PROFILES=plex,intel-gpu", "plex,intel-gpu", "plex", "intel-gpu-exporter", ""),
+        # Back on the NVIDIA GPU.
+        (NVIDIA_ON, "COMPOSE_PROFILES=intel-gpu,plex", "intel-gpu,plex", "plex,gpu", INTEL_EXPORTER, "gpu-exporter"),
+        (NVIDIA_ON, "COMPOSE_PROFILES=plex", "plex", "plex,gpu", "", "gpu-exporter"),
+        (NVIDIA_ON, "COMPOSE_PROFILES=plex,gpu,intel-gpu", "plex,gpu,intel-gpu", "plex,gpu", "intel-gpu-exporter", ""),
+        (NVIDIA_ON, "COMPOSE_PROFILES=", "", "gpu", "", "gpu-exporter"),
+        (NVIDIA_ON, None, "", "gpu", "", "gpu-exporter"),  # no COMPOSE_PROFILES line yet: one is added
     ],
 )
-def test_the_agents_gpu_profile_follows_the_gpu(
-    host: Host, gpu: tuple[tuple[str, str], str] | None, line: str | None, old: str, new: str
+def test_the_agents_gpu_profile_follows_the_gpu(  # noqa: PLR0913
+    host: Host, gpu: tuple[tuple[str, str], str] | None, line: str | None, *, old: str, new: str, gone: str, added: str
 ) -> None:
     host.agent(line)
     with_gpu(host, gpu)
@@ -328,8 +340,8 @@ def test_the_agents_gpu_profile_follows_the_gpu(
     result = host.run(COMPOSE_FILE=f"compose.yaml:{LINK}")
     assert result.returncode == 0, result.stderr
     assert f"Moving the Argus agent from COMPOSE_PROFILES={old} to COMPOSE_PROFILES={new}" in result.stdout
-    change = agent_up(new, "gpu-exporter") if "gpu" in new.split(",") else agent_rm(old, "gpu-exporter")
-    assert host.calls() == ["docker info", agent_config(old), agent_config(new), change]
+    changes = ([agent_rm(old, gone)] if gone else []) + ([agent_up(new, added)] if added else [])
+    assert host.calls() == ["docker info", agent_config(old), agent_config(new), *changes]
     # Only the COMPOSE_PROFILES line changed (or was added at the end), and the file is still private.
     expected = AGENT_ENV.format(profiles=f"COMPOSE_PROFILES={new}\n" if line is not None else "")
     if line is None:
@@ -339,13 +351,36 @@ def test_the_agents_gpu_profile_follows_the_gpu(
     assert not host.agent_env.with_name(".env.new").exists()
 
 
+def test_intel_gpu_is_harmless_before_the_agent_has_that_profile(host: Host) -> None:
+    # An agent whose compose file has no `intel-gpu` profile yet: the NVIDIA exporter goes, nothing starts, and the
+    # line names `intel-gpu` all the same, so the agent runs the Intel exporter once it has one.
+    host.agent("COMPOSE_PROFILES=plex,gpu")
+    with_gpu(host, INTEL_ON)
+    result = host.run(FAKE_AGENT_NO_INTEL_GPU="1")
+    assert result.returncode == 0, result.stderr
+    assert host.calls() == [
+        "docker info",
+        agent_config("plex,gpu"),
+        agent_config("plex,intel-gpu"),
+        agent_rm("plex,gpu", "gpu-exporter"),
+    ]
+    assert host.agent_profiles() == ["COMPOSE_PROFILES=plex,intel-gpu"]
+    again = host.run(FAKE_AGENT_NO_INTEL_GPU="1")
+    assert again.returncode == 0, again.stderr
+    assert "already fits the GPU" in again.stdout
+    assert len(host.calls()) == 4
+
+
 @pytest.mark.parametrize(
     ("gpu", "line"),
     [
         (NVIDIA_ON, "COMPOSE_PROFILES=plex,gpu"),
         (NVIDIA_ON, "COMPOSE_PROFILES=gpu,plex"),
-        (INTEL_ON, "COMPOSE_PROFILES=plex"),
-        (INTEL_ON, "COMPOSE_PROFILES="),
+        (INTEL_ON, "COMPOSE_PROFILES=plex,intel-gpu"),
+        (INTEL_ON, "COMPOSE_PROFILES=intel-gpu,plex"),
+        (INTEL_ON, "COMPOSE_PROFILES=intel-gpu"),
+        (NVIDIA_VFIO, "COMPOSE_PROFILES=plex"),
+        (None, "COMPOSE_PROFILES="),
         (None, None),
     ],
 )
@@ -373,10 +408,11 @@ def test_a_failover_recreates_plex_then_moves_the_agent(host: Host) -> None:
         "docker info",
         UP,
         agent_config("plex,gpu"),
-        agent_config("plex"),
+        agent_config("plex,intel-gpu"),
         agent_rm("plex,gpu", "gpu-exporter"),
+        agent_up("plex,intel-gpu", "intel-gpu-exporter"),
     ]
-    assert host.agent_profiles() == ["COMPOSE_PROFILES=plex"]
+    assert host.agent_profiles() == ["COMPOSE_PROFILES=plex,intel-gpu"]
 
 
 def test_moves_the_agent_even_when_plex_doesnt_come_up(host: Host) -> None:
@@ -385,16 +421,17 @@ def test_moves_the_agent_even_when_plex_doesnt_come_up(host: Host) -> None:
     host.device("0000:01:00.0", INTEL, "i915")
     result = host.run(COMPOSE_FILE=f"compose.yaml:{LINK}", FAKE_UP_EXIT="1")
     assert result.returncode == 1
-    assert host.calls()[-1] == agent_rm("plex,gpu", "gpu-exporter")
-    assert host.agent_profiles() == ["COMPOSE_PROFILES=plex"]
+    assert host.calls()[-1] == agent_up("plex,intel-gpu", "intel-gpu-exporter")
+    assert host.agent_profiles() == ["COMPOSE_PROFILES=plex,intel-gpu"]
 
 
 @pytest.mark.parametrize(
     ("gpu", "line", "failure", "after"),
     [
-        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "FAKE_AGENT_RM_EXIT", "COMPOSE_PROFILES=plex"),
+        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "FAKE_AGENT_RM_EXIT", "COMPOSE_PROFILES=plex,intel-gpu"),
+        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "FAKE_AGENT_UP_EXIT", "COMPOSE_PROFILES=plex,intel-gpu"),
         (NVIDIA_ON, "COMPOSE_PROFILES=plex", "FAKE_AGENT_UP_EXIT", "COMPOSE_PROFILES=plex,gpu"),
-        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "FAKE_AGENT_CONFIG_EXIT", "COMPOSE_PROFILES=plex"),
+        (INTEL_ON, "COMPOSE_PROFILES=plex,gpu", "FAKE_AGENT_CONFIG_EXIT", "COMPOSE_PROFILES=plex,intel-gpu"),
     ],
 )
 def test_keeps_the_agents_profiles_when_its_change_fails(
@@ -432,8 +469,8 @@ def test_finds_the_agent_where_gpu_argus_agent_dir_says(host: Host, tmp_path: Pa
     with_gpu(host, INTEL_ON)
     result = host.run(GPU_ARGUS_AGENT_DIR=str(agent))
     assert result.returncode == 0, result.stderr
-    assert host.calls()[-1] == agent_rm("plex,gpu", "gpu-exporter")
-    assert (agent / ".env").read_text(encoding="utf-8") == "COMPOSE_PROFILES=plex\n"
+    assert host.calls()[-1] == agent_up("plex,intel-gpu", "intel-gpu-exporter")
+    assert (agent / ".env").read_text(encoding="utf-8") == "COMPOSE_PROFILES=plex,intel-gpu\n"
 
 
 def test_leaves_the_agent_alone_when_gpu_argus_agent_dir_is_empty(host: Host) -> None:

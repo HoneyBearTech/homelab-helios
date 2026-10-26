@@ -51,8 +51,10 @@ All notable changes to homelab-helios are documented here. The format follows
   another GPU. Opt-in (`COMPOSE_FILE=compose.yaml:compose.host-gpu.yaml`, [docs/installing.md](docs/installing.md#the-gpu-at-boot));
   a host that names `compose.gpu.yaml` keeps working as before. CI now runs the policy check with each GPU override.
   The same script moves an [Argus](https://github.com/HoneyBearTech/Argus) agent beside the stack (`~/argus-agent`,
-  or `GPU_ARGUS_AGENT_DIR`) with the GPU: `gpu` stays in its `.env`'s `COMPOSE_PROFILES` only while there is an
-  NVIDIA GPU, and its NVIDIA GPU exporter is removed or started to match; its other containers aren't touched.
+  or `GPU_ARGUS_AGENT_DIR`) with the GPU: its `.env`'s `COMPOSE_PROFILES` keeps `gpu` (its NVIDIA GPU exporter)
+  while Plex has the NVIDIA GPU and `intel-gpu` (its Intel GPU exporter) while Plex has an Intel one, neither without
+  a GPU, and the exporters are removed or started to match; its other containers aren't touched. An agent without
+  the `intel-gpu` profile yet starts nothing for it (Compose ignores a profile no service has).
   Every run, changed or not, also records the GPU it chose for Argus as one series,
   `homelab_gpu_selected{vendor="nvidia"|"intel"|"none"} 1`, in `homelab-helios-gpu.prom` in the pull agent's
   metrics directory (written to a temporary file and renamed), which the Argus agent's textfile collector reads; Argus

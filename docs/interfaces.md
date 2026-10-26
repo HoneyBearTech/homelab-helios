@@ -98,8 +98,10 @@ through), `COMPOSE_FILE=compose.yaml:compose.host-gpu.yaml` in `.env` and in the
 points `compose.host-gpu.yaml`, a gitignored symlink in the checkout, at the override for the GPU it finds (an NVIDIA
 GPU on the `nvidia` driver first, then an Intel GPU on `i915`/`xe` with a render node, else `compose.cpu.yaml`) and,
 when that changed, recreates Plex (`docker compose up --detach --no-deps --wait plex`) under the pull agent's lock.
-It also keeps `gpu` in the `COMPOSE_PROFILES` of an [Argus](https://github.com/HoneyBearTech/Argus) agent's `.env`
-only while there is an NVIDIA GPU, removing or starting the agent's NVIDIA GPU exporter to match. Every run, whether
+It also keeps the GPU's profile in the `COMPOSE_PROFILES` of an [Argus](https://github.com/HoneyBearTech/Argus)
+agent's `.env`, `gpu` (its NVIDIA GPU exporter) with the NVIDIA GPU or `intel-gpu` (its Intel GPU exporter) with an
+Intel one, neither without a GPU, removing or starting the agent's exporters to match. Those two profile names are an
+interface with the agent's `agent/compose.yml`: keep them as they are. Every run, whether
 or not anything changed, records the GPU it chose for the Argus agent's textfile collector as exactly one series,
 `homelab_gpu_selected{vendor="nvidia"}`, `{vendor="intel"}` or `{vendor="none"}` (value 1), in
 `homelab-helios-gpu.prom` in the pull agent's metrics directory, which the agent's node exporter reads. Argus' alerts
