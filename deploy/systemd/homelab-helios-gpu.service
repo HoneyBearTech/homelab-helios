@@ -1,10 +1,10 @@
 # Runs scripts/select-gpu.sh once at every boot: points Plex at the GPU the host has now (NVIDIA, Intel or none) and
 # recreates it when that changed, keeps the Argus agent's GPU profile (`gpu` for its NVIDIA GPU exporter, `intel-gpu`
-# for its Intel one) on the GPU chosen, and records the GPU chosen as the metric homelab_gpu_selected{vendor=...} for Argus. For a host whose
-# GPU can change between boots (a VM that fails over to another hypervisor). A systemd user unit, like the backup's:
-# install it for the user who runs the stack, with lingering on (docs/installing.md#the-gpu-at-boot). %h is that
-# user's home directory: change both paths if the checkout lives elsewhere. A user unit can't be ordered after the
-# system's docker.service, so the script waits for Docker itself.
+# for its Intel one) on that GPU, and records the GPU chosen as the metric homelab_gpu_selected{vendor=...} for Argus.
+# For a host whose GPU can change between boots (a VM that fails over to another hypervisor). A systemd user unit,
+# like the backup's: install it for the user who runs the stack, with lingering on (docs/installing.md#the-gpu-at-boot).
+# %h is that user's home directory: change both paths if the checkout lives elsewhere. A user unit can't be ordered
+# after the system's docker.service, so the script waits for Docker itself.
 [Unit]
 Description=Point homelab-helios' Plex and the Argus agent at the GPU this host has
 
