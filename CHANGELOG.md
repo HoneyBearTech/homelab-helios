@@ -169,6 +169,11 @@ All notable changes to homelab-helios are documented here. The format follows
 - The Dozzle agent moves to v11.3.4 (built with Go 1.27.3), which fixes the image scan's Go `crypto/x509` finding
   (CVE-2026-111943) in v11.3.2. Dependabot didn't propose it: it holds back Docker Hub releases for a few days
   after they're published, and both v11.3.3 and v11.3.4 were still that new at its last run.
+- Plex moves to 1.43.5.11029 (linuxserver.io's build `ls329`, pinned by hand as the Plex update watch proposed).
+  Plex's release fixes three security issues: requests arriving through a proxy, request locality when the server's
+  local network interface is unknown, and library scoping in search results. It also fixes IPv6 connections and a
+  transcoder crash on media without a video stream. Plex can migrate its database when it starts a new version, so
+  merge it when nobody is watching ([docs/upgrading.md](docs/upgrading.md#following-main)).
 
 ## [0.3.0] - 2026-10-14
 
