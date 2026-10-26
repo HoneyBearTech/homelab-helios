@@ -3,7 +3,28 @@
 How to bring the stack back on a new or wiped machine from a backup made by `scripts/backup.sh`
 ([upgrading.md](upgrading.md#backing-up)), with every service's settings and history as they were.
 
-You need: the backup directory (copied off the old host), this repository, and access to the media library.
+You need: the backup directory (copied off the old host), **the age private key** it was encrypted to if the copies
+off the host are encrypted (`BACKUP_AGE_RECIPIENT`), this repository, and access to the media library.
+
+## An encrypted backup
+
+A copy encrypted with age (the folder holds only `backup.tar.age` and `SHA256SUMS`) is opened on the machine that
+holds the age private key, never on the backup server or the new host. Copy it there from the backup server (with an
+SSH alias for the backup user, as in [installing.md](installing.md#scheduled-backups) step 2) and check it: a copy
+that was cut off has no `SHA256SUMS` (it's sent last), so take the one before. Then decrypt it, which gives the
+backup directory as it was written on the old host, and copy that to the new host: it is the `/path/to/backup` of
+steps 4 and 5.
+
+```sh
+rsync --list-only backup-host:/volume1/<folder>/      # the backups, named <date>-<time>
+rsync -rlpt backup-host:/volume1/<folder>/<date>-<time>/ ~/sealed/
+cd ~/sealed && sha256sum -c --quiet SHA256SUMS && cd -
+(umask 077 && age -d -i helios-backup.key ~/sealed/backup.tar.age | tar -x -C ~)   # ~/<date>-<time>/
+rsync -rlpt ~/<date>-<time>/ <you>@<the new host>:restore/
+rm -rf ~/sealed ~/<date>-<time>
+```
+
+Keep `~/restore` on the new host private: it holds every login and token.
 
 ## 1. The operating system
 

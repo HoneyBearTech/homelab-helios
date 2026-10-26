@@ -91,7 +91,9 @@ under `CONFIG_ROOT` with another service (`shared`).
   `restore.sh` stops a service that bind-mounts a folder inside a mount it restores (ImageMaid Plex's, AURA and Kometa
   each other's) and starts it again with it; the smoke test checks both, with a test container and the real ones.
   `scripts/scheduled-backup.sh` + `deploy/systemd/` run it nightly at 01:00 (Kometa runs at 07:30, after it) and copy it
-  off the host; the backup server's name lives only in the host's `~/.ssh/config` and `backup.env`, never here.
+  off the host (with `BACKUP_AGE_RECIPIENT`, only `backup.tar.age` + `SHA256SUMS`, encrypted to that age key; CI
+  installs age so the smoke test covers it); the backup server's name lives only in the host's `~/.ssh/config` and
+  `backup.env`, never here.
 - **Every service is hardened** (`x-hardened`: `cap_drop: [ALL]`, `no-new-privileges:true`) and adds back only
   the capabilities from Docker's default set its image needs, each with a comment saying why (Plex: `CHOWN
   DAC_OVERRIDE SETUID SETGID KILL`; Tautulli: `CHOWN SETUID SETGID KILL`; the rest none; docs/security.md#hardening).
