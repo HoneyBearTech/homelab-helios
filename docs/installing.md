@@ -61,14 +61,18 @@ or one whose driver didn't load, doesn't count; the script says so in its output
 
 An [Argus](https://github.com/HoneyBearTech/Argus) agent beside the stack (its `agent/compose.yml` and `.env` in
 `~/argus-agent`, or wherever `GPU_ARGUS_AGENT_DIR` says) follows the GPU too: its `gpu` Compose profile runs an NVIDIA
-GPU exporter, which can't start without an NVIDIA GPU. The script keeps `gpu` in the `COMPOSE_PROFILES` line of the
-agent's `.env` only while there is an NVIDIA GPU on the `nvidia` driver. Without one it removes the exporter
-(`docker compose rm --stop --force`: `up --remove-orphans` leaves a service whose profile was dropped running) and
-takes `gpu` out of the line; with one again it starts the exporter (`docker compose up --detach --wait`) and puts
-`gpu` back. The agent's other containers aren't touched, and the line changes only once the containers have, so a run
-that failed is tried again by the next. While the exporter is gone, the Argus server can't scrape it and reports that
-target down until the NVIDIA GPU is back. Without an agent's `.env` there nothing happens; `GPU_ARGUS_AGENT_DIR=`
-(empty) leaves an agent alone.
+GPU exporter, which can't start without an NVIDIA GPU, and its `intel-gpu` profile an Intel GPU exporter
+(`intel_gpu_top`). The script keeps the profile of the GPU it chose for Plex in the `COMPOSE_PROFILES` line of the
+agent's `.env` and takes the other out: `gpu` with an NVIDIA GPU on the `nvidia` driver, `intel-gpu` with an Intel
+GPU, neither without a GPU Plex can use. When that changes it removes the exporter of the profile that went (`docker
+compose rm --stop --force`: `up --remove-orphans` leaves a service whose profile was dropped running), starts the one
+of the profile that came (`docker compose up --detach --wait`) and rewrites the line. An agent whose compose file has
+no `intel-gpu` profile yet starts nothing for it (Compose ignores a profile no service has); once it has one, the
+Intel exporter starts the next time the agent is brought up (`docker compose up -d` in its folder) or the script
+switches GPUs. The agent's other containers aren't touched, and the line changes only once the containers have, so a
+run that failed is tried again by the next. While the NVIDIA exporter is gone the Argus server can't scrape it; the
+metric below tells Argus not to expect it then. Without an agent's `.env` there nothing happens;
+`GPU_ARGUS_AGENT_DIR=` (empty) leaves an agent alone.
 
 Every run also tells Argus which GPU it chose, whether or not anything changed: one series,
 `homelab_gpu_selected{vendor="nvidia"}`, `{vendor="intel"}` or `{vendor="none"}` with the value 1, in

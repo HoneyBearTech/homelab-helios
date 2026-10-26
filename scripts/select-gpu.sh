@@ -14,11 +14,14 @@
 # pull agent's lock first (deploy_lock in lib.sh), so a deploy can't run at the same time.
 #
 # The Argus agent (https://github.com/HoneyBearTech/Argus, agent/compose.yml) in GPU_ARGUS_AGENT_DIR follows the GPU
-# too: its `gpu` Compose profile runs an NVIDIA GPU exporter, which can't start without an NVIDIA GPU. The
-# COMPOSE_PROFILES line of the agent's .env keeps `gpu` exactly while there is an NVIDIA GPU on the nvidia driver.
-# When that changes, it removes the agent's services that only the old profiles start (`docker compose rm --stop
-# --force`: `up --remove-orphans` leaves a service whose profile was dropped running) or starts those only the new
-# ones do (`docker compose up --detach --wait`), then rewrites the line. The agent's other containers stay as they
+# too: its `gpu` Compose profile runs an NVIDIA GPU exporter, which can't start without an NVIDIA GPU, and its
+# `intel-gpu` profile an Intel GPU exporter (intel_gpu_top). The COMPOSE_PROFILES line of the agent's .env keeps the
+# profile of the GPU chosen for Plex above and drops the other: `gpu` for compose.gpu.yaml, `intel-gpu` for
+# compose.intel.yaml, neither for compose.cpu.yaml. A profile the agent's compose file doesn't define yet starts
+# nothing (Compose ignores it), so the line can name `intel-gpu` before the agent has it. When that changes, it
+# removes the agent's services that only the old profiles start (`docker compose rm --stop --force`: `up
+# --remove-orphans` leaves a service whose profile was dropped running) and starts those only the new ones do (`docker
+# compose up --detach --wait`), then rewrites the line. The agent's other containers stay as they
 # are. The line is rewritten only once the containers have changed, so after a failure the next run tries again. The
 # pull agent doesn't deploy the Argus agent, so this part needs no lock.
 #
@@ -185,24 +188,29 @@ else
   recreate=$follows
 fi
 
-# The Argus agent's profiles now ($profiles) and the ones it should have ($wanted): the same without `gpu`, and
-# `gpu` last when there is an NVIDIA GPU.
+# The Argus agent's profiles now ($profiles) and the ones it should have ($wanted): the same without the GPU
+# profiles, and the GPU's own ($gpu_profile) last.
+case $vendor in
+nvidia) gpu_profile=gpu ;;
+intel) gpu_profile="intel-gpu" ;;
+*) gpu_profile="" ;;
+esac
 retarget="" profiles="" wanted=""
 if [ -n "$agent" ] && [ -f "$agent/.env" ]; then
   profiles=$(env_value "$agent/.env" COMPOSE_PROFILES)
-  has_gpu=""
+  has=""
   saved_ifs=$IFS
   IFS=,
   for profile in $profiles; do
     case $profile in
-    gpu) has_gpu=yes ;;
+    gpu | intel-gpu) has="$has $profile" ;;
     '') ;;
     *) wanted=${wanted:+$wanted,}$profile ;;
     esac
   done
   IFS=$saved_ifs
-  if [ -n "$nvidia" ]; then wanted=${wanted:+$wanted,}gpu; fi
-  if [ "$has_gpu" = "${nvidia:+yes}" ]; then
+  if [ -n "$gpu_profile" ]; then wanted=${wanted:+$wanted,}$gpu_profile; fi
+  if [ "$has" = "${gpu_profile:+ $gpu_profile}" ]; then
     echo "The Argus agent's COMPOSE_PROFILES=$profiles already fits the GPU"
   else
     retarget=yes
