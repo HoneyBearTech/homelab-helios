@@ -136,6 +136,13 @@ All notable changes to homelab-helios are documented here. The format follows
   proposed a new version or build of either; now it proposes both. The digests are unchanged, so the images are
   the ones pinned before, and Dependabot brings the newer builds in its own pull requests. Plex keeps its build tag:
   no Plex tag is one Dependabot can read, so Plex is updated by hand.
+- Kometa moves to v2.5.4, pinned by hand as the Kometa upstream watch proposed. Dependabot hadn't proposed it yet: it
+  checks once a week and holds back a Docker Hub release until it is about three days old, and v2.5.4 (2026-10-31)
+  came out after its last run. `kometa/` validates against it unchanged. Of the Kometa defaults it uses, only `genre`
+  changed: it maps four more German genre names to posters, which these English libraries don't have. The release
+  retries Plex image uploads that fail with HTTP 502, 503 or 504 (overlays included) instead of stopping with a
+  traceback, keeps smart-label collections from alternating between deletion and recreation under `minimum_items`, and
+  fixes several MDBList cache entries that returned wrong or missing ratings.
 
 ### Fixed
 
