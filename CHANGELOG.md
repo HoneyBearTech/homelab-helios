@@ -187,6 +187,10 @@ All notable changes to homelab-helios are documented here. The format follows
   local network interface is unknown, and library scoping in search results. It also fixes IPv6 connections and a
   transcoder crash on media without a video stream. Plex can migrate its database when it starts a new version, so
   merge it when nobody is watching ([docs/upgrading.md](docs/upgrading.md#following-main)).
+- Plex moves to 1.43.5.11079 (linuxserver.io's build `ls331`, pinned by hand as the Plex update watch proposed).
+  Plex stops trusting the eMudhra certificate authority roots, whose intermediate signing keys were compromised, and
+  fixes photos failing to load through a reverse proxy, loudness analysis running on libraries that have it off, and
+  remote access still reporting its port as mapped after being turned off.
 
 ## [0.3.0] - 2026-10-14
 
