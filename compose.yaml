@@ -81,6 +81,12 @@ services:
     healthcheck:
       <<: *healthcheck
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:32400/identity"]
+      # More patience than the other services: while Kometa's morning run and Plex's own thumbnail and analysis
+      # work keep it busy, /identity can go unanswered for minutes, and autoheal restarted a Plex that was only
+      # slow (2026-11-07 to 2026-11-10), which made Kometa fail with 503s. A hung Plex is still restarted, after
+      # about 5 minutes instead of 3.
+      timeout: 30s
+      retries: 5
     environment:
       <<: *linuxserver-env
       VERSION: docker

@@ -81,6 +81,9 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- Plex's health check waits longer before autoheal restarts it (30 s timeout, 5 retries; was 10 s and 3). A busy
+  Plex that was slow to answer `/identity` during Kometa's run was restarted most mornings, and Kometa then failed
+  with 503 errors. A hung Plex is still restarted, after about 5 minutes instead of 3.
 - The smoke test runs a stack's own steps from `scripts/smoke-stack.sh` when that exists (`smoke_prepare` before the
   services start, `smoke_check` once they are healthy and again after the restore), gives a `*_SUBNET` setting a free
   address range, and leaves a service with Docker secrets out of the restore's "recreated with older settings" check.
