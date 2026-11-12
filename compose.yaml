@@ -133,7 +133,7 @@ services:
   # writing sets for Kometa. The media is mounted at the same path as in Plex, as AURA requires.
   aura:
     <<: *hardened
-    image: ghcr.io/mediux-team/aura:v0.9.119@sha256:cc1f7ded0298c6f1656b948376d7b3120209cdc0585efea73246d48615e925b0
+    image: ghcr.io/mediux-team/aura:v0.9.120@sha256:2a430aa8664185a359683249972a0e8b4aa8f988c2ad1821ec97d40e23bc56c2
     container_name: aura
     restart: unless-stopped
     # Writes only its data and temporary files: the image itself stays read-only.
