@@ -77,7 +77,7 @@ The workflow and secret scanners run in containers; the exact commands are in
 
 ## Coding standards
 
-- **Compose** (`compose.yaml`): every image pinned as `name:tag@sha256:<digest>` (Dependabot updates both);
+- **Compose** (`compose.yaml`): every image pinned as `name:tag@sha256:<digest>` (Renovate updates both);
   settings from `.env` through `${VAR}`; no `privileged`, added capabilities, host network or PID namespace,
   or Docker socket mount unless the service has an `org.honeybeartech.helios.allow.<rule>` label giving the
   reason; every service has a health check. `scripts/check_compose.py` enforces this.

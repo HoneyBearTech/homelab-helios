@@ -40,21 +40,25 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
 
 ## Tracking dependencies
 
-- **Dependabot** ([`.github/dependabot.yml`](../.github/dependabot.yml)) checks weekly for new image versions in the Compose file, new tool versions and new Action
-  versions, and opens a pull request for each. Dependabot alerts and security updates are on.
-- The CI-only images in `run:` steps, the images in `.gitlab-ci.yml` and the scripts' busybox image aren't seen
-  by Dependabot; they're bumped by hand at least every quarter. The GitLab pipeline's git comes with its Python
-  image, so it's updated when that image is: a newer digest of the same tag carries Debian's newer git.
-- **Patch, minor and major updates merge automatically** once every required check has passed (CI with the Compose
-  policy check, the smoke test and the validation of Kometa's configuration against the new Kometa, CodeQL,
-  dependency review). That includes Plex, which releases often: it
-  can't touch the media library, and its updates often fix security issues.
-- **Image rebuilds merge automatically too**: a pull request that only moves an image to a new digest under the
-  same tag (a rebuild of the same app version, with newer base packages) and changes nothing else in `compose.yaml`.
-- **Major updates merge automatically too, and so reach the server unattended**: a merge deploys
-  ([upgrading.md](upgrading.md#following-main)). A new major version can migrate its data one way; the nightly
-  backup and a revert are the way back ([upgrading.md](upgrading.md#rolling-back)). An update Dependabot can't
-  classify waits for the maintainer.
+- **Renovate** ([`renovate.json`](../renovate.json)) checks Compose images, hash-pinned Python tools in
+  `requirements-dev.txt`, GitHub Actions, GitLab pipeline images and the busybox helper in `scripts/lib.sh`.
+  Install and authorize the Renovate app for this repository to enable updates. Scheduled updates run before
+  6am on Monday in `America/Chicago` and carry the `dependencies` label. Minor and patch updates share one
+  group; majors stay separate and carry `major`. CodeQL Action uses are grouped together.
+- **Security updates** use OSV vulnerability alerts and the `security` label. Keep Dependabot alerts enabled.
+  Renovate replaces Dependabot's version-update configuration; disabling Dependabot security updates is a
+  separate maintainer settings follow-up.
+- **Every update needs review before merging**, including patch, minor and major versions and image rebuilds
+  that change only a digest. Renovate has automerge disabled. Check the release notes and required CI results
+  (Compose policy, smoke test, Kometa validation, CodeQL and dependency review), and take a backup before an
+  update that can migrate data ([upgrading.md](upgrading.md#following-main)).
+- **Image digests remain required**, alongside version tags. autoheal is the documented exception to specific
+  version tags: its maintained build has only `latest`, so its existing digest pin remains required and can
+  receive rebuild updates. No image reference changes as part of this migration.
+- CI-only image literals in workflow `run:` steps still need manual updates at least every quarter. GitLab
+  images and the scripts' busybox image are covered by Renovate. The GitLab pipeline's git comes with its Python
+  image, so a newer digest of that image carries Debian's newer git. Review Python updates for preserved hashes
+  and successful CI; the unconstrained `requirements-dev.in` source remains unchanged.
 - **linuxserver.io images are pinned by their `version-<app version>` tag** (`tautulli:version-v2.18.2@sha256:…`),
   which always points at the newest build of that app version. Dependabot can't follow the build tags
   (`v2.18.2-ls246`): it reads `-ls246` as a suffix that must match exactly, so it never proposes another build. With
@@ -71,8 +75,8 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   tab or locally without changing anything: `python3 scripts/plex_watch.py --dry-run`. To check the alert reaches
   its channel, run it from the Actions tab with **Only send a test message** ticked: it sends one test message and
   checks nothing else.
-- **A merge deploys.** The maintainer's server follows `main` with a pull agent, so every merge, the automatic
-  ones included, reaches it within about two minutes ([upgrading.md](upgrading.md#following-main)).
+- **A merge deploys.** The maintainer's server follows `main` with a pull agent, so every reviewed merge
+  reaches it within about two minutes ([upgrading.md](upgrading.md#following-main)).
 - **Dependency review** blocks a pull request that adds or changes a Python or Actions dependency with a known
   vulnerability of moderate severity or higher, or a license outside the allowlist.
 - **Nothing on the host updates from a registry.** Auto-updaters such as Watchtower are not used: they would run
@@ -84,7 +88,7 @@ Known vulnerabilities are found through Dependabot alerts, the services' and ima
 weekly scan of the pinned digests (Trivy, HIGH and CRITICAL findings that have a fix, for `linux/amd64`,
 reported to code scanning). Each finding is triaged within 14 days:
 
-1. **If a fixed version exists**, bump to it (a Dependabot pull request usually already does) and release.
+1. **If a fixed version exists**, bump to it (a Renovate pull request usually already does) and release.
    A fix for an exploitable critical or high-severity vulnerability goes out in a patch release within 30
    days; others go out with the next release.
 2. **If upstream hasn't released a fix**, assess whether it's reachable in this stack (which ports are

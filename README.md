@@ -49,7 +49,8 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
   logs in one web UI
 
 Every service has a health check that autoheal watches, and every image is pinned by tag **and** digest, for
-`linux/amd64`. New versions arrive as Dependabot pull requests that CI checks before they're merged.
+`linux/amd64`. New versions arrive as Renovate pull requests that CI checks and the maintainer reviews
+before merging.
 The maintainer's server follows `main`: a pull agent there applies each merge within a couple of minutes
 ([upgrading](docs/upgrading.md#following-main)). Nothing updates from a registry tag by itself: what runs is always a
 commit in `main`.
