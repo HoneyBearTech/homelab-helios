@@ -74,8 +74,8 @@ The maintainer's server doesn't check out releases: it runs `main`, and a small 
 maintainer's private orchestration repository, not here) deploys every merge. A systemd user timer starts it about
 every 90 seconds; when `main` has moved, it fast-forwards the checkout, runs `docker compose config --quiet`,
 `docker compose pull` and `docker compose up -d --remove-orphans --wait`, and logs the old and the new commit. So
-**a merge to `main` reaches the server within about two minutes**, including the updates Dependabot merges by
-itself ([dependencies.md](dependencies.md#tracking-dependencies)).
+**a merge to `main` reaches the server within about two minutes**, including dependency updates reviewed before
+merging ([dependencies.md](dependencies.md#tracking-dependencies)).
 
 - The agent only fast-forwards: it refuses a checkout with local changes or a `main` whose history was rewritten.
   If the configuration doesn't resolve or an image can't be pulled, it moves the checkout back, so the server keeps
@@ -85,9 +85,9 @@ itself ([dependencies.md](dependencies.md#tracking-dependencies)).
   `scripts/restore.sh` take the same lock before they stop anything (waiting for a deploy in progress) and keep it
   until they finish, and the agent skips its runs meanwhile ([installing.md](installing.md#scheduled-backups)).
 - **The merge is the upgrade.** Before merging an update that can migrate a service's data, read the release notes
-  and take a backup on the server (`scripts/backup.sh`). The updates that merge by themselves (patch, minor and
-  major ones, and image rebuilds) reach the server with only the nightly [scheduled
-  backup](installing.md#scheduled-backups) behind them.
+  and take a backup on the server (`scripts/backup.sh`). Review every dependency update (patch, minor and
+  major versions, and image rebuilds) before merging, with the nightly
+  [scheduled backup](installing.md#scheduled-backups) as the regular backup baseline.
 - **Kometa is checked with the real values after the deploy.** After a merge that changes `kometa/` or Kometa's
   service (its image included), the agent (homelab-pull 0.5.0 or later) runs `scripts/post-deploy-check.sh`:
   Kometa's `--validate --validate-level full` in a one-off container, with the real values. The agent has already

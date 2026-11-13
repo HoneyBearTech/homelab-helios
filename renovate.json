@@ -1,0 +1,70 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "enabledManagers": [
+    "docker-compose",
+    "pip_requirements",
+    "github-actions",
+    "gitlabci",
+    "custom.regex"
+  ],
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "/^requirements-dev\\.txt$/"
+    ]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^scripts/lib\\.sh$/"
+      ],
+      "matchStrings": [
+        "(?:^|\\n)busybox=busybox:(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})(?:\\n|$)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "busybox",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "addLabels": [
+        "major"
+      ]
+    },
+    {
+      "matchPackageNames": [
+        "github/codeql-action*"
+      ],
+      "groupName": "CodeQL actions"
+    }
+  ],
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "timezone": "America/Chicago",
+  "labels": [
+    "dependencies"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ]
+  },
+  "automerge": false
+}
