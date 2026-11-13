@@ -123,12 +123,16 @@ Then sign in to each service: Plex should list its libraries and watch history u
 transcode on the GPU, and show up in Plex apps without being added again; Tautulli should show its history and
 reach Plex. Plex rebuilds its cache by itself.
 
-Check that Plex keeps the GPU through a systemd reload (as apt and unattended-upgrades run one):
+For an NVIDIA rebuild, check that Plex keeps the GPU through a systemd reload (as apt and unattended-upgrades
+run one):
 
 ```sh
 sudo systemctl daemon-reload
 docker exec plex nvidia-smi -L        # still lists the GPU; "Failed to initialize NVML" means Docker is older than 29.2
 ```
+
+For Intel or CPU rebuilds, use the corresponding [quick-start setup checks](quick-start.md): verify Intel’s
+render node and override, or CPU operation without a GPU override. NVIDIA’s `nvidia-smi` check does not apply.
 
 ## What the backup doesn't bring back
 

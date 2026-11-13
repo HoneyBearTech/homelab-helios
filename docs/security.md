@@ -12,11 +12,11 @@ live. The reasoning behind these requirements is in the [assurance case](assuran
    with `no-new-privileges`, adding back only the few of Docker's default capabilities its image needs
    ([Hardening](#hardening)). No service runs privileged, adds a capability outside Docker's default set, maps a
    host device, shares the host's network or PID namespace, or mounts the Docker socket (which is root on
-   the host), unless the exception is written into the service as a reasoned label and reviewed: the two
+   the host), unless the exception is written into the service as a reasoned label and reviewed: the socket
    exceptions are socket-proxy, which holds the socket read-only on autoheal's behalf, and the Dozzle agent,
-   which holds it read-only to read the containers' logs for the homelab's Dozzle. The GPU is granted as a
-   device reservation through the NVIDIA runtime, not by privilege; an Intel GPU, which has no reservation, as
-   Plex's one device mapping (`/dev/dri`, in `compose.intel.yaml` only, under its `allow.devices` label).
+   which holds it read-only to read the containers' logs for the homelab's Dozzle. Intel Plex's `/dev/dri` device
+   mapping is another exception (`compose.intel.yaml`, under its `allow.devices` label). NVIDIA uses a device
+   reservation through the NVIDIA runtime. Neither GPU configuration uses privileged mode.
 3. **No secrets in the repository.** The services keep their logins, Plex tokens and keys in their own data,
    outside the repository. `.env` holds settings only; Plex's one-time claim token goes in a gitignored
    `plex.env`, and autoheal's optional webhook URL in a gitignored `autoheal.env`. Secret scanning with push protection and a gitleaks scan of the whole history in CI back this up.

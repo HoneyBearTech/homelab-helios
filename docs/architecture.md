@@ -2,15 +2,15 @@
 
 homelab-helios is the Docker Compose definition of **Helios**, a homelab media server: Plex, which streams the
 media library to the household's players, with Tautulli watching what Plex does, and AURA, Kometa and
-ImageMaid managing its artwork, collections and metadata. Helios is an Ubuntu 24.04 virtual machine on amd64 with an NVIDIA GPU passed through for Plex's hardware
-transcoding. The repository holds configuration, not application code: the services run from their upstream
+ImageMaid managing its artwork, collections and metadata. The reference platform is Ubuntu 24.04 on amd64, with NVIDIA, Intel or CPU transcoding selected through the
+Compose configuration. The repository holds configuration, not application code: the services run from their upstream
 images, pinned by digest.
 
 ## Services
 
 | Service | Image source | Role |
 | --- | --- | --- |
-| Plex Media Server | LinuxServer.io | Indexes the media library and streams it to Plex apps, transcoding on the GPU (NVENC/NVDEC) or the CPU |
+| Plex Media Server | LinuxServer.io | Indexes the media library and streams it to Plex apps, transcoding on NVIDIA (NVENC/NVDEC), Intel (Quick Sync / VA-API) or the CPU |
 | Tautulli | LinuxServer.io | Watches Plex: who played what, when, and how; history, statistics and notifications |
 | AURA | MediUX's own image | Browses MediUX artwork sets and applies them to Plex: saves artwork next to the media, or writes sets for Kometa to apply |
 | Kometa | the project's own image | Once a day, builds collections and overlays in Plex and applies artwork and metadata, including the sets AURA writes for it |
@@ -20,7 +20,8 @@ images, pinned by digest.
 | socket-proxy | LinuxServer.io | Gives autoheal a filtered view of the Docker API (list, inspect, restart and stop containers only) on an internal network |
 | Dozzle agent | the project's own image | Agent that serves the containers' logs (read through the Docker socket) to the homelab's Dozzle on another host, which shows every host's logs in one web UI |
 
-Every service has a health check; autoheal acts on it.
+Every service has a health check. autoheal watches services labelled `autoheal: "true"`, which includes
+socket-proxy but excludes autoheal itself; it does not watch or restart itself.
 
 Other services on the same host (an inventory app, a title-card generator, monitoring agents and log storage, Docker management)
 come from their own projects; this stack doesn't include or manage them.
@@ -46,7 +47,7 @@ Plex apps (LAN, or remote if it's on) ──▶ Plex :32400
 Plex ◀──account, sign-in, remote access──▶ plex.tv
 
 Plex ──read/write──▶ media library (network share or local disk)
-Plex ──NVIDIA runtime──▶ GPU
+Plex ──NVIDIA device reservation / Intel /dev/dri mapping──▶ GPU (or CPU fallback)
 Plex ──scratch files──▶ transcode directory
 
 Tautulli ──API──▶ Plex
@@ -58,9 +59,11 @@ ImageMaid ──read/write──▶ Plex's data directory (removes unused images
 LAN browsers ──HTTP(S) via reverse proxy──▶ Tautulli UI · AURA UI
 ```
 
-Each service keeps its settings and database in its own data directory, `CONFIG_ROOT/<service>/config` on the host
-(see [interfaces.md](interfaces.md#volumes-and-mounts)), which is what `scripts/backup.sh` archives; no data is kept
-in a named Docker volume. The media library, Plex's cache and the transcode directory (`CONFIG_ROOT/plex/cache` and
+App services keep their settings and databases in `CONFIG_ROOT/<service>/config` on the host
+(see [interfaces.md](interfaces.md#volumes-and-mounts)). `scripts/backup.sh` archives eligible read-write app data
+mounts and local settings files, subject to backup labels; no data is kept in a named Docker volume. autoheal and
+socket-proxy have no app data to archive, and the Dozzle agent is stateless: its read-only certificate/key files
+are not backed up. Read-only configuration in `kometa/` is kept in git rather than archived. The media library, Plex's cache and the transcode directory (`CONFIG_ROOT/plex/cache` and
 `CONFIG_ROOT/plex/transcode`) are never archived.
 
 ## How changes reach the host
@@ -86,13 +89,15 @@ updater doesn't apply to its container; a new Plex version arrives as a new imag
 | `compose.gpu.yaml` | The NVIDIA GPU for Plex, added on the host with `COMPOSE_FILE` |
 | `compose.intel.yaml`, `compose.cpu.yaml` | An Intel GPU for Plex (`/dev/dri`), and no GPU (no change): the alternatives to `compose.gpu.yaml` |
 | `scripts/select-gpu.sh`, `deploy/systemd/homelab-helios-gpu.service` | At boot, points the gitignored `compose.host-gpu.yaml` at the override for the GPU the host has and recreates Plex when it changed, and keeps an Argus agent's GPU profile (`gpu`, its NVIDIA GPU exporter, or `intel-gpu`, its Intel one) on the GPU chosen; records the GPU chosen as the metric `homelab_gpu_selected{vendor=...}` for the agent's textfile collector ([installing.md](installing.md#the-gpu-at-boot)) |
-| `.env.example`, `plex.env.example`, `autoheal.env.example` | Templates for the settings, Plex's claim token and autoheal's optional webhook |
+| `.env.example`, `plex.env.example`, `autoheal.env.example`, `kometa.env.example`, `backup.env.example` | Templates for Compose settings, service secrets and scheduled backups |
+| `kometa/` | Configuration and collection files mounted read-only, with placeholders for local values |
+| `Makefile`, `requirements-dev.in`, `requirements-dev.txt` | Check/test targets and hashed development dependencies |
 | `scripts/check_compose.py` | The policy check and SBOM generator (standard-library Python) |
 | `scripts/backup.sh`, `scripts/restore.sh` | Backup and restore of every service's data, never the media library; they hold the pull agent's lock while they run, so no deploy overlaps them |
 | `scripts/scheduled-backup.sh`, `deploy/systemd/` | Nightly backup, copied off the host with rsync and pruned, reported to an Uptime Kuma push monitor |
 | `deploy/apt/` | Host setting: keeps the NVIDIA driver out of unattended upgrades ([rebuilding.md](rebuilding.md#2-the-gpu-driver)) |
 | `scripts/smoke-test.sh` | Starts the stack in isolation, waits for health, and round-trips a backup |
-| `tests/` | The checker's tests, with JSON fixtures |
+| `tests/` | Policy checker, backup/deploy locking, GPU selection, upstream watches, Kometa and settings tests, with fixtures |
 | `docs/` | This documentation |
 | `.github/` | CI, release and security workflows, Dependabot, templates |
 | `.gitlab-ci.yml` | The pipeline of the copy on the maintainer's GitLab: mirrors GitHub, re-runs the daemon-free checks |

@@ -6,7 +6,7 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15291/badge)](https://www.bestpractices.dev/projects/15291)
 [![OpenSSF Baseline](https://www.bestpractices.dev/projects/15291/baseline)](https://www.bestpractices.dev/projects/15291)
 
-Docker Compose stack for Helios, a homelab Ubuntu server (24.04, amd64, with an NVIDIA GPU). Version-pinned, self-hosted services, kept as code for easy upgrades and rebuilds.
+Docker Compose stack for Helios, a homelab media server on Ubuntu 24.04, amd64. Supports NVIDIA, Intel and CPU transcoding, with digest-pinned, self-hosted services kept as code for upgrades and rebuilds.
 
 > [!WARNING]
 > Plex's database holds every library, watch history and the server's link to its Plex account, and Plex
@@ -34,7 +34,7 @@ Docker Compose stack for Helios, a homelab Ubuntu server (24.04, amd64, with an 
 
 From their upstream images ([architecture](docs/architecture.md), ports in [interfaces](docs/interfaces.md#services-and-ports)):
 
-- **Plex Media Server**: serves the media library to Plex apps, transcoding on the GPU (NVENC/NVDEC)
+- **Plex Media Server**: serves the media library to Plex apps, transcoding on NVIDIA (NVENC/NVDEC), Intel (Quick Sync / VA-API) or the CPU
 - **Tautulli**: watches Plex: activity, history, statistics and notifications
 - **AURA** (MediUX): browses MediUX artwork sets and applies them to Plex, saving artwork next to the media or
   handing sets to Kometa
@@ -44,35 +44,49 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
 - **Kometa Quickstart**: a web UI for building Kometa configurations; a tool started on demand, without a login
   ([docs/kometa-quickstart.md](docs/kometa-quickstart.md))
 - **autoheal**: restarts any service whose health check fails (Docker on its own only restarts a container that
-  exits), reaching Docker only through **socket-proxy**, which lets it list, inspect, restart and stop containers
+  exits), reaching Docker only through socket-proxy
+- **socket-proxy**: filters autoheal’s Docker API access to listing, inspecting, restarting and stopping containers
 - **Dozzle agent**: serves the containers' logs to the homelab's Dozzle on another host, which shows every host's
   logs in one web UI
 
-Every service has a health check that autoheal watches, and every image is pinned by tag **and** digest, for
-`linux/amd64`. New versions arrive as Renovate pull requests that CI checks and the maintainer reviews
-before merging.
+Every service has a health check. autoheal watches every service except itself: it
+lacks the `autoheal: "true"` label. Every image is pinned by digest and tag for
+`linux/amd64`; autoheal uses `latest` under a documented policy exception rather
+than a version tag. New versions arrive as Renovate pull requests checked by
+required CI and reviewed by the maintainer before merging.
 The maintainer's server follows `main`: a pull agent there applies each merge within a couple of minutes
 ([upgrading](docs/upgrading.md#following-main)). Nothing updates from a registry tag by itself: what runs is always a
 commit in `main`.
 
 ## Getting started
 
-On a fresh Docker host:
+Follow the complete [quick start](docs/quick-start.md) on a fresh Docker host:
 
-```sh
-git clone https://github.com/HoneyBearTech/homelab-helios.git && cd homelab-helios
-cp .env.example .env && chmod 600 .env              # then set TZ, PUID/PGID, MEDIA_PATH and CONFIG_ROOT
-CONFIG_ROOT=$(sed -n 's/^CONFIG_ROOT=//p' .env) && mkdir -p "$CONFIG_ROOT"/plex/{config,cache,transcode} \
-  "$CONFIG_ROOT"/{tautulli,imagemaid,quickstart}/config \
-  "$CONFIG_ROOT"/aura/config/auraassets "$CONFIG_ROOT"/kometa/config/aura
-echo 'COMPOSE_FILE=compose.yaml:compose.gpu.yaml' >> .env   # with an NVIDIA GPU (compose.intel.yaml: Intel)
-docker compose up -d --wait
-```
+1. Prepare root `.env`, data paths and ownership, select NVIDIA, Intel or CPU operation, and prepare Dozzle's
+   certificate and key.
+2. Start only Plex and Tautulli. Claim and configure a new Plex server, add its libraries, then connect Tautulli
+   to it and enable Tautulli's login.
+3. Complete Kometa's separate protected secrets file and ImageMaid's settings locally. Validate Kometa with
+   the real values and require `Result: PASSED` before starting its scheduled service.
+4. Start the full stack, then complete the remaining web UIs. Quickstart remains an on-demand tool.
 
-The host needs the NVIDIA driver, the NVIDIA Container Toolkit 1.18+ and Docker Engine 29.2+ (or Plex loses the GPU
-at every `systemctl daemon-reload`), and the Plex account a Plex Pass, for Plex to transcode on the GPU
-([installing](docs/installing.md#the-gpu-and-docker-292)). The full steps are in the
-[quick start](docs/quick-start.md).
+When adopting configured services, back up and migrate their data first; preserve their setup and verify the
+existing credentials instead of re-claiming Plex ([installing](docs/installing.md#installing)). NVIDIA hardware
+transcoding needs its driver, Container Toolkit 1.18+, Docker Engine 29.2+ and a Plex Pass; Intel needs its kernel
+driver/firmware and a Plex Pass. CPU operation needs no GPU override
+([requirements](docs/installing.md#requirements)).
+
+## Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `compose*.yaml` | Base services and GPU alternatives |
+| `*.env.example` | Local settings and secrets templates |
+| `kometa/` | Read-only Kometa configuration with placeholders |
+| `scripts/` | Validation, backup, restore and maintenance commands |
+| `deploy/` | Example host settings and systemd units |
+| `tests/` | Policy and script tests and fixtures |
+| `docs/` | Setup and operations references |
 
 ## Usage
 
@@ -93,13 +107,19 @@ Settings come from `.env` (template [`.env.example`](.env.example)), which holds
 | Setting | Default in `.env.example` | Meaning |
 | --- | --- | --- |
 | `TZ` | `Etc/UTC` | Time zone |
-| `PUID`, `PGID` | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library |
+| `PUID`, `PGID` | `1000` | User and group Plex, Tautulli, AURA, Kometa, ImageMaid and Quickstart run as; must be able to read and write the media library |
 | `MEDIA_PATH` | `/srv/media` | The media library, mounted read-write into Plex and AURA (never backed up by this stack) |
 | `CONFIG_ROOT` | `/srv/config` | Where every app keeps its data: `CONFIG_ROOT/<app>/config` (settings, database, tokens) and the app's other folders beside it, such as Plex's cache and transcode directory (not backed up). Never inside `/var/lib/docker/volumes` ([why](docs/installing.md#where-data-lives)) |
+| `UMASK` | `002` | File-creation mask for Plex and Tautulli |
+| `IMAGEMAID_SCHEDULE` | `22:00\|weekly(sunday)` | ImageMaid schedule |
 | `KOMETA_TIMES` | `07:30` | When Kometa runs each day (after the nightly backup) |
 
 A new Plex server's one-time claim token goes in a gitignored `plex.env`, never in `.env`
-([interfaces](docs/interfaces.md#plexenv)). Ports, volumes and labels: [docs/interfaces.md](docs/interfaces.md).
+([interfaces](docs/interfaces.md#plexenv)). Kometa reads its own data-directory `.env` from
+[`kometa.env.example`](kometa.env.example), with credentials filled locally ([Kometa settings](docs/interfaces.md#kometa-secrets)).
+Ports, volumes and labels: [docs/interfaces.md](docs/interfaces.md). Operations:
+[backup and upgrades](docs/upgrading.md), [scheduled backups](docs/installing.md#scheduled-backups) and
+[recovery](docs/rebuilding.md).
 
 ## Running it securely
 
@@ -110,7 +130,7 @@ A new Plex server's one-time claim token goes in a gitignored `plex.env`, never 
   Tautulli's login. Docker-published ports bypass host firewalls such as `ufw`.
 - Plex and AURA can write to the media library (AURA saves artwork there; Plex deletes files if you allow media
   deletion). Keep snapshots of it on the storage that holds it; this stack never backs it up.
-- The GPU is given to Plex as a device reservation through the NVIDIA runtime, never by running it privileged.
+- Plex uses an NVIDIA device reservation or Intel’s `/dev/dri` device mapping; neither requires privileged mode.
 - Secrets (Plex and MediUX tokens, Kometa's API keys, logins) live only in each service's data, never in this repository
   or `.env`. Backups contain them, and Plex's and Tautulli's viewing history: keep them private and off the host, and
   encrypt the copy that leaves it (`BACKUP_AGE_RECIPIENT`).
