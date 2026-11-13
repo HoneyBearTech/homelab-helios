@@ -49,9 +49,11 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
 - **Dozzle agent**: serves the containers' logs to the homelab's Dozzle on another host, which shows every host's
   logs in one web UI
 
-Every service has a health check. autoheal watches every service except itself: it lacks the `autoheal: "true"`
-label. Every image is pinned by digest and tag for `linux/amd64`; autoheal uses `latest` under a documented policy
-exception rather than a version tag. New versions arrive as Dependabot pull requests that CI checks before they're merged.
+Every service has a health check. autoheal watches every service except itself: it
+lacks the `autoheal: "true"` label. Every image is pinned by digest and tag for
+`linux/amd64`; autoheal uses `latest` under a documented policy exception rather
+than a version tag. New versions arrive as Renovate pull requests checked by
+required CI and reviewed by the maintainer before merging.
 The maintainer's server follows `main`: a pull agent there applies each merge within a couple of minutes
 ([upgrading](docs/upgrading.md#following-main)). Nothing updates from a registry tag by itself: what runs is always a
 commit in `main`.
