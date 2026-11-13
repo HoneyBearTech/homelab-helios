@@ -47,8 +47,9 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   image, so it's updated when that image is: a newer digest of the same tag carries Debian's newer git.
 - **Patch, minor and major updates merge automatically** once every required check has passed (CI with the Compose
   policy check, the smoke test and the validation of Kometa's configuration against the new Kometa, CodeQL,
-  dependency review). That includes Plex, which releases often: it
-  can't touch the media library, and its updates often fix security issues.
+  dependency review). That includes Plex, whose updates often fix security issues. Plex mounts the media library read-write and
+  can delete files when media deletion is enabled; follow the [media deletion and storage snapshot
+  guidance](installing.md#running-it-securely).
 - **Image rebuilds merge automatically too**: a pull request that only moves an image to a new digest under the
   same tag (a rebuild of the same app version, with newer base packages) and changes nothing else in `compose.yaml`.
 - **Major updates merge automatically too, and so reach the server unattended**: a merge deploys
@@ -95,12 +96,12 @@ reported to code scanning). Each finding is triaged within 14 days:
 
 ### Current findings
 
-Triaged on 2026-10-09, from the scan of `main` at `7e688fc`. Every image was already on its newest upstream
-release, so no bump fixes anything yet (step 1); each finding was assessed for reachability instead (step 2),
-with the pinned images inspected where the answer depended on how a library is used. The alerts stay open in
-code scanning, so they close by themselves when an update ships the fix; none was dismissed. Code scanning
-shows a finding that several images share (same package, same rule) as one alert, under the image scanned
-last.
+Historical October snapshot: triaged on 2026-10-09, from the scan of `main` at `7e688fc`. This table does not
+describe today’s pins or establish their current vulnerability status. At that time, every image was on its newest
+upstream release, so no bump fixed the findings (step 1); each was assessed for reachability instead (step 2),
+with the pinned images inspected where the answer depended on how a library is used. At triage, the alerts were left open in
+code scanning rather than dismissed, to close when an update shipped a fix. Code scanning grouped a finding
+shared by several images (same package, same rule) under the image scanned last.
 
 | Image | Findings | Assessment |
 | --- | --- | --- |
@@ -109,8 +110,9 @@ last.
 | AURA `v0.9.108` | 8: Next.js 16.3.5 (one **critical**: code execution through `next/og`'s `ImageResponse`; and SSRF in the image optimizer), sharp 0.35.4 (its librsvg), OpenSSL 3.5.7 (QUIC server), undici and brace-expansion inside npm | Not reachable. AURA's build doesn't use `next/og` or `ImageResponse`. Its image optimizer fetches only from the patterns compiled into AURA (its own API), and SVG is off, so librsvg isn't reached through it. Node runs no QUIC server, and npm isn't run. AURA publishes its ports to the LAN only, without a port forward, and runs as `PUID`. Next.js 16.3.6 fixes both; it comes with AURA's next release. |
 | ImageMaid `v1.2.0` | 525: 409 in linux-libc-dev, 20 in GitPython 3.1.49, 14 in Pillow 11.2.1, 2 in urllib3 2.6.3, the rest in Debian 13 packages (perl, GnuTLS, OpenSSL, util-linux, curl, Kerberos, and others). The image was last built on 2026-05-02 | Mostly not reachable. linux-libc-dev is kernel headers, and a container runs the host's kernel. GitPython is imported only to read the branch of a git checkout, and the image has none. ImageMaid is Python and talks to Plex through requests, so perl, GnuTLS and curl aren't on its path. **Pillow is the exception**: in `OVERLAYS_ONLY` mode (off by default), ImageMaid opens every unused image in Plex's metadata, and those images come from metadata agents, Kometa and AURA. Leaving that mode off keeps Pillow out of the path. ImageMaid publishes no port, reaches only Plex and runs as `PUID`. |
 
-**Watch: ImageMaid.** Its newest release is from May 2026 and its base image hasn't been rebuilt since. If there
-is still no new release at the January 2027 quarterly review, step 3 applies.
+The October ImageMaid assessment above covered `v1.2.0`. The checked-in Compose pin is now `v1.2.2`; the old
+May-build/January-review condition is no longer a current watch assertion. No replacement security assessment
+is established here.
 
 ## Licenses
 

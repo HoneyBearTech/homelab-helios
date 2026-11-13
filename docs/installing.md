@@ -40,7 +40,7 @@ the container fails with "Failed to initialize NVML: Unknown Error"
 restarting the container brings the GPU back, until the next reload. The compose files are the same either way:
 upgrading Docker is the fix (it restarts every container on the host).
 
-To check a GPU host, reload systemd and ask Plex for the GPU:
+To check an NVIDIA GPU host, reload systemd and ask Plex for the GPU:
 
 ```sh
 docker version --format '{{.Server.Version}}'   # 29.2 or later
@@ -150,16 +150,33 @@ Every mount is listed in [interfaces.md](interfaces.md#volumes-and-mounts).
 
 1. Clone the repository (or download a release's source archive and verify it,
    [verifying-releases.md](verifying-releases.md)).
-2. Create `.env` from `.env.example` (mode `600`) and set every value.
-3. Create the data directories under `CONFIG_ROOT`, owned by `PUID:PGID` (the
-   [quick start](quick-start.md) has the command). Create Kometa's secrets file from `kometa.env.example`, owned by
-   `PUID` and readable only by it, and fill in every value:
-   `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <CONFIG_ROOT>/kometa/config/.env` (the values from
-   `.env`). Kometa reads it itself, so the values stay out of the container's environment. Its configuration,
-   `kometa/`, holds only `<<UPPER_SNAKE>>` placeholders, which Kometa fills from these `KOMETA_*` values. Put the
-   Dozzle agent's certificate and key in `CONFIG_ROOT/dozzle/certs`, owned by root ([below](#dozzles-certificate)).
-4. `docker compose up -d`, then check Kometa's configuration with the real values:
-   `docker compose run --rm kometa --validate --validate-level full` should end with `Result: PASSED`.
+2. Create `.env` from `.env.example` (mode `600`) and set paths, user/group IDs and schedules. Choose CPU-only
+   operation with no override, NVIDIA with `COMPOSE_FILE=compose.yaml:compose.gpu.yaml`, or Intel with
+   `COMPOSE_FILE=compose.yaml:compose.intel.yaml`. Complete the matching host preparation above; NVIDIA's
+   toolkit and container test apply only to NVIDIA. The [boot selector](#the-gpu-at-boot) is optional.
+3. Create the app directories under `CONFIG_ROOT`, owned by `PUID:PGID` even if your shell user differs (the
+   [quick start](quick-start.md) has the command). Create Kometa's secrets file from `kometa.env.example`:
+   `sudo install -m 600 -o <PUID> -g <PGID> kometa.env.example <CONFIG_ROOT>/kometa/config/.env`, substituting
+   local settings. New Plex/Tautulli credentials are obtained after step 5. Put Dozzle's certificate and key in
+   `CONFIG_ROOT/dozzle/certs`, owned by root ([below](#dozzles-certificate)), before the full stack starts.
+4. Immediately before a new Plex server's first start, put a fresh `PLEX_CLAIM` token in gitignored `plex.env`
+   (mode `600`, template `plex.env.example`). Already claimed adopted servers do not need one. Run
+   `docker compose config --quiet`, then `docker compose up -d --wait plex tautulli`; neither service depends
+   on Kometa or ImageMaid, so both scheduled services remain unstarted.
+5. Finish Plex's local setup: claim the new server and add the libraries expected by `kometa/`; enable hardware
+   transcoding only with a prepared GPU. Configure Tautulli, connect it to Plex and enable its login. Obtain
+   the Plex server token and Tautulli API key locally only now. `PLEX_CLAIM` is distinct from
+   `KOMETA_PLEX_SERVER_TOKEN`; empty `plex.env` after claiming. Never print or record credentials in shared output.
+6. Fill every value in Kometa's protected `.env`, including `KOMETA_PLEX_SERVER_TOKEN` and
+   `KOMETA_TAUTULLI_APIKEY`, and verify its configured external integrations and library/path names are ready
+   ([kometa.md](kometa.md), [`kometa.env.example`](../kometa.env.example)). Those integrations are not provisioned
+   by this stack. Kometa reads its own `.env`, separately from Compose's; `kometa/` supplies its read-only
+   configuration and collection files with placeholders. Prepare ImageMaid's own settings in its data directory.
+7. With Plex/Tautulli running and the required integrations available, run
+   `docker compose run --rm kometa --validate --validate-level full` and require `Result: PASSED` before starting
+   scheduled Kometa. Once all prerequisites, including Dozzle's files and ImageMaid's settings, are ready, run
+   `docker compose up -d --wait` and `docker compose ps`. Complete AURA's local web UI setup. The
+   [quick start](quick-start.md) gives the full staged procedure.
 
 **Adopting existing containers.** If the services already run on the host (from Portainer stacks or another Compose
 project), point the stack at their existing data instead of starting empty: stop the old containers, move each service's
@@ -167,6 +184,9 @@ data into its directory under `CONFIG_ROOT` (owned by `PUID:PGID`), and keep the
 container path for the media library**: Plex stores every file's path in its database, so a different mount point makes
 it see a new library and rescan everything, losing watch state for files it can't match. Keep the same image family too
 (Plex's own or LinuxServer.io's), since they lay out `/config` differently. Take a backup of the old data first.
+Existing configured Plex/Tautulli data can satisfy step 5: preserve their identity and setup, verify availability
+and the existing credentials, then complete Kometa’s values and validate before starting scheduled services. Do
+not re-claim or reset an adopted server.
 
 The maintainer's server runs `main` rather than a release, and deploys every merge by itself
 ([upgrading.md](upgrading.md#following-main)). For your own setup, a release is the safer choice.
@@ -236,8 +256,8 @@ it reaches the agent.
 - **Protect the media library.** Plex and AURA mount it read-write: AURA writes artwork into it, and Plex
   deletes files when its "allow media deletion" option is on and someone deletes from a Plex app. Leave that
   option off unless you need it, and keep snapshots on the storage that holds the library.
-- **The GPU through the NVIDIA runtime only.** Plex gets the GPU as a device reservation; never run it
-  privileged to reach the GPU.
+- **Use the matching GPU override.** Plex uses an NVIDIA device reservation or Intel’s `/dev/dri` device
+  mapping; never run it privileged to reach the GPU.
 - Keep `.env` at mode `600`; it holds no secrets by design, but it describes your host. `plex.env` holds the
   claim token: mode `600`, emptied once the server is claimed.
 - Back up the services' data directories ([upgrading.md](upgrading.md#backing-up)), and schedule a nightly copy

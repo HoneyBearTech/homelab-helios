@@ -14,7 +14,7 @@ setting marked required stops `docker compose` with an error naming it when it's
 | --- | --- | --- | --- |
 | `COMPOSE_FILE` | no | `compose.yaml:compose.gpu.yaml` | Read by Docker Compose itself: set it on a host with a GPU so Plex uses it: `compose.gpu.yaml` (NVIDIA), `compose.intel.yaml` (Intel), or `compose.host-gpu.yaml` where `scripts/select-gpu.sh` picks one at boot ([GPU](#gpu)). |
 | `TZ` | yes | `Etc/UTC` | Time zone (tz database name) for logs and schedules. |
-| `PUID`, `PGID` | yes | `1000` | User and group Plex, Tautulli and Kometa run as; must be able to read and write the media library. |
+| `PUID`, `PGID` | yes | `1000` | User and group Plex, Tautulli, AURA, Kometa, ImageMaid and Quickstart run as; must be able to read and write the media library. |
 | `MEDIA_PATH` | yes | `/srv/media` | Host path of the media library, mounted read-write into Plex and AURA. Never backed up by this stack. |
 | `CONFIG_ROOT` | yes | `/srv/config` | Host directory every app keeps its data in: `CONFIG_ROOT/<app>/config` (`<app>` is the service's name) at the app's data path, and the app's other folders beside it as `CONFIG_ROOT/<app>/<purpose>` (Plex's `cache` and `transcode`, never backed up). Never inside `/var/lib/docker/volumes`: a volume prune deletes data kept there ([installing.md](installing.md#where-data-lives)). |
 | `KOMETA_TIMES` | no | `07:30` | When Kometa runs each day (`HH:MM`, comma-separated). Keep it clear of the nightly backup. |
@@ -53,22 +53,33 @@ minutes) links a new server to a Plex account on its first start. It's a secret,
 `plex.env` (mode `600`, optional, template [`plex.env.example`](../plex.env.example)), and is emptied once the
 server is claimed. An adopted server is already claimed and doesn't need it.
 
-No other secret is a setting. If a service ever needs one in its environment, it gets its own gitignored
-`<service>.env` (mode `600`) with a committed `<service>.env.example`, listed here.
+### Kometa secrets
+
+Kometa reads `CONFIG_ROOT/kometa/config/.env` itself, separately from the root `.env` read by Compose. Create it
+from [`kometa.env.example`](../kometa.env.example), owned by `PUID:PGID` with mode `600`, and fill every value
+locally after Plex and Tautulli are configured. It supplies the Plex server token, API keys, integration URLs and
+library/root folder paths for the placeholders in `kometa/`. Values are not injected into the container's
+environment. See [Kometa's configuration](kometa.md) and the staged [quick start](quick-start.md).
+
+Environment secrets such as Plex's claim token and autoheal's webhook use their separate gitignored service
+files; backup settings can also include secrets, as listed above.
 
 ## Services and ports
 
 | Service | Image | Host port → container | What |
 | --- | --- | --- | --- |
 | Plex | `lscr.io/linuxserver/plex` | 32400 → 32400 | Plex's API and web app; what Plex apps connect to, and what remote access exposes if it's on |
-| Tautulli | `lscr.io/linuxserver/tautulli` | 8181 → 8181 | Web UI and API (LAN only) |
-| AURA | `ghcr.io/mediux-team/aura` | 3000 → 3000, 8888 → 8888 | Web UI and its second port (LAN only) |
+| Tautulli | `lscr.io/linuxserver/tautulli` | 8181 → 8181 | Web UI and API (restrict to LAN) |
+| AURA | `ghcr.io/mediux-team/aura` | 3000 → 3000, 8888 → 8888 | Web UI on 3000 and API on 8888 (restrict to LAN) |
 | Kometa | `kometateam/kometa` (release tags) | none | Runs on its schedule |
 | ImageMaid | `kometateam/imagemaid` (release tags) | none | Runs on its schedule |
 | Kometa Quickstart | `kometateam/quickstart` (release tags) | 7171 → 7171 | Web UI, no login; only while started on demand (profile `tools`; LAN only, [quickstart.md](kometa-quickstart.md)) |
 | autoheal | `willfarrell/autoheal` | none | Restarts services whose health check fails |
 | socket-proxy | `lscr.io/linuxserver/socket-proxy` | none (internal network `docker-proxy`) | Filtered Docker API for autoheal |
 | Dozzle agent | `amir20/dozzle` (`command: agent`) | 7007 → 7007 | Agent for the homelab's Dozzle on another host, no web UI of its own (LAN only) |
+
+Published ports bind on all host interfaces unless the operator restricts access. “LAN only” is an operator
+requirement, not a binding enforced by Compose; apply the [access restrictions](installing.md#running-it-securely).
 
 Plex runs on the stack's own network, not the host's, so only 32400 is published. Its local discovery ports (GDM
 on UDP 32410–32414, DLNA on UDP 1900 and TCP 32469) aren't: players find the server through plex.tv instead.
@@ -151,7 +162,7 @@ published; autoheal also joins the default network, to reach its webhook.
 | `org.honeybeartech.helios.allow.<rule>` | Lets one service break one policy rule; the value is the reason, and must not be empty. Rules: `image`, `digest`, `latest`, `build`, `privileged`, `no-new-privileges`, `cap-drop`, `cap-add`, `host-network`, `host-pid`, `docker-socket`, `devices`, `healthcheck` ([security.md](security.md#policy)). In use: `socket-proxy` and `dozzle-agent` (`docker-socket`), and `autoheal` (`latest`, since its image publishes no current version tags), as on the sibling stacks; `plex` (`devices`) in `compose.intel.yaml` only, for an Intel GPU's `/dev/dri`. |
 | `org.honeybeartech.helios.backup.skip` | Container paths (comma-separated, exact) that `scripts/backup.sh` never archives and `scripts/restore.sh` refuses to write, even if a backup lists them. In use: `/media`, the cache and `/transcode` for Plex; `/media` and `/kometa` for AURA; `/auraassets` for Kometa; `/plex` and `/plex/Cache` for ImageMaid (each of those is either never backed up or already backed up with the service that owns it). |
 | `org.honeybeartech.helios.backup.exclude` | Paths inside a service's data mounts (comma-separated, exact container paths) that `scripts/backup.sh` leaves out of the mount's archive and `scripts/restore.sh` leaves in place: data the services re-create, too large to copy every night. A path that isn't inside one of the service's data mounts, or contains `..` or a pattern character (`*?[\`), makes both fail before anything stops. In use: Plex's `Metadata` (artwork) and `Media` (preview thumbnails) under `/config/Library/Application Support/Plex Media Server`; `/config/assets` for Kometa. |
-| `autoheal` | `"true"` on every service autoheal may restart when its health check fails (every service, socket-proxy included). autoheal restarts only containers with this label, so other containers on the host are left alone. |
+| `autoheal` | `"true"` on every service autoheal may restart when its health check fails (every service except autoheal itself, socket-proxy included). autoheal restarts only containers with this label, so other containers on the host are left alone. |
 | `com.centurylinklabs.watchtower.enable` | `"false"` on every service, so an auto-updater such as Watchtower running on the same host never replaces a pinned version. |
 
 ## Commands
