@@ -99,5 +99,5 @@ updater doesn't apply to its container; a new Plex version arrives as a new imag
 | `scripts/smoke-test.sh` | Starts the stack in isolation, waits for health, and round-trips a backup |
 | `tests/` | Policy checker, backup/deploy locking, GPU selection, upstream watches, Kometa and settings tests, with fixtures |
 | `docs/` | This documentation |
-| `.github/` | CI, release and security workflows, Dependabot, templates |
+| `.github/` | CI, release and security workflows, templates |
 | `.gitlab-ci.yml` | The pipeline of the copy on the maintainer's GitLab: mirrors GitHub, re-runs the daemon-free checks |
