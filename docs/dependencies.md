@@ -52,7 +52,7 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   a digest: Renovate turns on GitHub's auto-merge for each pull request, which is squash-merged once every required
   check has passed (Compose policy, smoke test, Kometa validation, CodeQL and dependency review). Nothing skips a
   check, and a failing update stays open for the maintainer. **Plex is the exception:** it is updated by hand
-  (below) and never merges automatically.
+  (below) and never merges automatically. It gets its own pull request, so the weekly group still merges.
 - **A new version waits three days after its release** (`minimumReleaseAge`), so a release that is pulled or fixed
   within days doesn't reach the server; the pull request then merges as above. Fixes for vulnerability alerts skip
   the wait. So does an image rebuild (a new digest under the same tag): Docker Hub dates a rebuild by the tag's

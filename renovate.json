@@ -63,11 +63,12 @@
       "groupName": "CodeQL actions"
     },
     {
-      "description": "Plex is updated by hand: its build tag carries a commit hash that no tag form Renovate reads, a new build is pinned in its own pull request (the weekly Plex watch tells when one exists), and Plex mounts the media library read-write. Never merged automatically.",
+      "description": "Plex is updated by hand: its build tag carries a commit hash that no tag form Renovate reads, a new build is pinned in its own pull request (the weekly Plex watch tells when one exists), and Plex mounts the media library read-write. Never merged automatically. Kept out of the update group (its own pull request), because a group merges automatically only when every update in it may.",
       "matchPackageNames": [
         "lscr.io/linuxserver/plex"
       ],
-      "automerge": false
+      "automerge": false,
+      "groupName": null
     }
   ],
   "schedule": [
