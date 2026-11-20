@@ -37,6 +37,7 @@ file changes with them, in the same pull request.
 
 ## Later
 
+- `docs/kometa.md`: say Renovate, not Dependabot, proposes Kometa updates.
 - Tighter container settings where the images allow it (non-root users; read-only roots for Plex and Tautulli).
   Dropped capabilities and `no-new-privileges` are in place on every service, and read-only roots on the others
   ([security.md](security.md#hardening)).
