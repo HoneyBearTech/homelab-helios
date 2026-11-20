@@ -201,6 +201,8 @@ All notable changes to homelab-helios are documented here. The format follows
   Plex stops trusting the eMudhra certificate authority roots, whose intermediate signing keys were compromised, and
   fixes photos failing to load through a reverse proxy, loudness analysis running on libraries that have it off, and
   remote access still reporting its port as mapped after being turned off.
+- Plex moves to 1.43.5.11079 again, to linuxserver.io's build `ls333` (pinned by hand as the Plex update watch
+  proposed). It is a rebuild of the version pinned before it (`ls331`); Plex itself is unchanged.
 
 ## [0.3.0] - 2026-10-14
 
