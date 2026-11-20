@@ -13,8 +13,9 @@ Issue #20, "Kometa upstream changes": Kometa v2.5.5 is out.
   touching our setup are bug fixes (Tautulli, filters, IMDb/TMDb mapping) and
   one log fix that stops Sonarr/Radarr API keys appearing in Kometa's logs.
   32-bit ARM images are dropped (helios is x86-64).
-- One default we use changed: `defaults/both/genre.yml` no longer maps the
-  "Suspense" genre into the Thriller collection.
+- One default we use changed: in `defaults/both/genre.yml`, a "Suspense" genre
+  collection no longer uses the Thriller poster (corrected after review: it is
+  the artwork map, not which items belong to a collection).
 - Renovate lists the update in its scheduled group of minor and patch updates,
   not yet opened. The last Kometa update (#77) was pinned by hand in the same
   way.
@@ -42,7 +43,8 @@ the release).
 - Merging deploys at once: the pull agent recreates Kometa and validates it with
   the real values (`docs/kometa.md`). A failed run means going back to v2.5.4
   and restoring Kometa's data.
-- Items whose only genre is "Suspense" leave the Thriller collection.
+- A "Suspense" genre collection, if one exists, shows its own poster instead
+  of the Thriller one.
 
 ## Out of scope
 
