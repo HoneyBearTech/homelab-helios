@@ -48,10 +48,18 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
 - **Security updates** use OSV vulnerability alerts and the `security` label. Keep Dependabot alerts enabled.
   Renovate replaces Dependabot's version-update configuration; disabling Dependabot security updates is a
   separate maintainer settings follow-up.
-- **Every update needs review before merging**, including patch, minor and major versions and image rebuilds
-  that change only a digest. Renovate has automerge disabled. Check the release notes and required CI results
-  (Compose policy, smoke test, Kometa validation, CodeQL and dependency review), and take a backup before an
-  update that can migrate data ([upgrading.md](upgrading.md#following-main)).
+- **Updates merge automatically**, including patch, minor and major versions and image rebuilds that change only
+  a digest: Renovate turns on GitHub's auto-merge for each pull request, which is squash-merged once every required
+  check has passed (Compose policy, smoke test, Kometa validation, CodeQL and dependency review). Nothing skips a
+  check, and a failing update stays open for the maintainer. **Plex is the exception:** it is updated by hand
+  (below) and never merges automatically.
+- **A new version waits three days after its release** (`minimumReleaseAge`), so a release that is pulled or fixed
+  within days doesn't reach the server; the pull request then merges as above. Fixes for vulnerability alerts skip
+  the wait. So does an image rebuild (a new digest under the same tag): Docker Hub dates a rebuild by the tag's
+  last push, so a tag rebuilt about weekly would never get through the Monday-only schedule. A version update
+  from a registry that reports no release date isn't held back either.
+- **Take a backup before an update that can migrate data**; the nightly backup is the way back
+  ([upgrading.md](upgrading.md#following-main)).
 - Plex mounts the media library read-write and can delete files when media
   deletion is enabled; follow the [media deletion and storage snapshot
   guidance](installing.md#running-it-securely).
@@ -67,10 +75,10 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   (`v2.18.2-ls246`): it reads `-ls246` as a suffix that must match exactly, so it never proposes another build. With
   the `version-` tag it proposes both new app versions and rebuilds (a new digest under the same tag). socket-proxy
   uses its bare version tag (`3.4.6`) for the same reason. **Plex is updated by hand:** its version carries a commit
-  hash (`1.43.4.10903-e5521bd8c`), which no tag form Dependabot can read, so it keeps its build tag and a new Plex
+  hash (`1.43.4.10903-e5521bd8c`), which no tag form Renovate reads, so it keeps its build tag and a new Plex
   release is pinned in its own pull request. A weekly watch
   ([`plex-update-watch.yml`](../.github/workflows/plex-update-watch.yml),
-  [`scripts/plex_watch.py`](../scripts/plex_watch.py)) stands in for Dependabot: while linuxserver.io has a newer
+  [`scripts/plex_watch.py`](../scripts/plex_watch.py)) stands in for Renovate: while linuxserver.io has a newer
   Plex build (a new version or a rebuild), it keeps one issue, **Plex update available**, up to date with the newer
   builds and the latest one's tag and digest, adds one comment per new finding (no repeats), sends the optional
   alert (its own `PLEX_NTFY_URL` or `PLEX_DISCORD_WEBHOOK` repository secret when set, else the Kometa watch's
@@ -78,8 +86,8 @@ Each release carries a CycloneDX SBOM listing every service's image and digest
   tab or locally without changing anything: `python3 scripts/plex_watch.py --dry-run`. To check the alert reaches
   its channel, run it from the Actions tab with **Only send a test message** ticked: it sends one test message and
   checks nothing else.
-- **A merge deploys.** The maintainer's server follows `main` with a pull agent, so every reviewed merge
-  reaches it within about two minutes ([upgrading.md](upgrading.md#following-main)).
+- **A merge deploys.** The maintainer's server follows `main` with a pull agent, so every merge,
+  the automatic ones included, reaches it within about two minutes ([upgrading.md](upgrading.md#following-main)).
 - **Dependency review** blocks a pull request that adds or changes a Python or Actions dependency with a known
   vulnerability of moderate severity or higher, or a license outside the allowlist.
 - **Nothing on the host updates from a registry.** Auto-updaters such as Watchtower are not used: they would run

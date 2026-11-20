@@ -32,10 +32,10 @@ reasoning, and may change course. Because the code is MIT-licensed, you can alwa
 | Contributor | Anyone who opens an issue or pull request | Follow [CONTRIBUTING.md](CONTRIBUTING.md) (coding standards, tests, sign-off, no secrets or network details) and the [Code of Conduct](CODE_OF_CONDUCT.md); report vulnerabilities privately. |
 | Security reporter | Anyone who reports a vulnerability | Report privately and allow time for a fix before disclosing, as described in [SECURITY.md](SECURITY.md). |
 
-Automated tools also take part: Dependabot proposes updates to the stack's images, the Python check tools
-and the GitHub Actions (patch, minor and major updates merge automatically once every required check passes; a
-merge deploys to the maintainer's server), and CI with the Compose policy check, CodeQL, dependency review and
-OpenSSF Scorecard check every change.
+Automated tools also take part: Renovate proposes updates to the stack's images, the Python check tools
+and the GitHub Actions (patch, minor and major updates merge automatically once every required check passes,
+after a three-day wait; Plex is updated by hand; a merge deploys to the maintainer's server), and CI with the
+Compose policy check, CodeQL, dependency review and OpenSSF Scorecard check every change.
 
 ## Access to sensitive resources
 
@@ -52,7 +52,7 @@ Who can change the code, releases and project settings, as of the date of this f
 | The OpenSSF Best Practices badge entry | the maintainer | GitHub sign-in |
 | Pulling public images from Docker Hub in CI without the anonymous rate limit | the workflow steps that log in (CI, image scan) | a Docker Hub access token limited to reading public repositories |
 | Security advisories and private vulnerability reports | the maintainer | GitHub |
-| Automated changes | Dependabot (pull requests only); the auto-merge workflow turns on auto-merge for its patch, minor and major updates, which GitHub merges only after every required check passes | GitHub, short-lived `GITHUB_TOKEN` |
+| Automated changes | Renovate (pull requests only); it turns on auto-merge for its patch, minor and major updates (Plex excepted), which GitHub merges only after every required check passes | GitHub, short-lived `GITHUB_TOKEN` |
 
 There are no other collaborators. Workflows use the per-job `GITHUB_TOKEN`, read-only unless a job asks for
 more, and repository secrets are only available to the workflows that name them, never to pull requests

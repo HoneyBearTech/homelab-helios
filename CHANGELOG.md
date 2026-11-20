@@ -81,6 +81,9 @@ All notable changes to homelab-helios are documented here. The format follows
 
 ### Changed
 
+- Renovate's pull requests merge automatically once every required check passes, after a three-day wait: patch,
+  minor and major updates and image rebuilds alike (rebuilds and vulnerability fixes skip the wait). Plex is still
+  updated by hand.
 - Plex's health check waits longer before autoheal restarts it (30 s timeout, 5 retries; was 10 s and 3). A busy
   Plex that was slow to answer `/identity` during Kometa's run was restarted most mornings, and Kometa then failed
   with 503 errors. A hung Plex is still restarted, after about 5 minutes instead of 3.
