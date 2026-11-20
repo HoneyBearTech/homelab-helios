@@ -146,6 +146,10 @@ All notable changes to homelab-helios are documented here. The format follows
   retries Plex image uploads that fail with HTTP 502, 503 or 504 (overlays included) instead of stopping with a
   traceback, keeps smart-label collections from alternating between deletion and recreation under `minimum_items`, and
   fixes several MDBList cache entries that returned wrong or missing ratings.
+- Kometa moves to v2.5.5, pinned by hand (Renovate hadn't opened it yet). `kometa/` validates against it unchanged.
+  Of the Kometa defaults it uses, only `genre` changed: "Suspense" no longer maps into the Thriller collection, so
+  items whose only genre is Suspense leave it. The release also stops Sonarr and Radarr API keys appearing in Kometa's
+  logs, fixes bugs in the Tautulli, filter and IMDb/TMDb mapping code, and drops 32-bit ARM images (helios is x86-64).
 
 ### Fixed
 
