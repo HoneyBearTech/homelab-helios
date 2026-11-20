@@ -52,8 +52,9 @@ From their upstream images ([architecture](docs/architecture.md), ports in [inte
 Every service has a health check. autoheal watches every service except itself: it
 lacks the `autoheal: "true"` label. Every image is pinned by digest and tag for
 `linux/amd64`; autoheal uses `latest` under a documented policy exception rather
-than a version tag. New versions arrive as Renovate pull requests checked by
-required CI and reviewed by the maintainer before merging.
+than a version tag. New versions arrive as Renovate pull requests, which merge
+automatically once every required CI check passes (after a three-day wait); Plex is the exception and is updated
+by hand.
 The maintainer's server follows `main`: a pull agent there applies each merge within a couple of minutes
 ([upgrading](docs/upgrading.md#following-main)). Nothing updates from a registry tag by itself: what runs is always a
 commit in `main`.

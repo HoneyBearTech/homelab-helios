@@ -62,12 +62,12 @@ of the Kometa defaults it references.
 - Run it by hand from the Actions tab (**Kometa upstream watch → Run workflow**), or locally without changing
   anything: `python3 scripts/kometa_watch.py --dry-run`.
 
-Dependabot proposes the update itself; the watch is the early warning, with the release notes and the defaults' diff.
+Renovate proposes the update itself; the watch is the early warning, with the release notes and the defaults' diff.
 
 ## Upgrading Kometa safely
 
-1. Dependabot opens a pull request with Kometa's new tag and digest. It merges automatically once every required
-   check passes, **Kometa config** included: a release that rejects `kometa/` doesn't merge.
+1. Renovate opens a pull request with Kometa's new tag and digest. It merges automatically once every required
+   check passes (after the three-day wait), **Kometa config** included: a release that rejects `kometa/` doesn't merge.
 2. A merge deploys: on a server that follows `main`, the pull agent pulls the new image and recreates Kometa
    within minutes ([upgrading.md](upgrading.md#following-main)), then checks Kometa's configuration with the real
    values ([below](#the-check-with-the-real-values-after-a-deploy)). On a server upgraded by hand, follow
@@ -93,7 +93,7 @@ CI validates `kometa/` with dummy values; the real ones exist only on the server
 [`scripts/post-deploy-check.sh`](../scripts/post-deploy-check.sh) after every deploy:
 
 - It validates only when Kometa may have changed since the commit the check last passed on: `kometa/` differs, or
-  the `kometa` service's own lines in `compose.yaml` do (its image, a Dependabot bump or rebuild, among them), or
+  the `kometa` service's own lines in `compose.yaml` do (its image, a Renovate bump or rebuild, among them), or
   it never passed. Otherwise it passes at once.
 - The validation is `docker compose run --rm --no-deps kometa --validate --validate-level full`: a one-off
   container of the same service, with the same image, settings and data directory (so Kometa reads the real values

@@ -32,6 +32,16 @@
   ],
   "packageRules": [
     {
+      "description": "An image rebuild (a new digest under the same tag) skips the 3-day wait: Docker Hub dates a rebuild by the tag's last push, so a tag rebuilt about weekly would restart the clock each time and never get through the Monday-only schedule. Only images: a moved tag on an Action keeps the wait.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
       "matchUpdateTypes": [
         "minor",
         "patch"
@@ -51,6 +61,14 @@
         "github/codeql-action*"
       ],
       "groupName": "CodeQL actions"
+    },
+    {
+      "description": "Plex is updated by hand: its build tag carries a commit hash that no tag form Renovate reads, a new build is pinned in its own pull request (the weekly Plex watch tells when one exists), and Plex mounts the media library read-write. Never merged automatically. Kept out of the update group (its own pull request), because a group merges automatically only when every update in it may.",
+      "matchPackageNames": [
+        "lscr.io/linuxserver/plex"
+      ],
+      "automerge": false,
+      "groupName": null
     }
   ],
   "schedule": [
@@ -66,5 +84,10 @@
       "security"
     ]
   },
-  "automerge": false
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": true,
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional"
 }

@@ -8,7 +8,7 @@ the secure design principles it follows, and how common weaknesses are countered
 | Asset | Threat | Countered by |
 | --- | --- | --- |
 | The host | A compromised or malicious image | Digest pins; versions change only by reviewed pull request; every capability dropped and no new privileges; no privileged, extra capability, device, host-namespace or socket access without a reasoned label (enforced by the policy check in CI and before every release) |
-| The host | An internet attacker exploiting Plex, if remote access is on | Plex updates arrive as weekly Dependabot pull requests; no privileges or host namespaces; the operator decides whether remote access is on ([installing.md](installing.md#running-it-securely)) |
+| The host | An internet attacker exploiting Plex, if remote access is on | Plex updates are pinned by hand, with a weekly watch telling when one exists; no privileges or host namespaces; the operator decides whether remote access is on ([installing.md](installing.md#running-it-securely)) |
 | The media library | A faulty or compromised Plex or AURA changing or deleting files | Only Plex and AURA mount it; Plex's media deletion off unless needed; reviewed upgrades; snapshots on the library's storage (operator) |
 | The media library | A backup or restore script touching it | `/media` is in Plex's and AURA's `org.honeybeartech.helios.backup.skip` labels: `backup.sh` never archives it, and `restore.sh` refuses to write it even if a backup lists it; the smoke test checks both |
 | The media | Someone watching without permission | Plex's own sign-in and sharing (operator's configuration); no "allowed without authentication" networks beyond the LAN |
@@ -18,7 +18,7 @@ the secure design principles it follows, and how common weaknesses are countered
 | The host's devices | The GPU granted by running privileged | GPU only as a device reservation through the NVIDIA runtime; `privileged` refused by the policy check |
 | Plex tokens, logins, certificate keys | Committed to the public repository | Kept in the services' data, never in the repo; the claim token in a gitignored `plex.env`; `.gitignore`; GitHub push protection; gitleaks over the history in CI |
 | Plex tokens, logins, viewing history | Leaked through a backup | `scripts/backup.sh` writes backups readable only by the user who ran it; documented as secret, to be kept off the host; the scheduled copy off the host can be encrypted with age to a key that isn't on the host (`BACKUP_AGE_RECIPIENT`) |
-| The services' data | An upgrade that migrates and breaks it | Backup before every update merged by hand, nightly otherwise; rollback = a revert (or the old tag) + `scripts/restore.sh`, exercised against the real stack by the CI smoke test on every change |
+| The services' data | An upgrade that migrates and breaks it | Backup before every update that can migrate data, nightly otherwise; rollback = a revert (or the old tag) + `scripts/restore.sh`, exercised against the real stack by the CI smoke test on every change |
 | The host | A bad change merged to `main` deploying by itself | The required checks (policy check, smoke test, Kometa validation) pass before any merge; Plex is updated by hand; the pull agent only fast-forwards and backs out a change that doesn't resolve or pull; rollback is a revert pull request |
 | The services' data | A crafted backup writing outside the services' data | `restore.sh` verifies `SHA256SUMS` (which covers the `MANIFEST`), accepts only plain archive names and absolute container paths without `..`, and writes only a mount the service has read-write and doesn't exclude from backups |
 | The release | Tampered release files | Keyless-signed `SHA256SUMS`, SLSA provenance, signed tags |
@@ -70,7 +70,7 @@ of the Plex account that owns the server.
 | CWE-250 (unnecessary privileges) | Container settings, GPU access, the media mount | Policy rules `privileged`, `no-new-privileges`, `cap-drop`, `cap-add`, `host-*`, `docker-socket`, `devices`; read-only root filesystems except Plex and Tautulli; GPU by reservation |
 | CWE-306 (missing authentication for critical function) | Web UIs without a login; Plex's unauthenticated networks; the Dozzle agent's port | LAN only, behind access lists; logins on where offered; Plex's exemption kept to the LAN |
 | CWE-22 (path traversal) | Restoring a backup | `restore.sh` validates archive names and mount paths from the checksummed `MANIFEST` |
-| CWE-1104 (unmaintained third-party components) | Images, tools, Actions | Dependabot weekly; image scan; triage SLAs ([dependencies.md](dependencies.md)) |
+| CWE-1104 (unmaintained third-party components) | Images, tools, Actions | Renovate weekly; image scan; triage SLAs ([dependencies.md](dependencies.md)) |
 | CWE-77/78 (injection) | Workflows, scripts | Untrusted values only via `env:`; actionlint and shellcheck; CodeQL for Actions |
 | CWE-20 (improper input validation) | The checker's input | It reads JSON only with the standard library, never evaluates it, and exits 2 on anything that isn't a JSON object |
 

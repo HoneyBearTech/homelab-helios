@@ -31,7 +31,7 @@ come from their own projects; this stack doesn't include or manage them.
 | Actor | Does |
 | --- | --- |
 | Maintainer | Merges pull requests (a merge deploys), tags releases, configures each service in its web UI |
-| Dependabot | Opens a pull request when an image (tag and digest), a check tool or an Action has a new version; patch, minor and major updates are auto-merged once the checks pass |
+| Renovate | Opens a pull request when an image (tag and digest), a check tool or an Action has a new version; patch, minor and major updates are auto-merged once the checks pass, after a three-day wait (Plex excepted) |
 | CI | Lints, scans for secrets, tests the checker, resolves the Compose file, enforces the policy and smoke-tests the stack on amd64 (without a GPU) on every pull request |
 | Pull agent | On the maintainer's server, about every 90 seconds: fetches `main` and, when it moved, fast-forwards the checkout and runs `docker compose pull` and `docker compose up -d` (it lives in the maintainer's private orchestration repository) |
 | Release workflow | On a version tag: checks the policy, writes the SBOM, signs the checksums, publishes the GitHub Release |
@@ -68,10 +68,10 @@ are not backed up. Read-only configuration in `kometa/` is kept in git rather th
 
 ## How changes reach the host
 
-1. Dependabot (or the maintainer) opens a pull request that changes an image's tag and digest.
+1. Renovate (or the maintainer) opens a pull request that changes an image's tag and digest.
 2. CI resolves the Compose file, runs the policy check and the smoke test.
-3. The pull request is squash-merged (automatically for Dependabot's version updates, majors included, and its
-   image rebuilds, once every check passes).
+3. The pull request is squash-merged (automatically for Renovate's version updates, majors included, and its
+   image rebuilds, once every check passes; Plex is merged by the maintainer).
 4. Within about 90 seconds the pull agent on the host sees `main` move, fast-forwards its checkout and runs
    `docker compose pull && docker compose up -d --remove-orphans --wait`
    ([upgrading.md](upgrading.md#following-main)). A rollback is a revert pull request, deployed the same way.
@@ -99,5 +99,5 @@ updater doesn't apply to its container; a new Plex version arrives as a new imag
 | `scripts/smoke-test.sh` | Starts the stack in isolation, waits for health, and round-trips a backup |
 | `tests/` | Policy checker, backup/deploy locking, GPU selection, upstream watches, Kometa and settings tests, with fixtures |
 | `docs/` | This documentation |
-| `.github/` | CI, release and security workflows, Dependabot, templates |
+| `.github/` | CI, release and security workflows, templates |
 | `.gitlab-ci.yml` | The pipeline of the copy on the maintainer's GitLab: mirrors GitHub, re-runs the daemon-free checks |

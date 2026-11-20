@@ -5,6 +5,13 @@ review found, and where to look. Newest first. The reasons behind the choices
 are in the [decisions log](decisions-log.md); what is planned next is in the
 [roadmap](roadmap.md).
 
+## 2026-11-20: `renovate-automerge`
+
+Renovate merges its pull requests itself once every check passes, majors
+included; new versions wait 3 days, security fixes and image rebuilds don't.
+Plex stays manual (its own pull request). `platformAutomerge` is true. Docs that
+still named Dependabot for the update flow now say Renovate. (#101)
+
 ## 2026-11-20: `kometa-2-5-5`
 
 Kometa pinned to v2.5.5 by digest, as the weekly Kometa watch asked in #20.
